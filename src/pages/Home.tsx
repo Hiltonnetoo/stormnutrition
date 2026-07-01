@@ -921,13 +921,14 @@ const Footer: React.FC = () => {
             </button>
           </div>
         </div>
-        <div className="mt-10 pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left text-sm text-slate-500">
+        <div className="mt-10 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-sm">
           <div>
-            &copy; {new Date().getFullYear()} Storm Nutrition. {t("home.footer_text")}
+            &copy; {new Date().getFullYear()} Storm Nutrition.{" "}
+            {t("home.footer_text")}
           </div>
           <div>
             {t("home.developed_by")}{" "}
-            <span className="font-semibold text-slate-300">Hilton Neto</span>
+            <span className="font-semibold text-white">Hilton Neto</span>
           </div>
         </div>
       </div>

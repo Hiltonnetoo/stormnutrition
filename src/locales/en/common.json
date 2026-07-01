@@ -129,8 +129,8 @@
     "cta_desc": "Join the nutritionists who are saving hours per consultation with Storm Nutrition.",
     "cta_btn": "Create my free account",
     "footer_text": "Made with ❤ for nutritionists.",
-    "developed_by": "Developed by",
-    "footer_patient_area": "Patient Area"
+    "footer_patient_area": "Patient Area",
+    "developed_by": "Developed by"
   },
   "login": {
     "patient_title": "Patient Portal",
