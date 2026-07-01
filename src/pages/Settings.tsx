@@ -47,14 +47,6 @@ const Settings: React.FC = () => {
   const [success, setSuccess] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [theme, setTheme] = useState(
-    () =>
-      localStorage.getItem("theme") ||
-      (window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"),
-  );
-
   const [pwLoading, setPwLoading] = useState(false);
   const [pwMessage, setPwMessage] = useState<{
     type: "success" | "error";
@@ -114,12 +106,6 @@ const Settings: React.FC = () => {
     } finally {
       setPwLoading(false);
     }
-  };
-
-  const handleThemeChange = (newTheme: "light" | "dark") => {
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.classList.toggle("dark", newTheme === "dark");
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -256,41 +242,7 @@ const Settings: React.FC = () => {
           </form>
         </Card>
 
-        {/* Appearance */}
-        <Card className="p-6">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            {t("settings.appearance")}
-          </h2>
-          <p className="text-sm text-slate-500 mb-6">
-            {t("settings.appearance_desc")}
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            {(
-              [
-                { key: "light", icon: "☀️", label: t("settings.mode_light") },
-                { key: "dark", icon: "🌙", label: t("settings.mode_dark") },
-              ] as const
-            ).map((opt) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => handleThemeChange(opt.key)}
-                className={`flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all cursor-pointer ${
-                  theme === opt.key
-                    ? "border-sage-500 bg-sage-50/60 dark:bg-sage-900/10"
-                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
-              >
-                <span className="text-2xl">{opt.icon}</span>
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  {opt.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </Card>
-
-        {/* Security */}
+         {/* Security */}
         <Card className="p-6">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
             {t("settings.security")}

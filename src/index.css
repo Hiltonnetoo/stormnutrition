@@ -69,6 +69,10 @@
    every layered utility (px-*, py-*, m-*). Tailwind preflight already
    resets margins, padding and box-sizing. */
 
+:root {
+  color-scheme: light;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
 }
