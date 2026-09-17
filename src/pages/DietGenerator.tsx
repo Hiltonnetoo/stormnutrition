@@ -560,16 +560,29 @@ const DietGenerator: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!generatedPlan || !currentUser) return;
+    if (saving || !generatedPlan || !currentUser) return;
     setSaving(true);
+    setApiError(null);
     try {
-      if (editingDietId)
+      if (editingDietId) {
         await updateDietPlan(currentUser.uid, editingDietId, generatedPlan);
-      else await saveDietPlan(currentUser.uid, generatedPlan);
+      } else {
+        await saveDietPlan(currentUser.uid, generatedPlan);
+      }
       setSavedPatientData(selectedPatient || null);
       setSaveSuccess(true);
-    } catch {
-      setApiError("Falha ao salvar o plano. Tente novamente.");
+    } catch (err) {
+      console.error("[DietGenerator] Erro ao salvar plano alimentar:", {
+        code: (err as { code?: string })?.code || "unknown",
+        dietId: editingDietId || "new",
+        message: err instanceof Error ? err.message : String(err),
+      });
+      setApiError(
+        t(
+          "diet_generator.save_error",
+          "Não foi possível salvar o plano alimentar. Verifique sua conexão e tente novamente.",
+        ),
+      );
     } finally {
       setSaving(false);
     }

@@ -330,10 +330,10 @@
     "semantic_hash": "e66a990459e02da6273f0479ef6958ba"
   },
   "src/i18n.ts": {
-    "mtime": 1781133786.2373626,
-    "seen": 1789681967.256532,
-    "ast_hash": "2f27e5dd43521b6142847ed2694973ef",
-    "semantic_hash": "2f27e5dd43521b6142847ed2694973ef"
+    "mtime": 1789686250.2869015,
+    "seen": 1789686354.645769,
+    "ast_hash": "06437383c5e95c6b8f85cc84d7941918",
+    "semantic_hash": ""
   },
   "src/index.tsx": {
     "mtime": 1780704291.4530528,
@@ -366,10 +366,10 @@
     "semantic_hash": "1c917520e4c5dfddb704d3ae82308f41"
   },
   "src/pages/DietGenerator.tsx": {
-    "mtime": 1781133786.3511825,
-    "seen": 1789681967.256533,
-    "ast_hash": "dbfd73e854a19cdbf757bbb02f10bfad",
-    "semantic_hash": "dbfd73e854a19cdbf757bbb02f10bfad"
+    "mtime": 1789686182.4317498,
+    "seen": 1789686354.645771,
+    "ast_hash": "547521e0a683ed5c5dcb697dea369fff",
+    "semantic_hash": ""
   },
   "src/pages/EmailAdmin.tsx": {
     "mtime": 1781133786.3580556,
@@ -480,16 +480,16 @@
     "semantic_hash": "9648c0418ed84615650fc4313e134404"
   },
   "src/services/dietAlgorithmService.ts": {
-    "mtime": 1781133786.5053942,
-    "seen": 1789681967.2565382,
-    "ast_hash": "80a858c1ad79edcc58ba2ea7b58dad93",
-    "semantic_hash": "80a858c1ad79edcc58ba2ea7b58dad93"
+    "mtime": 1789686296.472249,
+    "seen": 1789686354.645778,
+    "ast_hash": "69fa7cb8856f1aa113d2e6730d29c5b4",
+    "semantic_hash": ""
   },
   "src/services/dietService.ts": {
-    "mtime": 1780697717.4710715,
-    "seen": 1789681967.2565389,
-    "ast_hash": "3a3b6e8131b6b9b5aea0452d50f01724",
-    "semantic_hash": "3a3b6e8131b6b9b5aea0452d50f01724"
+    "mtime": 1789686279.759537,
+    "seen": 1789686354.645779,
+    "ast_hash": "404c14acd328fb28d210555fefd2d60d",
+    "semantic_hash": ""
   },
   "src/services/emailService.ts": {
     "mtime": 1781133786.513482,
@@ -510,9 +510,9 @@
     "semantic_hash": "6b90544698f85b81a91e2a0bb6b1984f"
   },
   "src/services/firebaseCore.ts": {
-    "mtime": 1789685444.539755,
-    "seen": 1789685811.1668491,
-    "ast_hash": "addd4b4760835e570fa3cc7e2580a6a2",
+    "mtime": 1789686279.7688572,
+    "seen": 1789686354.64578,
+    "ast_hash": "25748857757ae2c49ff623c73a55011f",
     "semantic_hash": ""
   },
   "src/services/firebaseService.ts": {
@@ -552,10 +552,10 @@
     "semantic_hash": "4bb6b8603fa01ada1120d800691e751c"
   },
   "src/types/diet.ts": {
-    "mtime": 1781133392.0375187,
-    "seen": 1789681967.256544,
-    "ast_hash": "7fd2e4c65b9e1a14a3c2a6638a7a4d44",
-    "semantic_hash": "7fd2e4c65b9e1a14a3c2a6638a7a4d44"
+    "mtime": 1789686279.78756,
+    "seen": 1789686354.645782,
+    "ast_hash": "d1770753010632d220817cf111d13796",
+    "semantic_hash": ""
   },
   "src/types/email.ts": {
     "mtime": 1780612572.5028212,
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789685782.2040694,
-    "seen": 1789685811.166877,
-    "ast_hash": "5da1b4a86c1c9e82c4b68b15b3ab0af7",
+    "mtime": 1789686342.3653784,
+    "seen": 1789686354.645806,
+    "ast_hash": "d245755d177c59a95edbc19b8ded1c6d",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1023,6 +1023,18 @@
     "mtime": 1789685654.0152535,
     "seen": 1789685811.166819,
     "ast_hash": "49c84740bcb5898924d7b21ad5e8a1dc",
+    "semantic_hash": ""
+  },
+  "src/services/__tests__/dietService.test.ts": {
+    "mtime": 1789686307.8592288,
+    "seen": 1789686354.6457758,
+    "ast_hash": "4a465c13f9e58251c8a4b0b9e7592ac6",
+    "semantic_hash": ""
+  },
+  "tests-rules/dietPersistence.integration.test.ts": {
+    "mtime": 1789686283.4465322,
+    "seen": 1789686354.645786,
+    "ast_hash": "390ff9dae027922a8c5e3bc808c13d99",
     "semantic_hash": ""
   }
 }

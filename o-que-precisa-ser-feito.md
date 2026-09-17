@@ -180,17 +180,45 @@ Limitações ou decisões pendentes: Nenhuma limitação técnica na etapa 02; p
 
 **Passos:**
 
-1. [ ] Reproduzir geração e gravação de uma dieta sem avisos clínicos em teste de integração.
-2. [ ] Definir DTO de gravação e regras para campos opcionais: ausente, vazio e nulo devem ter significado explícito.
-3. [ ] Omitir propriedades opcionais ausentes na construção/serialização. Evitar depender de `JSON.stringify/parse` como limpeza genérica, pois pode alterar outros tipos.
-4. [ ] Validar números finitos, campos obrigatórios e objetos aninhados antes da gravação. Arrays não devem conter entradas inválidas.
-5. [ ] Usar o mesmo contrato em criação e edição, preservando diferenças entre omitir e remover campos.
-6. [ ] Impedir submissão duplicada enquanto salva e manter o rascunho quando há erro recuperável.
-7. [ ] Exibir erro compreensível e registrar causa técnica sem incluir dados pessoais desnecessários.
+1. [x] Reproduzir geração e gravação de uma dieta sem avisos clínicos em teste de integração.
+2. [x] Definir DTO de gravação e regras para campos opcionais: ausente, vazio e nulo devem ter significado explícito.
+3. [x] Omitir propriedades opcionais ausentes na construção/serialização. Evitar depender de `JSON.stringify/parse` como limpeza genérica, pois pode alterar outros tipos.
+4. [x] Validar números finitos, campos obrigatórios e objetos aninhados antes da gravação. Arrays não devem conter entradas inválidas.
+5. [x] Usar o mesmo contrato em criação e edição, preservando diferenças entre omitir e remover campos.
+6. [x] Impedir submissão duplicada enquanto salva e manter o rascunho quando há erro recuperável.
+7. [x] Exibir erro compreensível e registrar causa técnica sem incluir dados pessoais desnecessários.
 
 **Resultado:** plano exibido pode ser salvo e reaberto sem perda silenciosa de informações.
 
 **Aceite:** testes cobrem dieta com/sem avisos, criação, edição, falha de rede simulada e leitura posterior com equivalência dos dados relevantes.
+
+#### Registro de conclusão — Etapa 03
+
+```text
+Etapa: 03 — Corrigir o contrato de persistência das dietas
+Status: validada
+Commit/PR: Em preparação (referência funcional: etapa 03)
+Arquivos alterados: src/services/dietAlgorithmService.ts, src/types/diet.ts, src/services/dietService.ts, src/services/firebaseCore.ts, src/pages/DietGenerator.tsx, src/i18n.ts, src/services/__tests__/dietService.test.ts (novo), tests-rules/dietPersistence.integration.test.ts (novo), o-que-precisa-ser-feito.md
+Comportamento entregue:
+- Eliminação do erro de `undefined`: `dietAlgorithmService.ts` refatorado para omitir condicionalmente a chave `clinicalWarnings` quando não houver avisos clínicos, em vez de passar `{ clinicalWarnings: undefined }`.
+- DTO de persistência explícito: definidos `DietPlanFirestoreDto` e `DietPlanUpdateDto` em `src/types/diet.ts`, desvinculando o `id` da carga útil do Firestore e documentando a semântica de campos opcionais.
+- Validação e sanitização estritas: implementados `validateAndSerializeDietPlan`, `validateAndSerializeDietUpdate`, `sanitizeMeal`, `sanitizeMealOption`, `sanitizeMealOptionItem` e `sanitizeMicronutrients` em `src/services/dietService.ts`. Valida números finitos (rejeitando `NaN`, `Infinity` e negativos onde aplicável), campos obrigatórios (`patientId`, `patientName`, `dailyCalories`, `meals`) e omite campos opcionais ausentes sem recorrer a `JSON.stringify/parse`.
+- Salvaguarda de infraestrutura: `src/services/firebaseCore.ts` inicializa o Firestore com `initializeFirestore(app, { ignoreUndefinedProperties: true })` e detecta automaticamente `process.env.FIRESTORE_EMULATOR_HOST`.
+- Prevenção de submissão duplicada e preservação de rascunho: `src/pages/DietGenerator.tsx` atualizado com trava `if (saving) return;`, preservação do estado do plano em erros transitórios e registro de erros técnicos no console sem vazamento de dados pessoais (PII).
+- Compatibilidade Node/SSR em `src/i18n.ts`: proteção `typeof localStorage !== "undefined"` adicionada para suporte a testes e scripts CLI.
+- Testes unitários abrangentes: `src/services/__tests__/dietService.test.ts` com 15 testes validando serialização, omissão de undefined, validação de números finitos e rejeição de entradas corrompidas.
+- Testes de integração no emulador: `tests-rules/dietPersistence.integration.test.ts` com 4 cenários ponta a ponta cobrindo geração e gravação real sem avisos clínicos, persistência com avisos (hipertensão), atualização/edição de plano existente e isolamento de segurança entre nutricionistas.
+Testes/comandos e resultados:
+- npm run format:check (100% dos arquivos em conformidade com Prettier)
+- npm run lint (0 erros, 4 avisos herdados de fast-refresh/hooks)
+- npm run type-check (0 erros TypeScript estritos)
+- npm test (68 de 68 testes unitários passando em vitest)
+- npm run test:rules (10 de 10 testes passando: 6 regras Firestore + 4 testes de integração de persistência de dietas no emulador)
+- npm run seed:emulator (sucesso ao popular dados no demo-storm)
+- npm run build (build de produção Vite concluído com sucesso em 1.47s)
+Validação manual e ambiente: Emuladores locais do Firebase (Firestore porta 8080).
+Limitações ou decisões pendentes: Nenhuma limitação técnica na etapa 03; pronto para avanço para Etapa 04 (fluxo de autenticação com estados explícitos).
+```
 
 ### 04 — Tratar autenticação como fluxo com estados explícitos
 

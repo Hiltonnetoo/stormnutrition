@@ -182,3 +182,17 @@ export interface DietPlan {
 export type AnyDietPlan =
   | (V1_DietPlan & { version?: 1 | undefined })
   | DietPlan;
+
+/**
+ * Data Transfer Object (DTO) for saving a DietPlan in Firestore.
+ * - Omits `id` (the document ID is the Firestore doc path key, not a payload field).
+ * - Guarantees all numbers are finite.
+ * - Strictly omits any `undefined` properties.
+ */
+export type DietPlanFirestoreDto = Omit<DietPlan, "id">;
+
+/**
+ * DTO for updating an existing DietPlan document in Firestore.
+ * Must NOT contain `id`. All fields are optional partials.
+ */
+export type DietPlanUpdateDto = Partial<Omit<DietPlan, "id">>;

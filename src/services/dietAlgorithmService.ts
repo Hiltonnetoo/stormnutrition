@@ -4,6 +4,7 @@ import { getNovaGroup, getFoodName } from "./foodService";
 import type {
   Food,
   Meal,
+  MealOptionItem,
   DietMode,
   ClinicalTag,
   DecisionEntry,
@@ -411,7 +412,7 @@ export const generateAlgorithmicDietPlan = ({
       const getWarnings = (
         food: Food,
         stats: ReturnType<typeof calculateStats>,
-      ) => {
+      ): string[] => {
         const warnings: string[] = [];
         if (clinicalTags.includes("hypertension") && stats.micros.sodium > 400)
           warnings.push(i18next.t("diet.warn_high_sodium", "Sódio elevado"));
@@ -424,28 +425,27 @@ export const generateAlgorithmicDietPlan = ({
           warnings.push(
             i18next.t("diet.warn_moderate_gi", "Carga glicêmica moderada"),
           );
-        return warnings.length > 0 ? warnings : undefined;
+        return warnings;
       };
 
-      const items = [
-        {
-          name: getFoodName(proteinSource),
-          portion: `${proteinPortion.toFixed(0)}g`,
-          ...pS,
-          clinicalWarnings: getWarnings(proteinSource, pS),
-        },
-        {
-          name: getFoodName(carbSource),
-          portion: `${carbPortion.toFixed(0)}g`,
-          ...cS,
-          clinicalWarnings: getWarnings(carbSource, cS),
-        },
-        {
-          name: getFoodName(fatSource),
-          portion: `${fatPortion.toFixed(0)}g`,
-          ...fS,
-          clinicalWarnings: getWarnings(fatSource, fS),
-        },
+      const createItem = (
+        food: Food,
+        portionGrams: number,
+        stats: ReturnType<typeof calculateStats>,
+      ): MealOptionItem => {
+        const warnings = getWarnings(food, stats);
+        return {
+          name: getFoodName(food),
+          portion: `${portionGrams.toFixed(0)}g`,
+          ...stats,
+          ...(warnings.length > 0 ? { clinicalWarnings: warnings } : {}),
+        };
+      };
+
+      const items: MealOptionItem[] = [
+        createItem(proteinSource, proteinPortion, pS),
+        createItem(carbSource, carbPortion, cS),
+        createItem(fatSource, fatPortion, fS),
       ];
 
       const andStr = i18next.t("diet.and", "e");
