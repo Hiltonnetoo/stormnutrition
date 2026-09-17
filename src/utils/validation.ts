@@ -221,5 +221,8 @@ export const validatePatient = (raw: unknown): Patient => {
     ),
     dietNeedsReview: Boolean(obj.dietNeedsReview),
     termsAccepted: Boolean(obj.termsAccepted),
+    pendingInvitationId: obj.pendingInvitationId
+      ? sanitizeString(obj.pendingInvitationId)
+      : undefined,
   };
 };

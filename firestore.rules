@@ -65,18 +65,59 @@ service cloud.firestore {
           request.resource.data.weight <= 500));
     }
 
+    // ------------------------------------------------------ invitations
+    match /invitations/{inviteId} {
+      // Individual invite details can be fetched by someone accessing the invitation link
+      allow get: if true;
+
+      // Nutritionist can list only invitations they issued
+      allow list: if isAuthenticated() && resource.data.nutritionistId == request.auth.uid;
+
+      // Nutritionist creates pending invitation for an existing patient
+      allow create: if isAuthenticated() &&
+        request.resource.data.nutritionistId == request.auth.uid &&
+        request.resource.data.status == "pending" &&
+        request.resource.data.patientId is string &&
+        request.resource.data.patientEmail is string &&
+        request.resource.data.expiresAt is string &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/patients/$(request.resource.data.patientId));
+
+      // Nutritionist can revoke, OR patient can accept
+      allow update: if isAuthenticated() && (
+        // Revoke by nutritionist:
+        (resource.data.nutritionistId == request.auth.uid &&
+         request.resource.data.status == "revoked" &&
+         resource.data.status == "pending")
+        ||
+        // Accept by authenticated patient:
+        (resource.data.status == "pending" &&
+         request.resource.data.status == "accepted" &&
+         request.resource.data.acceptedByUid == request.auth.uid &&
+         request.resource.data.nutritionistId == resource.data.nutritionistId &&
+         request.resource.data.patientId == resource.data.patientId &&
+         request.resource.data.patientEmail == resource.data.patientEmail)
+      );
+
+      allow delete: if false;
+    }
+
     // ------------------------------------------------------ patientProfiles
     match /patientProfiles/{profileId} {
       // The profile owner (patient) and the linked nutritionist can read it.
       allow read: if isAuthenticated() &&
         (request.auth.uid == profileId || resource.data.nutritionistId == request.auth.uid);
 
-      // Only the authenticated nutritionist who actually owns the patient can create a link profile.
+      // Link profile can be created by the nutritionist owner OR by the patient themself during invite acceptance.
       allow create: if isAuthenticated() &&
-        request.resource.data.nutritionistId == request.auth.uid &&
         request.resource.data.role == "patient" &&
         request.resource.data.patientId is string &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)/patients/$(request.resource.data.patientId));
+        request.resource.data.nutritionistId is string &&
+        (
+          (request.resource.data.nutritionistId == request.auth.uid &&
+           exists(/databases/$(database)/documents/users/$(request.auth.uid)/patients/$(request.resource.data.patientId)))
+          ||
+          (request.auth.uid == profileId)
+        );
 
       // Only the linked nutritionist can update/delete it, with immutable association IDs.
       allow update: if isAuthenticated() &&
@@ -124,6 +165,13 @@ service cloud.firestore {
         // ...and update ONLY self-service fields with validated non-decreasing history.
         allow update: if isAssociatedPatient(userId, patientId) &&
           patientWriteIsSelfServiceValid();
+
+        // Patient claiming portal access upon accepting invitation:
+        // Can only set portalUid == request.auth.uid when it is not yet bound
+        allow update: if isAuthenticated() &&
+          (!('portalUid' in resource.data) || resource.data.portalUid == null) &&
+          request.resource.data.portalUid == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['portalUid']);
       }
 
       match /diets/{dietId} {

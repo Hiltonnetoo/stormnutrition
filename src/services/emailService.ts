@@ -66,7 +66,9 @@ export interface PortalAccessEmailParams {
   toName: string;
   fromName: string;
   portalUrl: string;
-  passwordText: string;
+  inviteUrl?: string;
+  /** @deprecated Plaintext passwords removed for security */
+  passwordText?: string;
 }
 
 export const sendPortalAccessEmail = async (
@@ -75,6 +77,7 @@ export const sendPortalAccessEmail = async (
   if (!isEmailConfigured()) {
     throw new Error("EMAIL_NOT_CONFIGURED");
   }
+  const actionUrl = params.inviteUrl || params.portalUrl;
   await emailjs.send(
     SERVICE_ID!,
     TEMPLATE_ID!,
@@ -82,13 +85,12 @@ export const sendPortalAccessEmail = async (
       to_email: params.toEmail,
       to_name: params.toName,
       from_name: params.fromName,
-      portal_url: params.portalUrl,
+      portal_url: actionUrl,
       message: i18n.t("email.portal_message", {
         toName: params.toName,
         fromName: params.fromName,
         toEmail: params.toEmail,
-        passwordText: params.passwordText,
-        portalUrl: params.portalUrl,
+        portalUrl: actionUrl,
       }),
     },
     { publicKey: PUBLIC_KEY! },

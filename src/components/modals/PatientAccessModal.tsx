@@ -1,9 +1,10 @@
-import React, { useState } from "react";
-import { FirebaseError } from "firebase/app";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import type { Patient } from "../../types";
+import type { Patient, PatientInvitation } from "../../types";
 import {
-  setupPatientPortalAccess,
+  createOrGetPendingInvitation,
+  revokeInvitation,
+  getInvitationByToken,
   sendPortalPasswordReset,
 } from "../../services/firebaseService";
 import {
@@ -34,43 +35,86 @@ const CopyIcon: React.FC = () => (
   </svg>
 );
 
+const CheckIcon: React.FC = () => (
+  <svg
+    className="w-4 h-4 text-emerald-600"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+);
+
 const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
-  const [password, setPassword] = useState(
-    () => Math.random().toString(36).slice(-8) + "A1!",
-  );
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  const [isEmailInUse, setIsEmailInUse] = useState(false);
   const [sendEmail, setSendEmail] = useState(isEmailConfigured());
   const [emailStatus, setEmailStatus] = useState<
     "idle" | "sending" | "sent" | "failed"
   >("idle");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Invitation state
+  const [activeInvitation, setActiveInvitation] =
+    useState<PatientInvitation | null>(null);
+  const [revoking, setRevoking] = useState(false);
+  const [revokedMessage, setRevokedMessage] = useState(false);
 
   const alreadyHasAccess = !!patient.portalUid;
 
-  const handleGenerate = async () => {
+  const checkExistingInvitation = useCallback(async () => {
+    if (patient.pendingInvitationId) {
+      try {
+        const existing = await getInvitationByToken(
+          patient.pendingInvitationId,
+        );
+        if (existing && existing.status === "pending") {
+          setActiveInvitation(existing);
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar convite existente:", err);
+      }
+    }
+  }, [patient.pendingInvitationId]);
+
+  useEffect(() => {
+    checkExistingInvitation();
+  }, [checkExistingInvitation]);
+
+  const handleGenerateInvitation = async () => {
     if (!currentUser || !patient.id || !patient.email) return;
     setLoading(true);
     setError("");
-    setIsEmailInUse(false);
     setEmailStatus("idle");
+    setRevokedMessage(false);
+
     try {
       const defaultSender = t("email_admin.default_sender", {
-        defaultValue: "Your nutritionist",
+        defaultValue: "Seu nutricionista",
       });
-      await setupPatientPortalAccess(
-        patient.email,
-        password,
-        patient.id,
-        currentUser.uid,
-        currentUser.displayName || currentUser.email || defaultSender,
-        currentUser.email || "",
-      );
+      const senderName =
+        currentUser.displayName || currentUser.email || defaultSender;
+
+      const invitation = await createOrGetPendingInvitation({
+        nutritionistId: currentUser.uid,
+        nutritionistName: senderName,
+        nutritionistEmail: currentUser.email || "",
+        patientId: patient.id,
+        patientEmail: patient.email,
+        patientName: `${patient.firstName} ${patient.lastName}`,
+        validityDays: 7,
+      });
+
+      setActiveInvitation(invitation);
+      const inviteUrl = `${window.location.origin}/#/convite/${invitation.id}`;
 
       // Try sending invitation email
       if (sendEmail) {
@@ -79,10 +123,9 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
           await sendPortalAccessEmail({
             toEmail: patient.email,
             toName: `${patient.firstName} ${patient.lastName}`,
-            fromName:
-              currentUser.displayName || currentUser.email || defaultSender,
-            portalUrl: window.location.origin + "/#/paciente",
-            passwordText: password,
+            fromName: senderName,
+            portalUrl: inviteUrl,
+            inviteUrl,
           });
           setEmailStatus("sent");
         } catch (mailErr) {
@@ -93,17 +136,27 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
 
       setSuccess(true);
     } catch (e) {
-      if (
-        e instanceof FirebaseError &&
-        e.code === "auth/email-already-in-use"
-      ) {
-        setError(t("modals.patient_access.error_already_use"));
-        setIsEmailInUse(true);
-      } else {
-        setError(t("modals.patient_access.error_create_access"));
-      }
+      console.error("Erro ao gerar convite:", e);
+      setError(t("modals.patient_access.error_create_access"));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRevokeInvitation = async () => {
+    if (!currentUser || !activeInvitation) return;
+    setRevoking(true);
+    setError("");
+    try {
+      await revokeInvitation(activeInvitation.id, currentUser.uid);
+      setActiveInvitation(null);
+      setSuccess(false);
+      setRevokedMessage(true);
+    } catch (e) {
+      console.error("Erro ao revogar convite:", e);
+      setError("Falha ao revogar o convite.");
+    } finally {
+      setRevoking(false);
     }
   };
 
@@ -122,7 +175,15 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
     }
   };
 
-  const copyToClipboard = (text: string) => navigator.clipboard.writeText(text);
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  const inviteUrl = activeInvitation
+    ? `${window.location.origin}/#/convite/${activeInvitation.id}`
+    : "";
 
   return (
     <Modal
@@ -132,7 +193,7 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
       description={`${patient.firstName} ${patient.lastName}`}
       icon={
         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-50 text-teal-600 text-xl">
-          🔑
+          ✉️
         </span>
       }
       footer={
@@ -144,13 +205,15 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
           </Button>
           {!success && !alreadyHasAccess && (
             <Button
-              onClick={handleGenerate}
+              onClick={handleGenerateInvitation}
               loading={loading}
               disabled={loading || !patient.email}
             >
               {loading
                 ? t("modals.patient_access.btn_creating")
-                : t("modals.patient_access.btn_generate")}
+                : activeInvitation
+                  ? t("modals.patient_access.btn_resend")
+                  : t("modals.patient_access.btn_generate")}
             </Button>
           )}
         </>
@@ -185,7 +248,13 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
           </div>
         )}
 
-        {!success ? (
+        {revokedMessage && (
+          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+            {t("modals.patient_access.revoked_success")}
+          </div>
+        )}
+
+        {!alreadyHasAccess && !success && (
           <>
             <div>
               <label className="input-label">
@@ -196,31 +265,47 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                   {patient.email}
                 </span>
               </div>
-            </div>
-            <div>
-              <label className="input-label">
-                {t("modals.patient_access.password_label")}
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field font-mono flex-1"
-                />
-                <button
-                  onClick={() =>
-                    setPassword(Math.random().toString(36).slice(-8) + "A1!")
-                  }
-                  className="btn-secondary btn-sm shrink-0"
-                >
-                  {t("modals.patient_access.btn_generate_password")}
-                </button>
-              </div>
               <p className="text-xs text-slate-400 mt-1.5">
                 {t("modals.patient_access.share_hint")}
               </p>
             </div>
+
+            {activeInvitation && (
+              <div className="bg-teal-50/50 dark:bg-teal-950/20 border border-teal-200 dark:border-teal-900/40 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-teal-800 dark:text-teal-300">
+                    {t("modals.patient_access.pending_notice", {
+                      date: new Date(
+                        activeInvitation.createdAt,
+                      ).toLocaleDateString(),
+                    })}
+                  </span>
+                  <button
+                    onClick={handleRevokeInvitation}
+                    disabled={revoking}
+                    className="text-xs text-rose-600 hover:text-rose-700 font-semibold hover:underline"
+                  >
+                    {revoking
+                      ? t("modals.patient_access.revoking")
+                      : t("modals.patient_access.btn_revoke")}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between bg-white dark:bg-slate-800 border border-teal-100 dark:border-teal-900/50 rounded-lg p-2 text-xs">
+                  <span className="font-mono text-slate-600 dark:text-slate-300 truncate max-w-[280px]">
+                    {inviteUrl}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(inviteUrl)}
+                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-teal-600"
+                    title="Copiar"
+                  >
+                    {copied ? <CheckIcon /> : <CopyIcon />}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {isEmailConfigured() ? (
               <div className="flex items-center gap-2 mt-2">
                 <input
@@ -255,52 +340,24 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                   </label>
                 </div>
                 <span className="text-[10px] text-slate-400">
-                  {t("modals.patient_access.email_not_configured_hint", {
-                    defaultValue:
-                      "Email service not configured. Set up EmailJS in .env to enable.",
-                  })}
+                  {t("modals.patient_access.email_not_configured_hint")}
                 </span>
               </div>
             )}
+
             {error && (
               <div className="bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 rounded-xl p-4 text-sm text-rose-600 dark:text-rose-400">
                 <p>{error}</p>
-                {isEmailInUse && (
-                  <div className="mt-3 pt-3 border-t border-rose-200/50 dark:border-rose-900/30">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                      {t("modals.patient_access.reset_existing_email_hint", {
-                        defaultValue:
-                          "You can trigger a password reset link for this email directly below:",
-                      })}
-                    </p>
-                    <Button
-                      onClick={handleResetPassword}
-                      loading={resetLoading}
-                      size="sm"
-                      className="bg-amber-600 hover:bg-amber-700 border-none text-white font-bold text-xs"
-                    >
-                      {resetLoading
-                        ? t("modals.patient_access.btn_sending_reset")
-                        : t("modals.patient_access.btn_send_reset")}
-                    </Button>
-                    {resetSuccess && (
-                      <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                        ✓{" "}
-                        {t("modals.patient_access.reset_success", {
-                          email: patient.email,
-                        })}
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
             )}
           </>
-        ) : (
-          <div className="space-y-3">
-            <div className="bg-sage-50 dark:bg-sage-950/30 border border-sage-200 dark:border-sage-900/50 rounded-xl p-5 text-center">
-              <div className="text-3xl mb-2">✅</div>
-              <p className="font-bold text-sage-800 dark:text-sage-300">
+        )}
+
+        {success && activeInvitation && (
+          <div className="space-y-4">
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-xl p-5 text-center">
+              <div className="text-3xl mb-2">✉️</div>
+              <p className="font-bold text-emerald-800 dark:text-emerald-300">
                 {t("modals.patient_access.success_title")}
               </p>
               {sendEmail && emailStatus === "sent" && (
@@ -314,38 +371,37 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                 </p>
               )}
               {!sendEmail && (
-                <p className="text-sm text-sage-600 dark:text-sage-400 mt-1">
+                <p className="text-sm text-emerald-700 dark:text-emerald-400 mt-1">
                   {t("modals.patient_access.success_share")}
                 </p>
               )}
             </div>
+
             <div className="space-y-2">
-              {[
-                {
-                  label: t("modals.patient_access.portal_link_label"),
-                  value: window.location.origin + "/#/paciente",
-                },
-                { label: t("login.email"), value: patient.email },
-                { label: t("login.password"), value: password },
-              ].map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3"
-                >
-                  <div className="min-w-0">
-                    <p className="text-xs text-slate-500">{label}</p>
-                    <p className="text-sm font-mono font-semibold text-slate-800 dark:text-slate-200 truncate">
-                      {value}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => copyToClipboard(value || "")}
-                    className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors shrink-0"
-                  >
-                    <CopyIcon />
-                  </button>
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3">
+                <div className="min-w-0 flex-1 pr-2">
+                  <p className="text-xs text-slate-500">
+                    {t("modals.patient_access.invite_link_label")}
+                  </p>
+                  <p className="text-xs font-mono font-semibold text-slate-800 dark:text-slate-200 truncate">
+                    {inviteUrl}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {t("modals.patient_access.invite_expires", {
+                      date: new Date(
+                        activeInvitation.expiresAt,
+                      ).toLocaleDateString(),
+                    })}
+                  </p>
                 </div>
-              ))}
+                <button
+                  onClick={() => copyToClipboard(inviteUrl)}
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors shrink-0 text-slate-600 dark:text-slate-300"
+                  title="Copiar link"
+                >
+                  {copied ? <CheckIcon /> : <CopyIcon />}
+                </button>
+              </div>
             </div>
           </div>
         )}

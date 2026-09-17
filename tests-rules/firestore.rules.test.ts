@@ -289,4 +289,108 @@ describe("Firestore security rules - Authorization Matrix", () => {
       await assertFails(getDoc(doc(db, `users/${NUTRI_A}/diets/d1`)));
     });
   });
+
+  describe("7. Invitations and Link Claiming", () => {
+    it("allows nutritionist to create a pending invitation for an existing patient", async () => {
+      const db = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertSucceeds(
+        setDoc(doc(db, "invitations/inv-1"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1",
+          patientEmail: "ana@test.com",
+          status: "pending",
+          expiresAt: "2026-10-01T00:00:00Z",
+        }),
+      );
+    });
+
+    it("FORBIDS nutritionist from creating invitation for a non-existent patient", async () => {
+      const db = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertFails(
+        setDoc(doc(db, "invitations/inv-fake"), {
+          nutritionistId: NUTRI_A,
+          patientId: "non-existent-patient",
+          patientEmail: "fake@test.com",
+          status: "pending",
+          expiresAt: "2026-10-01T00:00:00Z",
+        }),
+      );
+    });
+
+    it("allows anyone (including unauthenticated) to get individual invitation by token", async () => {
+      // Seed invite
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "invitations/inv-public"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1",
+          patientEmail: "ana@test.com",
+          status: "pending",
+          expiresAt: "2026-10-01T00:00:00Z",
+        });
+      });
+
+      const unauthDb = testEnv.unauthenticatedContext().firestore();
+      await assertSucceeds(getDoc(doc(unauthDb, "invitations/inv-public")));
+    });
+
+    it("allows nutritionist to revoke an invitation and patient to accept an invitation", async () => {
+      // Seed invite
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "invitations/inv-revoke"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1",
+          patientEmail: "ana@test.com",
+          status: "pending",
+          expiresAt: "2026-10-01T00:00:00Z",
+        });
+      });
+
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertSucceeds(
+        updateDoc(doc(nutriDb, "invitations/inv-revoke"), {
+          status: "revoked",
+        }),
+      );
+
+      // Seed unlinked patient & invite for patient
+      const newPatientUid = "patientNew123";
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_unlinked`), {
+          firstName: "Novo",
+        });
+        await setDoc(doc(ctx.firestore(), "invitations/inv-accept"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_unlinked",
+          patientEmail: "novo@test.com",
+          status: "pending",
+          expiresAt: "2026-10-01T00:00:00Z",
+        });
+      });
+
+      const patientDb = testEnv.authenticatedContext(newPatientUid).firestore();
+      // Patient accepts invitation
+      await assertSucceeds(
+        updateDoc(doc(patientDb, "invitations/inv-accept"), {
+          status: "accepted",
+          acceptedByUid: newPatientUid,
+        }),
+      );
+
+      // Patient claims portalUid on the unlinked patient doc
+      await assertSucceeds(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p_unlinked`), {
+          portalUid: newPatientUid,
+        }),
+      );
+
+      // Patient creates their patientProfile
+      await assertSucceeds(
+        setDoc(doc(patientDb, `patientProfiles/${newPatientUid}`), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_unlinked",
+          role: "patient",
+        }),
+      );
+    });
+  });
 });

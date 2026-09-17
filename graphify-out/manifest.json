@@ -48,9 +48,9 @@
     "semantic_hash": "524d9d56d2e2c38534bbf904cdabf9e4"
   },
   "src/App.tsx": {
-    "mtime": 1789686694.3888192,
-    "seen": 1789686888.881003,
-    "ast_hash": "fb17a72344a3d0fafc1bd4ea2fca1a1f",
+    "mtime": 1789688512.870858,
+    "seen": 1789688684.3786528,
+    "ast_hash": "4cd5c2e141c00303eb9c96c05871703a",
     "semantic_hash": ""
   },
   "src/components/AppShell.tsx": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "src/components/modals/PatientAccessModal.tsx": {
-    "mtime": 1789685273.767426,
-    "seen": 1789685811.16683,
-    "ast_hash": "62556ddb0cb710785ad392951f8c45a9",
+    "mtime": 1789688531.0901742,
+    "seen": 1789688684.3786619,
+    "ast_hash": "3b55291866753fca1ed2acc13c165819",
     "semantic_hash": ""
   },
   "src/components/modals/PatientDietHistoryModal.tsx": {
@@ -342,16 +342,16 @@
     "semantic_hash": "fd41c1a8220a0a0c9b8ed933945b5966"
   },
   "src/locales/en/common.json": {
-    "mtime": 1782944739.2637239,
-    "seen": 1789681967.256532,
-    "ast_hash": "fd7ca7ab4cc9db2fcdc154b158296f77",
-    "semantic_hash": "fd7ca7ab4cc9db2fcdc154b158296f77"
+    "mtime": 1789688471.969331,
+    "seen": 1789688684.3786721,
+    "ast_hash": "3280b8781836dcee41c524cbe76506ba",
+    "semantic_hash": ""
   },
   "src/locales/pt/common.json": {
-    "mtime": 1782944749.0810678,
-    "seen": 1789681967.256533,
-    "ast_hash": "7728b432086d60b6c4539ba2b59f4c9b",
-    "semantic_hash": "7728b432086d60b6c4539ba2b59f4c9b"
+    "mtime": 1789688459.5822237,
+    "seen": 1789688684.3786721,
+    "ast_hash": "abe727e8e2b09451e740e7bc16618085",
+    "semantic_hash": ""
   },
   "src/pages/Calendar.tsx": {
     "mtime": 1781133786.3090405,
@@ -492,10 +492,10 @@
     "semantic_hash": ""
   },
   "src/services/emailService.ts": {
-    "mtime": 1781133786.513482,
-    "seen": 1789681967.2565389,
-    "ast_hash": "4be3575b76a408c51f825e91a865bd7a",
-    "semantic_hash": "4be3575b76a408c51f825e91a865bd7a"
+    "mtime": 1789688426.4162896,
+    "seen": 1789688684.3786829,
+    "ast_hash": "8879579f84a51260ce6e8e9d5a7f0cd3",
+    "semantic_hash": ""
   },
   "src/services/evaluationService.ts": {
     "mtime": 1789688102.676787,
@@ -516,9 +516,9 @@
     "semantic_hash": ""
   },
   "src/services/firebaseService.ts": {
-    "mtime": 1789686574.58739,
-    "seen": 1789686888.881033,
-    "ast_hash": "c1dcffe2dd1b9c0fd357ca27dbee3d9d",
+    "mtime": 1789688643.1998541,
+    "seen": 1789688684.3786838,
+    "ast_hash": "81a556f3dc3cbe4529c0dade3d25b346",
     "semantic_hash": ""
   },
   "src/services/foodService.ts": {
@@ -576,10 +576,10 @@
     "semantic_hash": ""
   },
   "src/types/patient.ts": {
-    "mtime": 1781133401.2127814,
-    "seen": 1789681967.256545,
-    "ast_hash": "213cd51a9ac09b871d3cc02008aec8d8",
-    "semantic_hash": "213cd51a9ac09b871d3cc02008aec8d8"
+    "mtime": 1789688539.4814403,
+    "seen": 1789688684.378688,
+    "ast_hash": "ec98ffb30049bb0e5cabe075cbe82e72",
+    "semantic_hash": ""
   },
   "src/utils/calcAge.ts": {
     "mtime": 1781133786.5500484,
@@ -624,9 +624,9 @@
     "semantic_hash": "fe7b99ec2c8c4561baf21d77afd011bf"
   },
   "tests-rules/firestore.rules.test.ts": {
-    "mtime": 1789687967.2755919,
-    "seen": 1789688167.617151,
-    "ast_hash": "4282bc9a067f037c3e6b9b1ae0683483",
+    "mtime": 1789688592.2133348,
+    "seen": 1789688684.3786922,
+    "ast_hash": "256471c292d9b8609a31891998a819bb",
     "semantic_hash": ""
   },
   "tsconfig.json": {
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789688158.9658732,
-    "seen": 1789688167.617172,
-    "ast_hash": "d4f6081ba9320d1afe1bfbc4cd5f2fa3",
+    "mtime": 1789688676.9390767,
+    "seen": 1789688684.3787131,
+    "ast_hash": "bb1574f1e9e2c7cbd581a7776661d181",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1044,9 +1044,9 @@
     "semantic_hash": ""
   },
   "src/types/auth.ts": {
-    "mtime": 1789686536.4004874,
-    "seen": 1789686888.881035,
-    "ast_hash": "17ae69ffbceb409a6d2e928f935a7575",
+    "mtime": 1789688643.226512,
+    "seen": 1789688684.378686,
+    "ast_hash": "6b849fc33206f5d37fbd2a1681ac82f3",
     "semantic_hash": ""
   },
   "src/hooks/__tests__/usePersistentState.test.ts": {
@@ -1074,9 +1074,27 @@
     "semantic_hash": ""
   },
   "src/utils/validation.ts": {
-    "mtime": 1789688102.7082322,
-    "seen": 1789688167.61715,
-    "ast_hash": "eeb434fe392c552e1351e01ddebb72f2",
+    "mtime": 1789688556.9688962,
+    "seen": 1789688684.378691,
+    "ast_hash": "c163072f3c4748b7b189fcd36a28e901",
+    "semantic_hash": ""
+  },
+  "src/pages/AcceptInvitation.tsx": {
+    "mtime": 1789688642.9208632,
+    "seen": 1789688684.3786728,
+    "ast_hash": "1046bbefb291659331a13d16613d2cf2",
+    "semantic_hash": ""
+  },
+  "src/services/__tests__/invitationService.test.ts": {
+    "mtime": 1789688643.144054,
+    "seen": 1789688684.37868,
+    "ast_hash": "c19e3fe01f2083bb8547f2ae5f3ca284",
+    "semantic_hash": ""
+  },
+  "src/services/invitationService.ts": {
+    "mtime": 1789688643.2130635,
+    "seen": 1789688684.378685,
+    "ast_hash": "6cf719fb0f4bf906e933bb0af23bf3a5",
     "semantic_hash": ""
   }
 }

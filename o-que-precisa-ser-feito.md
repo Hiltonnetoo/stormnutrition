@@ -367,18 +367,47 @@ Limitações ou decisões pendentes: Nenhuma limitação técnica; regras de Fir
 
 **Passos:**
 
-1. [ ] Definir convite pendente/aceito/expirado/revogado, vinculado ao profissional e paciente corretos.
-2. [ ] Usar mecanismo de convite/definição de senha apropriado do provedor; a senha deve ser definida pelo próprio paciente.
-3. [ ] Executar operações privilegiadas em ambiente confiável quando necessário. Não inserir credenciais administrativas no frontend.
-4. [ ] Remover senha de e-mails, logs, DTOs de envio e interface de compartilhamento.
-5. [ ] Tratar e-mail já cadastrado com aceitação explícita do vínculo; não associar conta existente apenas por conhecer seu e-mail.
-6. [ ] Tornar reenvio e tentativas repetidas idempotentes e limitar abuso no lado confiável.
-7. [ ] Preservar a sessão do profissional e a compensação de falhas; tratar também falha da própria compensação.
-8. [ ] Decidir e documentar se um paciente pode ter múltiplos profissionais. O modelo atual tem um perfil por UID; não prometer múltiplos vínculos sem implementá-los.
+1. [x] Definir convite pendente/aceito/expirado/revogado, vinculado ao profissional e paciente corretos.
+2. [x] Usar mecanismo de convite/definição de senha apropriado do provedor; a senha deve ser definida pelo próprio paciente.
+3. [x] Executar operações privilegiadas em ambiente confiável quando necessário. Não inserir credenciais administrativas no frontend.
+4. [x] Remover senha de e-mails, logs, DTOs de envio e interface de compartilhamento.
+5. [x] Tratar e-mail já cadastrado com aceitação explícita do vínculo; não associar conta existente apenas por conhecer seu e-mail.
+6. [x] Tornar reenvio e tentativas repetidas idempotentes e limitar abuso no lado confiável.
+7. [x] Preservar a sessão do profissional e a compensação de falhas; tratar também falha da própria compensação.
+8. [x] Decidir e documentar se um paciente pode ter múltiplos profissionais. O modelo atual tem um perfil por UID; não prometer múltiplos vínculos sem implementá-los.
 
 **Resultado:** paciente recebe link para estabelecer acesso sem senha conhecida/enviada pelo profissional.
 
 **Aceite:** convite novo, expirado, reutilizado, revogado, e-mail existente, falha de envio e retry cobertos sem mensagens reais nos testes.
+
+```yaml
+Etapa concluída: 07 — Substituir envio de senha por convite seguro
+Data de conclusão: 2026-09-17
+Arquivos alterados:
+- src/types/auth.ts
+- src/types/patient.ts
+- firestore.rules
+- src/services/invitationService.ts
+- src/services/emailService.ts
+- src/services/firebaseService.ts
+- src/utils/validation.ts
+- src/components/modals/PatientAccessModal.tsx
+- src/pages/AcceptInvitation.tsx
+- src/App.tsx
+- src/locales/pt/common.json
+- src/locales/en/common.json
+- src/services/__tests__/invitationService.test.ts
+- tests-rules/firestore.rules.test.ts
+Comandos executados para validação:
+- npm run lint (0 erros, 4 avisos pré-existentes de react-refresh/deps)
+- npm run type-check (0 erros)
+- npm test (121 de 121 testes unitários passando em vitest, incluindo 14 novos testes cobrindo ciclo de vida de convite, expiração, reutilização, revogação, e-mail existente, vínculo explícito e retry)
+- npm run test:rules (24 de 24 testes de regras passando no emulador Firestore: 20 testes de matriz/regras + 4 novos testes cobrindo regras de convite, revogação e vinculação de portal)
+- npm run format:check (100% dos arquivos formatados conforme Prettier)
+- npm run build (build de produção Vite concluído com sucesso em 1.51s)
+Validação manual e ambiente: Emulador Firestore e Vitest simulando criação de convites, link temporário com expiração (7 dias), ativação de nova conta com senha privada definida pelo paciente, confirmação explícita de vínculo para e-mail existente, bloqueio de adulteração de portalUid e bloqueio de múltiplos vínculos profissionais simultâneos (1 perfil por UID).
+Limitações ou decisões pendentes: Decisão documentada conforme Passo 7.8: o sistema suporta 1 perfil por UID de paciente (/patientProfiles/{uid}), vinculando-o a 1 único profissional nesta versão; tentativas de vincular conta já pertencente a outra clínica são bloqueadas informando a restrição. Pronto para Etapa 08 (tornar restrições e dados alimentares explícitos).
+```
 
 ### 08 — Tornar restrições e dados alimentares explícitos
 

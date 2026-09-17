@@ -27,6 +27,16 @@ export {
   sendPortalPasswordReset,
 } from "./authService";
 
+// Import and re-export invitation services
+export {
+  createOrGetPendingInvitation,
+  getInvitationByToken,
+  revokeInvitation,
+  acceptInvitationWithNewAccount,
+  acceptInvitationWithExistingAccount,
+  computeInvitationStatus,
+} from "./invitationService";
+
 // Import and re-export patient domain services
 export {
   addPatient,

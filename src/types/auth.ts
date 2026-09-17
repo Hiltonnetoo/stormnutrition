@@ -19,3 +19,21 @@ export interface NutritionistProfile {
   role: "nutritionist";
   createdAt: string;
 }
+
+export type InvitationStatus = "pending" | "accepted" | "expired" | "revoked";
+
+export interface PatientInvitation {
+  id: string;
+  nutritionistId: string;
+  nutritionistName: string;
+  nutritionistEmail: string;
+  patientId: string;
+  patientEmail: string;
+  patientName: string;
+  status: InvitationStatus;
+  createdAt: string;
+  expiresAt: string;
+  acceptedAt?: string;
+  acceptedByUid?: string;
+  revokedAt?: string;
+}

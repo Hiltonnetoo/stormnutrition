@@ -25,6 +25,7 @@ const Calendar = lazy(() => import("./pages/Calendar"));
 const PatientPortal = lazy(() => import("./pages/PatientPortal"));
 const Reports = lazy(() => import("./pages/Reports"));
 const MetabolicCalculator = lazy(() => import("./pages/MetabolicCalculator"));
+const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 
 const PageLoader: React.FC = () => (
   <div
@@ -171,11 +172,15 @@ const App: React.FC = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/paciente" element={<Login isPatient={true} />} />
+            <Route path="/convite/:token" element={<AcceptInvitation />} />
+            <Route path="/convite" element={<AcceptInvitation />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         ) : userRole === "patient" ? (
           <Routes>
             <Route path="/paciente" element={<PatientPortal />} />
+            <Route path="/convite/:token" element={<AcceptInvitation />} />
+            <Route path="/convite" element={<AcceptInvitation />} />
             <Route path="*" element={<Navigate to="/paciente" />} />
           </Routes>
         ) : (
@@ -194,6 +199,8 @@ const App: React.FC = () => {
               <Route path="/reports" element={<Reports />} />
               <Route path="/email-admin" element={<EmailAdmin />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/convite/:token" element={<AcceptInvitation />} />
+              <Route path="/convite" element={<AcceptInvitation />} />
               <Route path="*" element={<Navigate to="/dashboard" />} />
             </Routes>
           </AppShell>

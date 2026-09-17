@@ -125,6 +125,7 @@ export interface Patient {
     lastAutoRequestDate?: string;
   };
   dietNeedsReview?: boolean;
+  pendingInvitationId?: string;
 }
 
 // --- Patient Portal ---
