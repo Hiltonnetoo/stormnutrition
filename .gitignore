@@ -22,7 +22,6 @@ dist-ssr
 
 # Firebase (gerados pelo firebase-tools, não versionar)
 .firebase/
-firebase.json
 .firebaserc
 
 # Editor

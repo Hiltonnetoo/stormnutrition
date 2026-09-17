@@ -23,5 +23,9 @@ export default defineConfig({
     url: "http://localhost:5005",
     reuseExistingServer: !process.env.CI,
     timeout: 60000,
+    env: {
+      VITE_USE_FIREBASE_EMULATOR: process.env.VITE_USE_FIREBASE_EMULATOR || "true",
+      VITE_FIREBASE_PROJECT_ID: "demo-storm",
+    },
   },
 });

@@ -30,7 +30,7 @@ jobs:
         run: npm ci
 
       - name: Check Code Formatting (Prettier)
-        run: npx prettier --check "src/**/*.{ts,tsx,css,json,md}" "index.html"
+        run: npm run format:check
 
       - name: Run ESLint
         run: npm run lint
@@ -90,8 +90,8 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
       - name: Run Firestore Security Rules Tests (emulator)
         run: npm run test:rules
+
+      - name: Verify Emulator Seed Script
+        run: npm run seed:emulator

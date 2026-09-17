@@ -58,28 +58,28 @@ Limitações ou decisões pendentes:
 
 P0 = bloqueia a confiança na demonstração ou envolve autorização/dados/restrições prometidas. P1 = consolida confiabilidade e usabilidade. P2 = acabamento e evidências para apresentação. A prioridade não é uma classificação formal de vulnerabilidade.
 
-| Ordem | Prioridade | Entrega | Dependências principais |
-|---|---|---|---|
-| 01 | P0 | Baseline e documentação rastreável | Nenhuma |
-| 02 | P0 | Ambiente isolado e CI reproduzível | 01 |
-| 03 | P0 | Persistência confiável das dietas | 02 |
-| 04 | P0 | Autenticação com recuperação de falhas | 02 |
-| 05 | P0 | Isolamento do estado local entre contas | 04 |
-| 06 | P0 | Autorização e contratos de dados | 02, 04 |
-| 07 | P0 | Convite seguro e ciclo de acesso do paciente | 06 |
-| 08 | P0 | Restrições alimentares e proveniência dos dados | 02, 03 |
-| 09 | P0 | Geração validada, rastreável e reproduzível | 08 |
-| 10 | P1 | Históricos concorrentes e datas consistentes | 06 |
-| 11 | P1 | Arquivamento/exclusão e revogação consistentes | 07, 10 |
-| 12 | P1 | Testes completos de domínio, regras e jornada | 03–11; testes pontuais acompanham cada etapa |
-| 13 | P1 | Refatoração das páginas críticas | 12 |
-| 14 | P1 | Consultas e performance medidas | 10, 13 |
-| 15 | P1 | Acessibilidade e experiência responsiva | 13 |
-| 16 | P1 | Internacionalização de ponta a ponta | 09, 13, 15 |
-| 17 | P1 | PDF consistente com o plano salvo | 09, 16 |
-| 18 | P1 | Operação, erros e configuração segura | 04, 06, 12 |
-| 19 | P2 | Demo sintética e simulações transparentes | 12, 15–18 |
-| 20 | P2 | Documentação pública e entrega final | Todas as anteriores |
+| Ordem | Prioridade | Entrega                                         | Dependências principais                      |
+| ----- | ---------- | ----------------------------------------------- | -------------------------------------------- |
+| 01    | P0         | Baseline e documentação rastreável              | Nenhuma                                      |
+| 02    | P0         | Ambiente isolado e CI reproduzível              | 01                                           |
+| 03    | P0         | Persistência confiável das dietas               | 02                                           |
+| 04    | P0         | Autenticação com recuperação de falhas          | 02                                           |
+| 05    | P0         | Isolamento do estado local entre contas         | 04                                           |
+| 06    | P0         | Autorização e contratos de dados                | 02, 04                                       |
+| 07    | P0         | Convite seguro e ciclo de acesso do paciente    | 06                                           |
+| 08    | P0         | Restrições alimentares e proveniência dos dados | 02, 03                                       |
+| 09    | P0         | Geração validada, rastreável e reproduzível     | 08                                           |
+| 10    | P1         | Históricos concorrentes e datas consistentes    | 06                                           |
+| 11    | P1         | Arquivamento/exclusão e revogação consistentes  | 07, 10                                       |
+| 12    | P1         | Testes completos de domínio, regras e jornada   | 03–11; testes pontuais acompanham cada etapa |
+| 13    | P1         | Refatoração das páginas críticas                | 12                                           |
+| 14    | P1         | Consultas e performance medidas                 | 10, 13                                       |
+| 15    | P1         | Acessibilidade e experiência responsiva         | 13                                           |
+| 16    | P1         | Internacionalização de ponta a ponta            | 09, 13, 15                                   |
+| 17    | P1         | PDF consistente com o plano salvo               | 09, 16                                       |
+| 18    | P1         | Operação, erros e configuração segura           | 04, 06, 12                                   |
+| 19    | P2         | Demo sintética e simulações transparentes       | 12, 15–18                                    |
+| 20    | P2         | Documentação pública e entrega final            | Todas as anteriores                          |
 
 ## 4. Etapas detalhadas
 
@@ -128,20 +128,49 @@ Limitações ou decisões pendentes: Formatação dos 5 arquivos e alinhamento d
 
 **Passos:**
 
-1. [ ] Escolher uma versão de Node compatível com todas as dependências travadas e alinhar CI, documentação e arquivo de versão/engines.
-2. [ ] Versionar configuração não secreta dos emuladores e regras. Manter arquivos com segredos fora do Git.
-3. [ ] Declarar Firebase CLI como ferramenta de versão controlada, evitando instalação global sem versão na CI.
-4. [ ] Configurar Auth e Firestore emulados e, se os testes usarem upload, Storage emulado com regras próprias.
-5. [ ] Criar um modo explícito de teste que conecta o SDK aos emuladores antes de qualquer operação, sem conexão duplicada durante recarregamento.
-6. [ ] Usar projeto de demonstração e configuração sintética. Impedir que o modo E2E use serviços reais silenciosamente.
-7. [ ] Criar seed repetível de dois profissionais e pelo menos dois pacientes, com vínculos, dietas e consultas fictícias.
-8. [ ] Configurar inicialização, disponibilidade e limpeza do ambiente para execução local e CI, incluindo retries sem resíduos.
-9. [ ] Verificar compatibilidade Java/Firebase CLI. Executar instalação limpa, formatação em modo check, lint, type-check, build e testes isolados.
-10. [ ] Se houver formatação pendente, corrigi-la em mudança separada das alterações funcionais. Não assumir que `format` sozinho cobre todos os arquivos do repositório.
+1. [x] Escolher uma versão de Node compatível com todas as dependências travadas e alinhar CI, documentação e arquivo de versão/engines.
+2. [x] Versionar configuração não secreta dos emuladores e regras. Manter arquivos com segredos fora do Git.
+3. [x] Declarar Firebase CLI como ferramenta de versão controlada, evitando instalação global sem versão na CI.
+4. [x] Configurar Auth e Firestore emulados e, se os testes usarem upload, Storage emulado com regras próprias.
+5. [x] Criar um modo explícito de teste que conecta o SDK aos emuladores antes de qualquer operação, sem conexão duplicada durante recarregamento.
+6. [x] Usar projeto de demonstração e configuração sintética. Impedir que o modo E2E use serviços reais silenciosamente.
+7. [x] Criar seed repetível de dois profissionais e pelo menos dois pacientes, com vínculos, dietas e consultas fictícias.
+8. [x] Configurar inicialização, disponibilidade e limpeza do ambiente para execução local e CI, incluindo retries sem resíduos.
+9. [x] Verificar compatibilidade Java/Firebase CLI. Executar instalação limpa, formatação em modo check, lint, type-check, build e testes isolados.
+10. [x] Se houver formatação pendente, corrigi-la em mudança separada das alterações funcionais. Não assumir que `format` sozinho cobre todos os arquivos do repositório.
 
 **Resultado:** qualquer avaliador consegue reproduzir o ambiente sem credenciais de produção.
 
 **Aceite:** checkout limpo executa os comandos documentados; teste de regras recebe a configuração versionada; E2E não cria contas nem envia mensagens reais.
+
+#### Registro de conclusão — Etapa 02
+
+```text
+Etapa: 02 — Tornar instalação, emuladores e CI reproduzíveis
+Status: validada
+Commit/PR: Em preparação (referência de estilo: b4131fd; funcional: etapa 02)
+Arquivos alterados: package.json, package-lock.json, .nvmrc, .gitignore, firebase.json, src/services/firebaseCore.ts, playwright.config.ts, scripts/seed-emulator.mjs, .github/workflows/ci.yml, README.md, .env.example, o-que-precisa-ser-feito.md
+Comportamento entregue:
+- Node alinhado em >=20.0.0 em package.json (engines), .nvmrc (20), README.md e CI (.github/workflows/ci.yml).
+- firebase-tools pinado e versionado em devDependencies (v15.30.1), eliminando npm install -g firebase-tools não versionado na CI.
+- firebase.json não-secreto removido do .gitignore e versionado com emuladores de Auth (porta 9099), Firestore (porta 8080) e singleProjectMode configurados.
+- src/services/firebaseCore.ts configurado com conexão explícita a emuladores quando VITE_USE_FIREBASE_EMULATOR=true, com proteção contra conexões duplicadas no HMR (globalThis.__FIREBASE_EMULATORS_CONNECTED__).
+- playwright.config.ts ajustado com variáveis de ambiente do emulador (VITE_USE_FIREBASE_EMULATOR=true, VITE_FIREBASE_PROJECT_ID=demo-storm) garantindo isolamento contra serviços reais em E2E.
+- scripts/seed-emulator.mjs criado usando @firebase/rules-unit-testing com regras desabilitadas para criar 2 profissionais fictícios (Dr. Arnaldo e Dra. Beatriz), 2 pacientes (Carlos e Daniela), vínculos cruzados, dietas e consultas no projeto demo-storm.
+- Scripts adicionados ao package.json: emulators, emulators:exec, seed:emulator.
+- CI (.github/workflows/ci.yml) atualizado usando npx firebase emulators:exec para rodar tanto npm run test:rules quanto npm run seed:emulator com npm test, npx prettier --check ., npm run lint, npm run type-check e npm run build.
+- Formatação Prettier dos 5 arquivos pendentes executada e isolada no commit atômico anterior b4131fd.
+Testes/comandos e resultados:
+- npx prettier --check . (100% dos arquivos em conformidade)
+- npm run lint (0 erros, 0 warnings)
+- npm run type-check (0 erros)
+- npm test (53 de 53 testes unitários passando)
+- npm run test:rules (6 de 6 regras do Firestore validadas nos emuladores locais)
+- npm run seed:emulator (população de 2 nutricionistas, 2 pacientes, dietas e consultas com sucesso no demo-storm)
+- npm run build (build de produção Vite concluído em 1.57s)
+Validação manual e ambiente: macOS local com Node 22, compatível com engines >=20; Java 17 / 21 compatível com Firebase CLI emuladores.
+Limitações ou decisões pendentes: Nenhuma limitação técnica na etapa 02; pronto para avanço para Etapa 03 (contrato de persistência das dietas).
+```
 
 ### 03 — Corrigir o contrato de persistência das dietas
 

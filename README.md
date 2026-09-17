@@ -130,8 +130,9 @@ npm run test:e2e
 ## 🛠️ Local Setup & Environment Config
 
 ### Prerequisites
-*   Node.js v18 or newer
-*   npm v9 or newer
+*   Node.js v20 or newer (v20 or v22 LTS recommended)
+*   npm v10 or newer
+*   Java 17+ (apenas se for executar os emuladores locais do Firebase)
 
 ### Installation
 
@@ -144,7 +145,7 @@ npm run test:e2e
     ```bash
     cp .env.example .env.local
     ```
-    Open `.env.local` and add your Firebase configurations:
+    Open `.env.local` and add your Firebase configurations (or configure `VITE_USE_FIREBASE_EMULATOR=true` for local development):
     ```env
     VITE_FIREBASE_API_KEY=your_api_key_here
     VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain_here
@@ -154,17 +155,24 @@ npm run test:e2e
     VITE_FIREBASE_APP_ID=your_app_id_here
     ```
 
-3.  **Launch Dev Server**:
+3.  **Local Emulators (Optional - Offline Development)**:
+    ```bash
+    npm run emulators       # Inicia emuladores locais de Auth e Firestore
+    npm run seed:emulator   # Popula dados sintéticos de teste (2 nutris, 2 pacientes)
+    ```
+
+4.  **Launch Dev Server**:
     ```bash
     npm run dev
     ```
     The application will run on port `5000` (e.g., `http://localhost:5000`).
 
-4.  **Formatting and Linting Checks**:
+5.  **Quality Checks**:
     ```bash
     npm run lint          # Run ESLint
     npm run type-check    # Strict TypeScript check
     npm run format        # Prettier formatting
+    npm run test:rules    # Testes de regras no emulador
     ```
 
 ---

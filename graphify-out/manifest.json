@@ -24,16 +24,16 @@
     "semantic_hash": "7a815136c555770bcbd105beb9ccbb34"
   },
   "package.json": {
-    "mtime": 1781309546.175085,
-    "seen": 1789681967.256513,
-    "ast_hash": "7f120019b9002e1b02a2cdccfaf7734c",
-    "semantic_hash": "7f120019b9002e1b02a2cdccfaf7734c"
+    "mtime": 1789685796.8159955,
+    "seen": 1789685811.166817,
+    "ast_hash": "daf3d3025959b179216ab0b39fb4635d",
+    "semantic_hash": ""
   },
   "playwright.config.ts": {
-    "mtime": 1780703680.1631596,
-    "seen": 1789681967.256514,
-    "ast_hash": "1fd74dc006749ccc0158c15649e1173b",
-    "semantic_hash": "1fd74dc006749ccc0158c15649e1173b"
+    "mtime": 1789685452.8700864,
+    "seen": 1789685811.166817,
+    "ast_hash": "3393d57d1aa3d8c645965b19bb9cdae9",
+    "semantic_hash": ""
   },
   "public/manifest.json": {
     "mtime": 1781309546.1756957,
@@ -168,10 +168,10 @@
     "semantic_hash": "300b305073f0ad03def5f14d825813a2"
   },
   "src/components/icons.tsx": {
-    "mtime": 1781186198.6497393,
-    "seen": 1789681967.256525,
-    "ast_hash": "7da78831096f6af65ac87fbe6b67f94c",
-    "semantic_hash": "7da78831096f6af65ac87fbe6b67f94c"
+    "mtime": 1789685273.7157078,
+    "seen": 1789685811.166828,
+    "ast_hash": "ef1a26d7455ee8dfc9b295574d8c8126",
+    "semantic_hash": ""
   },
   "src/components/modals/ClinicalReviewModal.tsx": {
     "mtime": 1781133786.0219042,
@@ -192,10 +192,10 @@
     "semantic_hash": "b2e5e515219bc3724282d05ea4f471ad"
   },
   "src/components/modals/PatientAccessModal.tsx": {
-    "mtime": 1781137072.300851,
-    "seen": 1789681967.256526,
-    "ast_hash": "9068f7a30659c3abcbb49f79911dd13b",
-    "semantic_hash": "9068f7a30659c3abcbb49f79911dd13b"
+    "mtime": 1789685273.767426,
+    "seen": 1789685811.16683,
+    "ast_hash": "62556ddb0cb710785ad392951f8c45a9",
+    "semantic_hash": ""
   },
   "src/components/modals/PatientDietHistoryModal.tsx": {
     "mtime": 1781136309.876573,
@@ -402,16 +402,16 @@
     "semantic_hash": "53624a199a63178b0db2c582b6b0f327"
   },
   "src/pages/PatientPortal.tsx": {
-    "mtime": 1781309546.189767,
-    "seen": 1789681967.256535,
-    "ast_hash": "19af306dd390c6bf0888f592ea6e5357",
-    "semantic_hash": "19af306dd390c6bf0888f592ea6e5357"
+    "mtime": 1789685274.133368,
+    "seen": 1789685811.1668422,
+    "ast_hash": "3cdba37c16a4adf7310e1e4b991961a0",
+    "semantic_hash": ""
   },
   "src/pages/PatientProfile.tsx": {
-    "mtime": 1781136286.6662242,
-    "seen": 1789681967.256535,
-    "ast_hash": "312955b4c132a28c67a9531c9b655dcb",
-    "semantic_hash": "312955b4c132a28c67a9531c9b655dcb"
+    "mtime": 1789685274.1616535,
+    "seen": 1789685811.166843,
+    "ast_hash": "3f6225170f26f63a674e577c9724f5ef",
+    "semantic_hash": ""
   },
   "src/pages/Patients.tsx": {
     "mtime": 1781133786.4444869,
@@ -432,10 +432,10 @@
     "semantic_hash": "1e49e748f19146fb5fbc8ef0fae964c1"
   },
   "src/pages/Settings.tsx": {
-    "mtime": 1782946729.0027645,
-    "seen": 1789681967.256536,
-    "ast_hash": "191c77e871761e344649311c21b6d5c6",
-    "semantic_hash": "191c77e871761e344649311c21b6d5c6"
+    "mtime": 1789685274.1978712,
+    "seen": 1789685811.166844,
+    "ast_hash": "e6225022d03b3f2316aa7135c40525a6",
+    "semantic_hash": ""
   },
   "src/pages/__tests__/Dashboard.test.tsx": {
     "mtime": 1781060831.2719643,
@@ -510,10 +510,10 @@
     "semantic_hash": "6b90544698f85b81a91e2a0bb6b1984f"
   },
   "src/services/firebaseCore.ts": {
-    "mtime": 1780612572.500523,
-    "seen": 1789681967.2565398,
-    "ast_hash": "04229357e2f0d8015e9e2e9dd4e61bb9",
-    "semantic_hash": "04229357e2f0d8015e9e2e9dd4e61bb9"
+    "mtime": 1789685444.539755,
+    "seen": 1789685811.1668491,
+    "ast_hash": "addd4b4760835e570fa3cc7e2580a6a2",
+    "semantic_hash": ""
   },
   "src/services/firebaseService.ts": {
     "mtime": 1780701878.6810982,
@@ -948,9 +948,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1781135577.5309103,
-    "seen": 1789685019.1144478,
-    "ast_hash": "60eff374e240bb1982c9aa7d3ca700db",
+    "mtime": 1789685805.0896308,
+    "seen": 1789685811.1668742,
+    "ast_hash": "03edee04d0cfd09223ae05b527a7a8cd",
     "semantic_hash": ""
   },
   "AGENTS.md": {
@@ -972,9 +972,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1781311724.0383604,
-    "seen": 1789685019.1144488,
-    "ast_hash": "6fd34621d299d2ecc6f4fa254dbba11a",
+    "mtime": 1789685697.3279715,
+    "seen": 1789685811.166875,
+    "ast_hash": "01b0d1dc149b01f4b5f1b6a1ca204af5",
     "semantic_hash": ""
   },
   "docs/baseline-matriz.md": {
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789685010.8475864,
-    "seen": 1789685019.11445,
-    "ast_hash": "dc7926ab95997ff263b3f4440e27bdca",
+    "mtime": 1789685782.2040694,
+    "seen": 1789685811.166877,
+    "ast_hash": "5da1b4a86c1c9e82c4b68b15b3ab0af7",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1011,6 +1011,18 @@
     "mtime": 1781136554.7594988,
     "seen": 1789685019.114451,
     "ast_hash": "cee456d4375f3b3f19714fae37be7136",
+    "semantic_hash": ""
+  },
+  "firebase.json": {
+    "mtime": 1789685433.202882,
+    "seen": 1789685811.166816,
+    "ast_hash": "27f1e2d7cb3801d642a39cd8d4d68043",
+    "semantic_hash": ""
+  },
+  "scripts/seed-emulator.mjs": {
+    "mtime": 1789685654.0152535,
+    "seen": 1789685811.166819,
+    "ast_hash": "49c84740bcb5898924d7b21ad5e8a1dc",
     "semantic_hash": ""
   }
 }
