@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebaseCore";
 import type { Patient } from "../types";
+import { validatePatient } from "../utils/validation";
 
 // Helper for error handling
 const handleSnapshotError = (error: FirestoreError, context: string) => {
@@ -38,6 +39,9 @@ export const addPatient = (
   userId: string,
   patientData: Omit<Patient, "id">,
 ) => {
+  if (!patientData.firstName?.trim()) {
+    throw new Error("O nome do paciente é obrigatório.");
+  }
   return addDoc(getPatientsCollection(userId), patientData);
 };
 
@@ -49,9 +53,17 @@ export const updatePatient = (
   return updateDoc(getPatientDoc(userId, patientId), patientData);
 };
 
-export const getPatientById = async (userId: string, patientId: string) => {
+export const getPatientById = async (
+  userId: string,
+  patientId: string,
+): Promise<Patient | null> => {
   const snap = await getDoc(getPatientDoc(userId, patientId));
-  return snap.exists() ? { ...snap.data(), id: snap.id } : null;
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  const createdAt = data.createdAt?.toDate
+    ? data.createdAt.toDate().toISOString()
+    : data.createdAt;
+  return validatePatient({ ...data, id: snap.id, createdAt });
 };
 
 export const deletePatient = async (userId: string, patientId: string) => {
@@ -82,7 +94,7 @@ export const getPatients = (
         const createdAt = data.createdAt?.toDate
           ? data.createdAt.toDate().toISOString()
           : data.createdAt;
-        return { ...data, id: doc.id, createdAt } as Patient;
+        return validatePatient({ ...data, id: doc.id, createdAt });
       });
       patients.sort((a, b) => a.firstName.localeCompare(b.firstName));
       callback(patients);

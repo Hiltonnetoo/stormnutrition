@@ -12,6 +12,7 @@ import { auth, db, storage, updateProfile } from "./firebaseCore";
 import type { User } from "./firebaseCore";
 import type { PatientPortalProfile, NutritionistProfile } from "../types";
 import { firebaseConfig } from "./firebase.config";
+import { validateProfileImage } from "../utils/validation";
 
 export const sendPortalPasswordReset = (email: string) => {
   return sendPasswordResetEmail(auth, email);
@@ -25,6 +26,10 @@ export const uploadProfilePicture = async (
   uid: string,
   file: File,
 ): Promise<string> => {
+  const check = validateProfileImage(file);
+  if (!check.valid) {
+    throw new Error(check.error);
+  }
   const storageRef = ref(storage, `profilePictures/${uid}/${file.name}`);
   const snapshot = await uploadBytes(storageRef, file);
   return getDownloadURL(snapshot.ref);

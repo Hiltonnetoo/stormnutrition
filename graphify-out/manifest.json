@@ -468,9 +468,9 @@
     "semantic_hash": "6c9277959f81bd0c6dd1146c66717f89"
   },
   "src/services/authService.ts": {
-    "mtime": 1789686560.714956,
-    "seen": 1789686888.8810308,
-    "ast_hash": "9e63261b9e7680bc6c65fa6c7f835011",
+    "mtime": 1789687934.1829505,
+    "seen": 1789688167.61714,
+    "ast_hash": "2de45ffcd0f710209a751300f5e30c40",
     "semantic_hash": ""
   },
   "src/services/billingService.ts": {
@@ -498,10 +498,10 @@
     "semantic_hash": "4be3575b76a408c51f825e91a865bd7a"
   },
   "src/services/evaluationService.ts": {
-    "mtime": 1780705383.9090664,
-    "seen": 1789681967.2565389,
-    "ast_hash": "7c82f496c1bba02c30ff34185857e4ee",
-    "semantic_hash": "7c82f496c1bba02c30ff34185857e4ee"
+    "mtime": 1789688102.676787,
+    "seen": 1789688167.617142,
+    "ast_hash": "e79524d9e0931866d42a060a2ef554ea",
+    "semantic_hash": ""
   },
   "src/services/firebase.config.ts": {
     "mtime": 1780612572.5001595,
@@ -534,10 +534,10 @@
     "semantic_hash": "c7d389ceef99134bda434ca8d4b4aa20"
   },
   "src/services/patientService.ts": {
-    "mtime": 1780697766.6450572,
-    "seen": 1789681967.256543,
-    "ast_hash": "c7e7b2262f2fb6f2f682307a67db0db1",
-    "semantic_hash": "c7e7b2262f2fb6f2f682307a67db0db1"
+    "mtime": 1789687895.6542387,
+    "seen": 1789688167.617144,
+    "ast_hash": "9aa7393a366f93511b239ab2f220873e",
+    "semantic_hash": ""
   },
   "src/test/setup.ts": {
     "mtime": 1780702718.2827132,
@@ -624,10 +624,10 @@
     "semantic_hash": "fe7b99ec2c8c4561baf21d77afd011bf"
   },
   "tests-rules/firestore.rules.test.ts": {
-    "mtime": 1781135483.2753625,
-    "seen": 1789681967.256547,
-    "ast_hash": "fadfa5a4bab05a630e95ad341f0144b1",
-    "semantic_hash": "fadfa5a4bab05a630e95ad341f0144b1"
+    "mtime": 1789687967.2755919,
+    "seen": 1789688167.617151,
+    "ast_hash": "4282bc9a067f037c3e6b9b1ae0683483",
+    "semantic_hash": ""
   },
   "tsconfig.json": {
     "mtime": 1780702729.8821762,
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789687600.3485703,
-    "seen": 1789687608.106987,
-    "ast_hash": "437aabcb38517a63e55910b9225020bc",
+    "mtime": 1789688158.9658732,
+    "seen": 1789688167.617172,
+    "ast_hash": "d4f6081ba9320d1afe1bfbc4cd5f2fa3",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1014,9 +1014,9 @@
     "semantic_hash": ""
   },
   "firebase.json": {
-    "mtime": 1789685433.202882,
-    "seen": 1789685811.166816,
-    "ast_hash": "27f1e2d7cb3801d642a39cd8d4d68043",
+    "mtime": 1789687856.4286265,
+    "seen": 1789688167.617109,
+    "ast_hash": "f111f67e4edd2d6abcfc3e2d37ffc8f7",
     "semantic_hash": ""
   },
   "scripts/seed-emulator.mjs": {
@@ -1065,6 +1065,18 @@
     "mtime": 1789687570.116738,
     "seen": 1789687608.1069639,
     "ast_hash": "9eb9d06ac127f117c05a611610e788fa",
+    "semantic_hash": ""
+  },
+  "src/utils/__tests__/validation.test.ts": {
+    "mtime": 1789688102.6884706,
+    "seen": 1789688167.617147,
+    "ast_hash": "2daa34f91a5b87edc862f7c0c5011d6b",
+    "semantic_hash": ""
+  },
+  "src/utils/validation.ts": {
+    "mtime": 1789688102.7082322,
+    "seen": 1789688167.61715,
+    "ast_hash": "eeb434fe392c552e1351e01ddebb72f2",
     "semantic_hash": ""
   }
 }

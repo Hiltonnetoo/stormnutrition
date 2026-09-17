@@ -8,8 +8,13 @@ service cloud.firestore {
     }
 
     // The nutritionist owns the workspace under /users/{userId}.
+    // Verifies authentication and ensures the user is a registered nutritionist,
+    // preventing arbitrary accounts or patients from operating as nutritionists.
     function isNutritionist(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+      return isAuthenticated() &&
+        request.auth.uid == userId &&
+        (!exists(/databases/$(database)/documents/users/$(userId)) ||
+         get(/databases/$(database)/documents/users/$(userId)).data.role == 'nutritionist');
     }
 
     function getPatientProfile() {
@@ -37,9 +42,11 @@ service cloud.firestore {
         resource.data.patientId == getPatientProfile().patientId;
     }
 
-    // Fields a patient is allowed to change on their own record (self-service).
-    // Everything else (clinical tags, goals, contact, etc.) is nutritionist-only.
-    function patientWriteIsSelfServiceOnly() {
+    // Patient self-service update validation:
+    // 1. Only self-service fields can be modified.
+    // 2. Histories (weightHistory, selfEvaluations) cannot be truncated or erased.
+    // 3. Weight value (if present) must be a realistic numeric range.
+    function patientWriteIsSelfServiceValid() {
       return request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly([
           'weight',
@@ -47,7 +54,15 @@ service cloud.firestore {
           'selfEvaluations',
           'adherenceLog',
           'activeProtocolId'
-        ]);
+        ]) &&
+        (!('weightHistory' in resource.data) ||
+         request.resource.data.weightHistory.size() >= resource.data.weightHistory.size()) &&
+        (!('selfEvaluations' in resource.data) ||
+         request.resource.data.selfEvaluations.size() >= resource.data.selfEvaluations.size()) &&
+        (!('weight' in request.resource.data) ||
+         (request.resource.data.weight is number &&
+          request.resource.data.weight >= 10 &&
+          request.resource.data.weight <= 500));
     }
 
     // ------------------------------------------------------ patientProfiles
@@ -55,28 +70,60 @@ service cloud.firestore {
       // The profile owner (patient) and the linked nutritionist can read it.
       allow read: if isAuthenticated() &&
         (request.auth.uid == profileId || resource.data.nutritionistId == request.auth.uid);
-      // Only the nutritionist creating the link may create the profile.
+
+      // Only the authenticated nutritionist who actually owns the patient can create a link profile.
       allow create: if isAuthenticated() &&
-        request.resource.data.nutritionistId == request.auth.uid;
-      // Only the linked nutritionist can update/delete it.
-      allow update, delete: if isAuthenticated() &&
+        request.resource.data.nutritionistId == request.auth.uid &&
+        request.resource.data.role == "patient" &&
+        request.resource.data.patientId is string &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/patients/$(request.resource.data.patientId));
+
+      // Only the linked nutritionist can update/delete it, with immutable association IDs.
+      allow update: if isAuthenticated() &&
+        resource.data.nutritionistId == request.auth.uid &&
+        request.resource.data.patientId == resource.data.patientId &&
+        request.resource.data.nutritionistId == resource.data.nutritionistId &&
+        request.resource.data.role == resource.data.role;
+
+      allow delete: if isAuthenticated() &&
         resource.data.nutritionistId == request.auth.uid;
     }
 
     // ------------------------------------------------------ users workspace
     match /users/{userId} {
       // Nutritionist owns their own workspace document.
-      allow read, write: if isNutritionist(userId);
+      // Creation requires role == 'nutritionist'; role cannot be altered (no self-elevation).
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create: if isAuthenticated() &&
+        request.auth.uid == userId &&
+        request.resource.data.role == "nutritionist";
+      allow update: if isAuthenticated() &&
+        request.auth.uid == userId &&
+        resource.data.role == "nutritionist" &&
+        request.resource.data.role == "nutritionist";
+      allow delete: if false;
 
       match /patients/{patientId} {
-        // Nutritionist has full access to their patients.
-        allow read, write: if isNutritionist(userId);
+        // Nutritionist has access to their patients.
+        allow read, delete: if isNutritionist(userId);
+
+        // Required fields and limits on creation
+        allow create: if isNutritionist(userId) &&
+          request.resource.data.firstName is string &&
+          request.resource.data.firstName.size() > 0 &&
+          request.resource.data.firstName.size() <= 100;
+
+        // Update by nutritionist ensures portalUid immutability once linked
+        allow update: if isNutritionist(userId) &&
+          (!('portalUid' in resource.data) ||
+           resource.data.portalUid == null ||
+           request.resource.data.portalUid == resource.data.portalUid);
 
         // The associated patient may read their own record...
         allow read: if isAssociatedPatient(userId, patientId);
-        // ...and update ONLY self-service fields (weight, self-eval, adherence).
+        // ...and update ONLY self-service fields with validated non-decreasing history.
         allow update: if isAssociatedPatient(userId, patientId) &&
-          patientWriteIsSelfServiceOnly();
+          patientWriteIsSelfServiceValid();
       }
 
       match /diets/{dietId} {

@@ -1,6 +1,7 @@
-import { doc, getDoc, updateDoc, DocumentData } from "firebase/firestore";
+import { doc, getDoc, updateDoc, type DocumentData } from "firebase/firestore";
 import { db } from "./firebaseCore";
 import type { Patient, WeightRecord, SelfEvaluation } from "../types";
+import { validatePatient, validateWeightNumber } from "../utils/validation";
 
 export const logPatientWeight = async (
   nutritionistId: string,
@@ -8,20 +9,21 @@ export const logPatientWeight = async (
   weight: number,
   origin: WeightRecord["origin"] = "self_reported",
 ) => {
+  const validWeight = validateWeightNumber(weight);
   const patientRef = doc(db, "users", nutritionistId, "patients", patientId);
   const snap = await getDoc(patientRef);
   if (!snap.exists()) return;
 
-  const data = snap.data() as Patient;
+  const data = validatePatient({ ...snap.data(), id: snap.id });
   const history = data.weightHistory || [];
   const newRecord = {
     date: new Date().toISOString(),
-    weight,
+    weight: validWeight,
     origin,
   };
 
   return updateDoc(patientRef, {
-    weight: weight,
+    weight: validWeight,
     weightHistory: [...history, newRecord],
   });
 };
@@ -31,6 +33,10 @@ export const requestSelfEvaluation = async (
   patientId: string,
 ) => {
   const patientRef = doc(db, "users", nutritionistId, "patients", patientId);
+  const snap = await getDoc(patientRef);
+  if (!snap.exists()) return;
+
+  const data = validatePatient({ ...snap.data(), id: snap.id });
   const protocolId = `eval_${Date.now()}`;
   const newProtocol = {
     id: protocolId,
@@ -38,8 +44,6 @@ export const requestSelfEvaluation = async (
     status: "pending",
   };
 
-  const snap = await getDoc(patientRef);
-  const data = snap.data() as Patient;
   const evaluations = data.selfEvaluations || [];
 
   return updateDoc(patientRef, {
@@ -58,7 +62,7 @@ export const completeSelfEvaluation = async (
   const snap = await getDoc(patientRef);
   if (!snap.exists()) return;
 
-  const data = snap.data() as Patient;
+  const data = validatePatient({ ...snap.data(), id: snap.id });
   const evaluations = (data.selfEvaluations || []).map((ev) => {
     if (ev.id === protocolId) {
       return {
@@ -78,13 +82,16 @@ export const completeSelfEvaluation = async (
   };
 
   if (evaluationData.measurements?.weight) {
-    updates.weight = evaluationData.measurements.weight;
+    const validWeight = validateWeightNumber(
+      evaluationData.measurements.weight,
+    );
+    updates.weight = validWeight;
     const history = data.weightHistory || [];
     updates.weightHistory = [
       ...history,
       {
         date: new Date().toISOString(),
-        weight: evaluationData.measurements.weight,
+        weight: validWeight,
         origin: "remote_guided",
       },
     ];
@@ -102,7 +109,9 @@ export const logAdherence = async (
   const today = new Date().toISOString().split("T")[0];
 
   const snap = await getDoc(patientRef);
-  const data = snap.data() as Patient;
+  if (!snap.exists()) return;
+
+  const data = validatePatient({ ...snap.data(), id: snap.id });
   const log = data.adherenceLog || [];
 
   // Check if already logged today
@@ -116,11 +125,13 @@ export const logAdherence = async (
 export const updatePatientSettings = async (
   nutritionistId: string,
   patientId: string,
-  settings: Partial<Patient["automationSettings"]>,
+  settings: Partial<NonNullable<Patient["automationSettings"]>>,
 ) => {
   const patientRef = doc(db, "users", nutritionistId, "patients", patientId);
   const snap = await getDoc(patientRef);
-  const data = snap.data() as Patient;
+  if (!snap.exists()) return;
+
+  const data = validatePatient({ ...snap.data(), id: snap.id });
 
   return updateDoc(patientRef, {
     automationSettings: {

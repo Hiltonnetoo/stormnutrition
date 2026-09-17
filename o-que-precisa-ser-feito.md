@@ -321,19 +321,43 @@ Limitações ou decisões pendentes: Nenhuma limitação técnica; isolamento de
 
 **Passos:**
 
-1. [ ] Escrever matriz de operações por papel: profissional proprietário, outro profissional, paciente vinculado, outro paciente e anônimo.
-2. [ ] Definir papéis a partir de fonte confiável. Se usar claims ou backend, documentar provisionamento; se usar documentos, impedir autoelevação por escrita do cliente.
-3. [ ] Permitir onboarding profissional intencional sem confundir ausência de perfil com autorização.
-4. [ ] Validar criação/alteração de vínculos, existência do paciente, propriedade do profissional e aceitação da conta convidada.
-5. [ ] Tornar identificadores de associação imutáveis para clientes comuns; mudanças exigem fluxo autorizado.
-6. [ ] Validar campos permitidos, tipos, obrigatoriedade, limites técnicos e transições de estado também nas regras/backend.
-7. [ ] Separar observações do paciente de registros profissionais. Não permitir que autoatendimento apague ou reescreva registros clínicos de terceiros.
-8. [ ] Adicionar validação de runtime nas fronteiras Firestore/localStorage/formulários. `as Patient` não é validação.
-9. [ ] Inspecionar o upload de fotos: propriedade do caminho, tipo e tamanho precisam de proteção no Storage, além de UX no cliente.
+1. [x] Escrever matriz de operações por papel: profissional proprietário, outro profissional, paciente vinculado, outro paciente e anônimo.
+2. [x] Definir papéis a partir de fonte confiável. Se usar claims ou backend, documentar provisionamento; se usar documentos, impedir autoelevação por escrita do cliente.
+3. [x] Permitir onboarding profissional intencional sem confundir ausência de perfil com autorização.
+4. [x] Validar criação/alteração de vínculos, existência do paciente, propriedade do profissional e aceitação da conta convidada.
+5. [x] Tornar identificadores de associação imutáveis para clientes comuns; mudanças exigem fluxo autorizado.
+6. [x] Validar campos permitidos, tipos, obrigatoriedade, limites técnicos e transições de estado também nas regras/backend.
+7. [x] Separar observações do paciente de registros profissionais. Não permitir que autoatendimento apague ou reescreva registros clínicos de terceiros.
+8. [x] Adicionar validação de runtime nas fronteiras Firestore/localStorage/formulários. `as Patient` não é validação.
+9. [x] Inspecionar o upload de fotos: propriedade do caminho, tipo e tamanho precisam de proteção no Storage, além de UX no cliente.
 
 **Resultado:** autorização sustentada no servidor/regras, com contratos de dados explícitos.
 
 **Aceite:** matriz positiva e negativa testada no emulador, incluindo consultas de listas, criação maliciosa de vínculo, troca de IDs e payload inválido. Não basta testar somente leitura individual.
+
+```yaml
+Etapa concluída: 06 — Fortalecer autorização e validação de dados
+Data de conclusão: 2026-09-17
+Arquivos alterados:
+- firestore.rules
+- storage.rules
+- firebase.json
+- src/utils/validation.ts
+- src/utils/__tests__/validation.test.ts
+- src/services/authService.ts
+- src/services/patientService.ts
+- src/services/evaluationService.ts
+- tests-rules/firestore.rules.test.ts
+Comandos executados para validação:
+- npm run lint (0 erros, 4 avisos pré-existentes de react-refresh/deps)
+- npm run type-check (0 erros)
+- npm test (107 de 107 testes unitários passando em vitest, incluindo 8 novos testes de validação de runtime em fronteiras)
+- npm run test:rules (20 de 20 testes de regras passando no emulador Firestore: 16 cobrindo a matriz positiva/negativa de 5 papéis, autoelevação, integridade de vínculos, imutabilidade de IDs e proteção de históricos clínicos + 4 testes de persistência)
+- npm run format:check (100% dos arquivos formatados conforme Prettier)
+- npm run build (build de produção Vite concluído com sucesso em 1.48s)
+Validação manual e ambiente: Emulador Firestore e Vitest simulando a matriz completa de autorização (nutri_owner, nutri_other, patient_linked, patient_other, anonymous), tentativas de adulteração de histórico/payloads clínicos por pacientes, autoelevação em users/{userId}, verificação de vínculos existentes em patientProfiles, e regras de storage para imagens <= 5MB.
+Limitações ou decisões pendentes: Nenhuma limitação técnica; regras de Firestore e Storage protegidas no servidor, camada de validação ativa em runtime eliminando unsafe casts. Pronto para Etapa 07 (substituir envio de senha por convite seguro).
+```
 
 ### 07 — Substituir envio de senha por convite seguro
 
