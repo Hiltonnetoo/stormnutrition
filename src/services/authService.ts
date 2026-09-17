@@ -10,7 +10,7 @@ import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, db, storage, updateProfile } from "./firebaseCore";
 import type { User } from "./firebaseCore";
-import type { PatientPortalProfile } from "../types";
+import type { PatientPortalProfile, NutritionistProfile } from "../types";
 import { firebaseConfig } from "./firebase.config";
 
 export const sendPortalPasswordReset = (email: string) => {
@@ -42,6 +42,49 @@ export const getPatientPortalProfile = async (
 ): Promise<PatientPortalProfile | null> => {
   const snap = await getDoc(doc(db, "patientProfiles", uid));
   return snap.exists() ? (snap.data() as PatientPortalProfile) : null;
+};
+
+export const getNutritionistProfile = async (
+  uid: string,
+): Promise<NutritionistProfile | null> => {
+  const snap = await getDoc(doc(db, "users", uid));
+  if (snap.exists()) {
+    const data = snap.data();
+    return {
+      uid,
+      email: data.email || "",
+      displayName: data.name || data.displayName || "",
+      role: "nutritionist",
+      createdAt: data.createdAt || "",
+    };
+  }
+  return null;
+};
+
+export const createNutritionistProfile = async (
+  uid: string,
+  data: { email: string; displayName?: string },
+): Promise<NutritionistProfile> => {
+  const profile: NutritionistProfile = {
+    uid,
+    email: data.email,
+    displayName: data.displayName || "",
+    role: "nutritionist",
+    createdAt: new Date().toISOString(),
+  };
+
+  await setDoc(
+    doc(db, "users", uid),
+    {
+      role: "nutritionist",
+      email: profile.email,
+      name: profile.displayName,
+      createdAt: profile.createdAt,
+    },
+    { merge: true },
+  );
+
+  return profile;
 };
 
 export const createPatientPortalProfile = (

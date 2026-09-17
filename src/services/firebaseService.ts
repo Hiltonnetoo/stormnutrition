@@ -19,6 +19,8 @@ export {
   updateUserProfile,
   getPatientPortalProfile,
   createPatientPortalProfile,
+  getNutritionistProfile,
+  createNutritionistProfile,
   updatePatientPortalRef,
   createPatientAccount,
   setupPatientPortalAccess,

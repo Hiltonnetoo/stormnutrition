@@ -48,10 +48,10 @@
     "semantic_hash": "524d9d56d2e2c38534bbf904cdabf9e4"
   },
   "src/App.tsx": {
-    "mtime": 1781133785.8716574,
-    "seen": 1789681967.2565188,
-    "ast_hash": "83fb09765d403434b5b7bffd0fc53717",
-    "semantic_hash": "83fb09765d403434b5b7bffd0fc53717"
+    "mtime": 1789686694.3888192,
+    "seen": 1789686888.881003,
+    "ast_hash": "fb17a72344a3d0fafc1bd4ea2fca1a1f",
+    "semantic_hash": ""
   },
   "src/components/AppShell.tsx": {
     "mtime": 1780503022.6490033,
@@ -300,10 +300,10 @@
     "semantic_hash": "f84b03c382fd0ac424ab25560fa6a48e"
   },
   "src/contexts/AuthContext.tsx": {
-    "mtime": 1780612572.4899507,
-    "seen": 1789681967.256531,
-    "ast_hash": "df1d55dbdc1b291a18dbb9c94bf644c6",
-    "semantic_hash": "df1d55dbdc1b291a18dbb9c94bf644c6"
+    "mtime": 1789686778.1001048,
+    "seen": 1789686888.8810198,
+    "ast_hash": "a69ecc787beceb07ffcf28d26ffb117c",
+    "semantic_hash": ""
   },
   "src/data/foods.ts": {
     "mtime": 1781133786.204837,
@@ -420,10 +420,10 @@
     "semantic_hash": "16fd9fcd76209857f3bbe189310fcb23"
   },
   "src/pages/Register.tsx": {
-    "mtime": 1781146751.2182527,
-    "seen": 1789681967.256536,
-    "ast_hash": "765acdc7ee6ed0e17e984ec569447042",
-    "semantic_hash": "765acdc7ee6ed0e17e984ec569447042"
+    "mtime": 1789686598.817637,
+    "seen": 1789686888.8810282,
+    "ast_hash": "93168e459e62df0d4feda49f1f138f95",
+    "semantic_hash": ""
   },
   "src/pages/Reports.tsx": {
     "mtime": 1781133786.4585633,
@@ -468,10 +468,10 @@
     "semantic_hash": "6c9277959f81bd0c6dd1146c66717f89"
   },
   "src/services/authService.ts": {
-    "mtime": 1781137055.6054394,
-    "seen": 1789681967.2565382,
-    "ast_hash": "d4884a717176a0b3a07d4af90dba955d",
-    "semantic_hash": "d4884a717176a0b3a07d4af90dba955d"
+    "mtime": 1789686560.714956,
+    "seen": 1789686888.8810308,
+    "ast_hash": "9e63261b9e7680bc6c65fa6c7f835011",
+    "semantic_hash": ""
   },
   "src/services/billingService.ts": {
     "mtime": 1781062712.6480272,
@@ -516,10 +516,10 @@
     "semantic_hash": ""
   },
   "src/services/firebaseService.ts": {
-    "mtime": 1780701878.6810982,
-    "seen": 1789681967.256542,
-    "ast_hash": "92b6ce3a0d00d76261ca462beb89b18c",
-    "semantic_hash": "92b6ce3a0d00d76261ca462beb89b18c"
+    "mtime": 1789686574.58739,
+    "seen": 1789686888.881033,
+    "ast_hash": "c1dcffe2dd1b9c0fd357ca27dbee3d9d",
+    "semantic_hash": ""
   },
   "src/services/foodService.ts": {
     "mtime": 1781133786.5258067,
@@ -570,10 +570,10 @@
     "semantic_hash": "737beba218d8d40187dbc377b9d4a3ca"
   },
   "src/types/index.ts": {
-    "mtime": 1780612572.5031517,
-    "seen": 1789681967.256545,
-    "ast_hash": "4a3faf8ea4f0c7833a406137c4ec431b",
-    "semantic_hash": "4a3faf8ea4f0c7833a406137c4ec431b"
+    "mtime": 1789686543.9339752,
+    "seen": 1789686888.881037,
+    "ast_hash": "5d203958d334af58277018fb766d443f",
+    "semantic_hash": ""
   },
   "src/types/patient.ts": {
     "mtime": 1781133401.2127814,
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789686342.3653784,
-    "seen": 1789686354.645806,
-    "ast_hash": "d245755d177c59a95edbc19b8ded1c6d",
+    "mtime": 1789686883.836332,
+    "seen": 1789686888.881061,
+    "ast_hash": "743b7ecc4d62debabe86f92461a6fa26",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1035,6 +1035,18 @@
     "mtime": 1789686283.4465322,
     "seen": 1789686354.645786,
     "ast_hash": "390ff9dae027922a8c5e3bc808c13d99",
+    "semantic_hash": ""
+  },
+  "src/contexts/__tests__/AuthContext.test.tsx": {
+    "mtime": 1789686870.4185517,
+    "seen": 1789686888.8810198,
+    "ast_hash": "f4b85909f7f2b05949d661659e619560",
+    "semantic_hash": ""
+  },
+  "src/types/auth.ts": {
+    "mtime": 1789686536.4004874,
+    "seen": 1789686888.881035,
+    "ast_hash": "17ae69ffbceb409a6d2e928f935a7575",
     "semantic_hash": ""
   }
 }

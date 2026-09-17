@@ -228,16 +228,39 @@ Limitações ou decisões pendentes: Nenhuma limitação técnica na etapa 03; p
 
 **Passos:**
 
-1. [ ] Modelar estados de inicialização, desautenticado, autenticado, cadastro incompleto e erro.
-2. [ ] Tratar rejeição da consulta de perfil e permitir tentar novamente ou sair.
-3. [ ] Ignorar respostas assíncronas de uma sessão anterior após logout/troca de usuário.
-4. [ ] Diferenciar perfil inexistente de consulta negada ou indisponível. Não promover usuário a profissional em consequência de erro.
-5. [ ] Alinhar resolução de papel ao modelo confiável da etapa 06 e completar o cadastro profissional explicitamente.
-6. [ ] Exibir carregamento acessível e feedback de falha nas rotas públicas e privadas.
+1. [x] Modelar estados de inicialização, desautenticado, autenticado, cadastro incompleto e erro.
+2. [x] Tratar rejeição da consulta de perfil e permitir tentar novamente ou sair.
+3. [x] Ignorar respostas assíncronas de uma sessão anterior após logout/troca de usuário.
+4. [x] Diferenciar perfil inexistente de consulta negada ou indisponível. Não promover usuário a profissional em consequência de erro.
+5. [x] Alinhar resolução de papel ao modelo confiável da etapa 06 e completar o cadastro profissional explicitamente.
+6. [x] Exibir carregamento acessível e feedback de falha nas rotas públicas e privadas.
 
 **Resultado:** falha de infraestrutura não prende o usuário em spinner nem gera papel incorreto.
 
 **Aceite:** testar login, logout durante consulta, troca rápida de usuário, perfil ausente, permissão negada e recuperação.
+
+```yaml
+Etapa concluída: 04 — Tratar autenticação como fluxo com estados explícitos
+Data de conclusão: 2026-09-17
+Arquivos alterados:
+- src/types/auth.ts
+- src/types/index.ts
+- src/services/authService.ts
+- src/services/firebaseService.ts
+- src/pages/Register.tsx
+- src/contexts/AuthContext.tsx
+- src/App.tsx
+- src/contexts/__tests__/AuthContext.test.tsx
+Comandos executados para validação:
+- npm run lint (0 erros, 4 avisos pré-existentes de react-refresh/deps)
+- npm run type-check (0 erros)
+- npm test (77 de 77 testes unitários passando em vitest, incluindo 9 testes de máquina de estados de autenticação)
+- npm run test:rules (10 de 10 testes de regras e integração passando no emulador Firestore)
+- npm run format:check (formatação verificada via Prettier com sucesso)
+- npm run build (build de produção Vite concluído com sucesso em 1.49s)
+Validação manual e ambiente: Emulador Firestore e suite automatizada Vitest simulando timeouts de rede, logout prematuro durante consulta assíncrona e rejeição com PERMISSION_DENIED.
+Limitações ou decisões pendentes: Nenhuma limitação técnica; papel e perfil agora modelados como máquina de estados finitos segura (loading, unauthenticated, authenticated, incomplete_profile, error) sem promoção acidental. Pronto para Etapa 05 (isolar rascunhos e configurações por conta).
+```
 
 ### 05 — Isolar rascunhos e configurações por conta
 

@@ -8,6 +8,7 @@ import {
   auth,
   signInWithPopup,
   googleProvider,
+  createNutritionistProfile,
 } from "../services/firebaseService";
 import {
   LogoIcon,
@@ -77,6 +78,10 @@ const Register: React.FC = () => {
       );
       if (userCredential.user) {
         await updateProfile(userCredential.user, { displayName });
+        await createNutritionistProfile(userCredential.user.uid, {
+          email,
+          displayName,
+        });
       }
     } catch (err) {
       setError(
@@ -94,7 +99,13 @@ const Register: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      await signInWithPopup(auth, googleProvider);
+      const userCredential = await signInWithPopup(auth, googleProvider);
+      if (userCredential.user) {
+        await createNutritionistProfile(userCredential.user.uid, {
+          email: userCredential.user.email || "",
+          displayName: userCredential.user.displayName || displayName || "",
+        });
+      }
     } catch (err) {
       setError(
         getFriendlyErrorMessage(
