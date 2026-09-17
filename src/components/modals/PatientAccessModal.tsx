@@ -256,7 +256,8 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                 </div>
                 <span className="text-[10px] text-slate-400">
                   {t("modals.patient_access.email_not_configured_hint", {
-                    defaultValue: "Email service not configured. Set up EmailJS in .env to enable.",
+                    defaultValue:
+                      "Email service not configured. Set up EmailJS in .env to enable.",
                   })}
                 </span>
               </div>
@@ -268,7 +269,8 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                   <div className="mt-3 pt-3 border-t border-rose-200/50 dark:border-rose-900/30">
                     <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                       {t("modals.patient_access.reset_existing_email_hint", {
-                        defaultValue: "You can trigger a password reset link for this email directly below:",
+                        defaultValue:
+                          "You can trigger a password reset link for this email directly below:",
                       })}
                     </p>
                     <Button
@@ -283,7 +285,8 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                     </Button>
                     {resetSuccess && (
                       <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                        ✓ {t("modals.patient_access.reset_success", {
+                        ✓{" "}
+                        {t("modals.patient_access.reset_success", {
                           email: patient.email,
                         })}
                       </p>

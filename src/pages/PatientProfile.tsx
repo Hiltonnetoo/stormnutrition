@@ -15,7 +15,9 @@ import LoadingState from "../components/patient-list/LoadingState";
 import WeightEvolutionChart from "../components/patient-profile/WeightEvolutionChart";
 import BiomarkerEvolutionChart from "../components/patient-profile/BiomarkerEvolutionChart";
 import DietPlanViewer from "../components/DietPlanViewer";
-const ExportDietModal = lazy(() => import("../components/modals/ExportDietModal"));
+const ExportDietModal = lazy(
+  () => import("../components/modals/ExportDietModal"),
+);
 import { ConfirmationModal } from "../components/modals/PatientModal";
 import { Card, Badge, Button } from "../components/ui";
 import { calcAge } from "../utils/calcAge";

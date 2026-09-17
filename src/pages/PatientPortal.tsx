@@ -437,11 +437,19 @@ const PatientPortal: React.FC = () => {
   const handleChangePassword = async () => {
     if (!newPortalPassword || !confirmPortalPassword) return;
     if (newPortalPassword.length < 6) {
-      setPasswordChangeError(t("patient_portal.change_password_modal.errors.min_length", { defaultValue: "Password must be at least 6 characters." }));
+      setPasswordChangeError(
+        t("patient_portal.change_password_modal.errors.min_length", {
+          defaultValue: "Password must be at least 6 characters.",
+        }),
+      );
       return;
     }
     if (newPortalPassword !== confirmPortalPassword) {
-      setPasswordChangeError(t("patient_portal.change_password_modal.errors.mismatch", { defaultValue: "Passwords do not match." }));
+      setPasswordChangeError(
+        t("patient_portal.change_password_modal.errors.mismatch", {
+          defaultValue: "Passwords do not match.",
+        }),
+      );
       return;
     }
 
@@ -456,15 +464,28 @@ const PatientPortal: React.FC = () => {
         setNewPortalPassword("");
         setConfirmPortalPassword("");
       } else {
-        setPasswordChangeError(t("patient_portal.change_password_modal.errors.not_authenticated", { defaultValue: "User is not authenticated." }));
+        setPasswordChangeError(
+          t("patient_portal.change_password_modal.errors.not_authenticated", {
+            defaultValue: "User is not authenticated.",
+          }),
+        );
       }
     } catch (err) {
       console.error("Error changing password:", err);
       const error = err as { code?: string };
       if (error && error.code === "auth/requires-recent-login") {
-        setPasswordChangeError(t("patient_portal.change_password_modal.errors.recent_login", { defaultValue: "For security reasons, please sign out and sign back in to change your password." }));
+        setPasswordChangeError(
+          t("patient_portal.change_password_modal.errors.recent_login", {
+            defaultValue:
+              "For security reasons, please sign out and sign back in to change your password.",
+          }),
+        );
       } else {
-        setPasswordChangeError(t("patient_portal.change_password_modal.errors.generic_error", { defaultValue: "Failed to update password. Try again later." }));
+        setPasswordChangeError(
+          t("patient_portal.change_password_modal.errors.generic_error", {
+            defaultValue: "Failed to update password. Try again later.",
+          }),
+        );
       }
     } finally {
       setPasswordChangeLoading(false);
@@ -500,7 +521,10 @@ const PatientPortal: React.FC = () => {
               }}
               className="text-xs font-semibold text-slate-500 hover:text-teal-600 transition-colors"
             >
-              🔐 {t("patient_portal.change_password_btn", { defaultValue: "Change Password" })}
+              🔐{" "}
+              {t("patient_portal.change_password_btn", {
+                defaultValue: "Change Password",
+              })}
             </button>
             <button
               onClick={() => firebaseSignOut(auth)}
@@ -952,21 +976,36 @@ const PatientPortal: React.FC = () => {
       <Modal
         open={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
-        title={t("patient_portal.change_password_modal.title", { defaultValue: "Change Password" })}
-        description={t("patient_portal.change_password_modal.subtitle", { defaultValue: "Create a new secure password for your portal access." })}
+        title={t("patient_portal.change_password_modal.title", {
+          defaultValue: "Change Password",
+        })}
+        description={t("patient_portal.change_password_modal.subtitle", {
+          defaultValue: "Create a new secure password for your portal access.",
+        })}
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setIsPasswordModalOpen(false)}>
-              {t("patient_portal.change_password_modal.cancel_btn", { defaultValue: "Cancel" })}
+            <Button
+              variant="ghost"
+              onClick={() => setIsPasswordModalOpen(false)}
+            >
+              {t("patient_portal.change_password_modal.cancel_btn", {
+                defaultValue: "Cancel",
+              })}
             </Button>
             <Button
               onClick={handleChangePassword}
               loading={passwordChangeLoading}
               className="bg-teal-600 hover:bg-teal-700 shadow-teal-600/25"
-              disabled={passwordChangeLoading || !newPortalPassword || !confirmPortalPassword}
+              disabled={
+                passwordChangeLoading ||
+                !newPortalPassword ||
+                !confirmPortalPassword
+              }
             >
-              {t("patient_portal.change_password_modal.confirm_btn", { defaultValue: "Save Password" })}
+              {t("patient_portal.change_password_modal.confirm_btn", {
+                defaultValue: "Save Password",
+              })}
             </Button>
           </>
         }
@@ -974,7 +1013,9 @@ const PatientPortal: React.FC = () => {
         <div className="py-2 space-y-4">
           <div>
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">
-              {t("patient_portal.change_password_modal.new_password_label", { defaultValue: "New Password" })}
+              {t("patient_portal.change_password_modal.new_password_label", {
+                defaultValue: "New Password",
+              })}
             </label>
             <input
               type="password"
@@ -990,7 +1031,10 @@ const PatientPortal: React.FC = () => {
           </div>
           <div>
             <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">
-              {t("patient_portal.change_password_modal.confirm_password_label", { defaultValue: "Confirm New Password" })}
+              {t(
+                "patient_portal.change_password_modal.confirm_password_label",
+                { defaultValue: "Confirm New Password" },
+              )}
             </label>
             <input
               type="password"
@@ -1013,7 +1057,10 @@ const PatientPortal: React.FC = () => {
 
           {passwordChangeSuccess && (
             <p className="text-xs font-semibold text-emerald-650">
-              ✓ {t("patient_portal.change_password_modal.success_msg", { defaultValue: "Password changed successfully!" })}
+              ✓{" "}
+              {t("patient_portal.change_password_modal.success_msg", {
+                defaultValue: "Password changed successfully!",
+              })}
             </p>
           )}
         </div>

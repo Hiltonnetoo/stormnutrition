@@ -242,7 +242,7 @@ const Settings: React.FC = () => {
           </form>
         </Card>
 
-         {/* Security */}
+        {/* Security */}
         <Card className="p-6">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">
             {t("settings.security")}
