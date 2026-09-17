@@ -27,7 +27,14 @@ const FAINT: RGB = [148, 163, 184]; // slate-400
 const HAIR: RGB = [226, 232, 240]; // slate-200
 const PAPER: RGB = [248, 250, 252]; // slate-50
 
-export const generateCustomLayoutPdf = async (plan: DietPlan) => {
+export const generateCustomLayoutPdf = async (
+  plan: DietPlan,
+  clinicInfo?: {
+    clinicName?: string;
+    clinicSpecialty?: string;
+    clinicPhone?: string;
+  },
+) => {
   const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
   const pageHeight = doc.internal.pageSize.getHeight();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -35,11 +42,10 @@ export const generateCustomLayoutPdf = async (plan: DietPlan) => {
   const contentWidth = pageWidth - margin * 2;
   let yPos = 0;
 
-  // Clinic data configured in Settings → Clinic & Brand.
-  const ls = typeof localStorage !== "undefined" ? localStorage : null;
-  const clinicName = ls?.getItem("clinicName") || "";
-  const clinicSpecialty = ls?.getItem("clinicSpecialty") || "";
-  const clinicPhone = ls?.getItem("clinicPhone") || "";
+  // Clinic data passed explicitly or fallback
+  const clinicName = clinicInfo?.clinicName || "";
+  const clinicSpecialty = clinicInfo?.clinicSpecialty || "";
+  const clinicPhone = clinicInfo?.clinicPhone || "";
 
   const checkPageBreak = (need: number) => {
     if (yPos + need > pageHeight - 16) {

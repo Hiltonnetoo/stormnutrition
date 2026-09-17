@@ -5,6 +5,8 @@ import {
   generateCustomLayoutPdf,
   generateScreenshotPdf,
 } from "../../utils/pdfExporter";
+import { useAuth } from "../../contexts/AuthContext";
+import { loadUserState } from "../../utils/localStorage";
 import { DocumentTextIcon, DownloadIcon } from "../icons";
 import { Modal, Spinner } from "../ui";
 
@@ -22,6 +24,7 @@ const ExportDietModal: React.FC<ExportDietModalProps> = ({
   targetElementId,
 }) => {
   const { t } = useTranslation();
+  const { currentUser } = useAuth();
   const [exportingType, setExportingType] = useState<
     "custom" | "screenshot" | null
   >(null);
@@ -32,7 +35,18 @@ const ExportDietModal: React.FC<ExportDietModalProps> = ({
     setExportError("");
     try {
       if (type === "custom") {
-        await generateCustomLayoutPdf(plan);
+        const clinicInfo = currentUser?.uid
+          ? {
+              clinicName: loadUserState(currentUser.uid, "clinicName", ""),
+              clinicSpecialty: loadUserState(
+                currentUser.uid,
+                "clinicSpecialty",
+                "",
+              ),
+              clinicPhone: loadUserState(currentUser.uid, "clinicPhone", ""),
+            }
+          : undefined;
+        await generateCustomLayoutPdf(plan, clinicInfo);
       } else {
         const element = document.getElementById(targetElementId);
         if (element) {

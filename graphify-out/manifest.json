@@ -114,10 +114,10 @@
     "semantic_hash": "32d39fd41f3584e79294c38d6b34dbbc"
   },
   "src/components/diet-generator/DietPlanDisplay.tsx": {
-    "mtime": 1781136492.768123,
-    "seen": 1789681967.256523,
-    "ast_hash": "9c4c1908628465f785d6e14804021a2f",
-    "semantic_hash": "9c4c1908628465f785d6e14804021a2f"
+    "mtime": 1789687491.849117,
+    "seen": 1789687608.106935,
+    "ast_hash": "e581b232d1f0bade80ddde5eedc15fb4",
+    "semantic_hash": ""
   },
   "src/components/diet-generator/DietProgressBar.tsx": {
     "mtime": 1781133785.9458432,
@@ -180,16 +180,16 @@
     "semantic_hash": "b58b69ab0085c348980da5be635b6de3"
   },
   "src/components/modals/ExportDietModal.tsx": {
-    "mtime": 1781133786.0257366,
-    "seen": 1789681967.256525,
-    "ast_hash": "112cba21fb431281f5d11bab6dc5bf07",
-    "semantic_hash": "112cba21fb431281f5d11bab6dc5bf07"
+    "mtime": 1789687420.2282195,
+    "seen": 1789687608.1069388,
+    "ast_hash": "52e466ebc9152ebd4e7fbd108d7f80f2",
+    "semantic_hash": ""
   },
   "src/components/modals/NewPatientModal.tsx": {
-    "mtime": 1781133786.0385008,
-    "seen": 1789681967.256526,
-    "ast_hash": "b2e5e515219bc3724282d05ea4f471ad",
-    "semantic_hash": "b2e5e515219bc3724282d05ea4f471ad"
+    "mtime": 1789687168.5265117,
+    "seen": 1789687608.1069388,
+    "ast_hash": "abb226f119f784d33ec734ff990e10a1",
+    "semantic_hash": ""
   },
   "src/components/modals/PatientAccessModal.tsx": {
     "mtime": 1789685273.767426,
@@ -282,10 +282,10 @@
     "semantic_hash": "efed8281f117a15b8807447429a8eb0f"
   },
   "src/components/settings/BillingSection.tsx": {
-    "mtime": 1781309546.1837723,
-    "seen": 1789681967.2565298,
-    "ast_hash": "b6baedbf7c50c963ce32fb23ca01a5f7",
-    "semantic_hash": "b6baedbf7c50c963ce32fb23ca01a5f7"
+    "mtime": 1789687332.3350465,
+    "seen": 1789687608.106945,
+    "ast_hash": "efb4d8185380b4fa38ee918846f05622",
+    "semantic_hash": ""
   },
   "src/components/settings/__tests__/BillingSection.test.tsx": {
     "mtime": 1781133786.1212254,
@@ -300,9 +300,9 @@
     "semantic_hash": "f84b03c382fd0ac424ab25560fa6a48e"
   },
   "src/contexts/AuthContext.tsx": {
-    "mtime": 1789686778.1001048,
-    "seen": 1789686888.8810198,
-    "ast_hash": "a69ecc787beceb07ffcf28d26ffb117c",
+    "mtime": 1789687570.079972,
+    "seen": 1789687608.106946,
+    "ast_hash": "fd402b4168b59a9d567dcb6b366ed854",
     "semantic_hash": ""
   },
   "src/data/foods.ts": {
@@ -324,10 +324,10 @@
     "semantic_hash": "d6eda80d36208a27f0a16f2e82a3cf6a"
   },
   "src/hooks/usePersistentState.ts": {
-    "mtime": 1780612572.4911485,
-    "seen": 1789681967.256532,
-    "ast_hash": "e66a990459e02da6273f0479ef6958ba",
-    "semantic_hash": "e66a990459e02da6273f0479ef6958ba"
+    "mtime": 1789687112.904474,
+    "seen": 1789687608.1069481,
+    "ast_hash": "dbd53edbca33e7afce6b60cd741b6baf",
+    "semantic_hash": ""
   },
   "src/i18n.ts": {
     "mtime": 1789686250.2869015,
@@ -366,22 +366,22 @@
     "semantic_hash": "1c917520e4c5dfddb704d3ae82308f41"
   },
   "src/pages/DietGenerator.tsx": {
-    "mtime": 1789686182.4317498,
-    "seen": 1789686354.645771,
-    "ast_hash": "547521e0a683ed5c5dcb697dea369fff",
+    "mtime": 1789687209.2863564,
+    "seen": 1789687608.106951,
+    "ast_hash": "5b8e5f30b9b38d514d372248f13c440e",
     "semantic_hash": ""
   },
   "src/pages/EmailAdmin.tsx": {
-    "mtime": 1781133786.3580556,
-    "seen": 1789681967.256534,
-    "ast_hash": "3c2d9d851fbe729c0a5621711c11bb34",
-    "semantic_hash": "3c2d9d851fbe729c0a5621711c11bb34"
+    "mtime": 1789687373.5389452,
+    "seen": 1789687608.106951,
+    "ast_hash": "69ceeceafeade3f293d75cad26e398f3",
+    "semantic_hash": ""
   },
   "src/pages/FoodDatabase.tsx": {
-    "mtime": 1781133786.3683286,
-    "seen": 1789681967.256534,
-    "ast_hash": "aadb2e0288862a897e4bbf17ddf00629",
-    "semantic_hash": "aadb2e0288862a897e4bbf17ddf00629"
+    "mtime": 1789687298.353809,
+    "seen": 1789687608.106952,
+    "ast_hash": "d876014f78d458bf2c6510b65ca6aeed",
+    "semantic_hash": ""
   },
   "src/pages/Home.tsx": {
     "mtime": 1782944760.576456,
@@ -432,9 +432,9 @@
     "semantic_hash": "1e49e748f19146fb5fbc8ef0fae964c1"
   },
   "src/pages/Settings.tsx": {
-    "mtime": 1789685274.1978712,
-    "seen": 1789685811.166844,
-    "ast_hash": "e6225022d03b3f2316aa7135c40525a6",
+    "mtime": 1789687499.882892,
+    "seen": 1789687608.106955,
+    "ast_hash": "714efd7fc4799bb770912b4fbdb3fe39",
     "semantic_hash": ""
   },
   "src/pages/__tests__/Dashboard.test.tsx": {
@@ -474,10 +474,10 @@
     "semantic_hash": ""
   },
   "src/services/billingService.ts": {
-    "mtime": 1781062712.6480272,
-    "seen": 1789681967.2565382,
-    "ast_hash": "9648c0418ed84615650fc4313e134404",
-    "semantic_hash": "9648c0418ed84615650fc4313e134404"
+    "mtime": 1789687570.1033309,
+    "seen": 1789687608.1069582,
+    "ast_hash": "55520352ffbefa24d3563aa9fc45f588",
+    "semantic_hash": ""
   },
   "src/services/dietAlgorithmService.ts": {
     "mtime": 1789686296.472249,
@@ -594,16 +594,16 @@
     "semantic_hash": "753b166ffa06bb10248183725d19cdf4"
   },
   "src/utils/localStorage.ts": {
-    "mtime": 1780697776.2919705,
-    "seen": 1789681967.256546,
-    "ast_hash": "2fd19c65a65e6191b04c5c4a5d4e4764",
-    "semantic_hash": "2fd19c65a65e6191b04c5c4a5d4e4764"
+    "mtime": 1789687103.6702652,
+    "seen": 1789687608.106965,
+    "ast_hash": "594aecfb28c6015d1832151d5e2e890d",
+    "semantic_hash": ""
   },
   "src/utils/pdfExporter.ts": {
-    "mtime": 1781309546.1960676,
-    "seen": 1789681967.256546,
-    "ast_hash": "d8385f2ce3a021df78cd0ee85fd8258d",
-    "semantic_hash": "d8385f2ce3a021df78cd0ee85fd8258d"
+    "mtime": 1789687408.2256687,
+    "seen": 1789687608.106966,
+    "ast_hash": "8f0a798fad687f51e1d4718ff65662c1",
+    "semantic_hash": ""
   },
   "tests-e2e/critical-flow.spec.ts": {
     "mtime": 1782946737.932529,
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789686883.836332,
-    "seen": 1789686888.881061,
-    "ast_hash": "743b7ecc4d62debabe86f92461a6fa26",
+    "mtime": 1789687600.3485703,
+    "seen": 1789687608.106987,
+    "ast_hash": "437aabcb38517a63e55910b9225020bc",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1047,6 +1047,24 @@
     "mtime": 1789686536.4004874,
     "seen": 1789686888.881035,
     "ast_hash": "17ae69ffbceb409a6d2e928f935a7575",
+    "semantic_hash": ""
+  },
+  "src/hooks/__tests__/usePersistentState.test.ts": {
+    "mtime": 1789687444.0438943,
+    "seen": 1789687608.1069481,
+    "ast_hash": "4e9c15b3134869fa6142caa560cdeecc",
+    "semantic_hash": ""
+  },
+  "src/services/__tests__/billingService.test.ts": {
+    "mtime": 1789687570.087164,
+    "seen": 1789687608.106955,
+    "ast_hash": "acc1f79d48d7f1a83c1caf21bcce6069",
+    "semantic_hash": ""
+  },
+  "src/utils/__tests__/localStorage.test.ts": {
+    "mtime": 1789687570.116738,
+    "seen": 1789687608.1069639,
+    "ast_hash": "9eb9d06ac127f117c05a611610e788fa",
     "semantic_hash": ""
   }
 }

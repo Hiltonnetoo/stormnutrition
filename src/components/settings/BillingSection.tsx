@@ -21,11 +21,17 @@ import { CheckCircleIcon, CreditCardIcon, DownloadIcon } from "../icons";
 const BillingSection: React.FC = () => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
-  const [billing, setBilling] = useState<BillingState>(() => getBillingState());
+  const [billing, setBilling] = useState<BillingState>(() =>
+    getBillingState(currentUser?.uid),
+  );
   const [patientCount, setPatientCount] = useState<number | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [pendingTier, setPendingTier] = useState<PlanTier | null>(null);
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    setBilling(getBillingState(currentUser?.uid));
+  }, [currentUser?.uid]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -47,19 +53,19 @@ const BillingSection: React.FC = () => {
 
   const handleChangePlan = (tier: PlanTier) => {
     // TODO(stripe): abrir Checkout/Customer Portal; aqui aplicamos localmente.
-    setBilling(changePlan(tier));
+    setBilling(changePlan(tier, currentUser?.uid));
     setPendingTier(null);
     flash(t("billing.notice_changed", { name: PLANS[tier].name }));
   };
 
   const handleCancel = () => {
-    setBilling(cancelSubscription());
+    setBilling(cancelSubscription(currentUser?.uid));
     setConfirmCancel(false);
     flash(t("billing.notice_canceled"));
   };
 
   const handleReactivate = () => {
-    setBilling(reactivateSubscription());
+    setBilling(reactivateSubscription(currentUser?.uid));
     flash(t("billing.notice_reactivated"));
   };
 

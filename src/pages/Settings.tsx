@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
@@ -7,6 +7,7 @@ import {
   uploadProfilePicture,
   auth,
 } from "../services/firebaseService";
+import { loadUserState, saveUserState } from "../utils/localStorage";
 import { PageHeader, Card, Input, Button } from "../components/ui";
 import { CheckCircleIcon, XCircleIcon } from "../components/icons";
 import BillingSection from "../components/settings/BillingSection";
@@ -54,38 +55,63 @@ const Settings: React.FC = () => {
   } | null>(null);
 
   /* ---- Clínica & Marca ---- */
-  const [clinicName, setClinicName] = useState(
-    () => localStorage.getItem("clinicName") || "",
-  );
-  const [clinicSpecialty, setClinicSpecialty] = useState(
-    () => localStorage.getItem("clinicSpecialty") || "",
-  );
-  const [clinicPhone, setClinicPhone] = useState(
-    () => localStorage.getItem("clinicPhone") || "",
-  );
+  const [clinicName, setClinicName] = useState("");
+  const [clinicSpecialty, setClinicSpecialty] = useState("");
+  const [clinicPhone, setClinicPhone] = useState("");
   const [clinicSaved, setClinicSaved] = useState(false);
 
+  useEffect(() => {
+    if (currentUser?.uid) {
+      setClinicName(loadUserState(currentUser.uid, "clinicName", ""));
+      setClinicSpecialty(loadUserState(currentUser.uid, "clinicSpecialty", ""));
+      setClinicPhone(loadUserState(currentUser.uid, "clinicPhone", ""));
+    } else {
+      setClinicName("");
+      setClinicSpecialty("");
+      setClinicPhone("");
+    }
+  }, [currentUser?.uid]);
+
   const handleSaveClinic = () => {
-    localStorage.setItem("clinicName", clinicName);
-    localStorage.setItem("clinicSpecialty", clinicSpecialty);
-    localStorage.setItem("clinicPhone", clinicPhone);
+    if (currentUser?.uid) {
+      saveUserState(currentUser.uid, "clinicName", clinicName);
+      saveUserState(currentUser.uid, "clinicSpecialty", clinicSpecialty);
+      saveUserState(currentUser.uid, "clinicPhone", clinicPhone);
+    }
     setClinicSaved(true);
     setTimeout(() => setClinicSaved(false), 3000);
   };
 
   /* ---- Notificações ---- */
-  const [notifEvalComplete, setNotifEvalComplete] = useState(
-    () => localStorage.getItem("notif_evalComplete") !== "false",
-  );
-  const [notifWeightLog, setNotifWeightLog] = useState(
-    () => localStorage.getItem("notif_weightLog") !== "false",
-  );
-  const [notifAppointment, setNotifAppointment] = useState(
-    () => localStorage.getItem("notif_appointment") !== "false",
-  );
+  const [notifEvalComplete, setNotifEvalComplete] = useState(true);
+  const [notifWeightLog, setNotifWeightLog] = useState(true);
+  const [notifAppointment, setNotifAppointment] = useState(true);
+
+  useEffect(() => {
+    if (currentUser?.uid) {
+      setNotifEvalComplete(
+        loadUserState(currentUser.uid, "notif_evalComplete", true),
+      );
+      setNotifWeightLog(
+        loadUserState(currentUser.uid, "notif_weightLog", true),
+      );
+      setNotifAppointment(
+        loadUserState(currentUser.uid, "notif_appointment", true),
+      );
+    } else {
+      setNotifEvalComplete(true);
+      setNotifWeightLog(true);
+      setNotifAppointment(true);
+    }
+  }, [currentUser?.uid]);
 
   const handleNotifToggle = (key: string, value: boolean) => {
-    localStorage.setItem(key, String(value));
+    if (key === "notif_evalComplete") setNotifEvalComplete(value);
+    if (key === "notif_weightLog") setNotifWeightLog(value);
+    if (key === "notif_appointment") setNotifAppointment(value);
+    if (currentUser?.uid) {
+      saveUserState(currentUser.uid, key, value);
+    }
   };
 
   const handlePasswordReset = async () => {

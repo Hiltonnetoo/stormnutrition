@@ -13,6 +13,7 @@ import {
 } from "../components/icons";
 import type { Patient, EmailLog, AnyDietPlan } from "../types";
 import { PageHeader, Card, Button } from "../components/ui";
+import { loadUserState } from "../utils/localStorage";
 
 const selectClass = "input-field";
 
@@ -87,7 +88,9 @@ const EmailAdmin: React.FC = () => {
         toEmail: patient.email,
         toName: `${patient.firstName} ${patient.lastName}`,
         fromName:
-          localStorage.getItem("clinicName") ||
+          (currentUser?.uid
+            ? loadUserState(currentUser.uid, "clinicName", "")
+            : "") ||
           currentUser?.displayName ||
           t("email_admin.default_sender"),
         dietDate,

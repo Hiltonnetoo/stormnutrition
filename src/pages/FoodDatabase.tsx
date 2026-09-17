@@ -15,27 +15,29 @@ import {
 } from "../services/foodService";
 import { SearchIcon, ClipboardListIcon, PlusIcon } from "../components/icons";
 import { PageHeader, Input, Button, Modal } from "../components/ui";
+import { useAuth } from "../contexts/AuthContext";
+import { loadUserState, saveUserState } from "../utils/localStorage";
 
-const CUSTOM_FOODS_KEY = "customFoods";
 const PAGE_SIZE = 40;
-
-const loadCustomFoods = (): Food[] => {
-  try {
-    return JSON.parse(localStorage.getItem(CUSTOM_FOODS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-};
 
 const FoodDatabase: React.FC = () => {
   const { t } = useTranslation();
+  const { currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("Todos");
   const [novaFilter, setNovaFilter] = useState<string>("Todos");
   const [page, setPage] = useState(0);
-  const [customFoods, setCustomFoods] = useState<Food[]>(loadCustomFoods);
+  const [customFoods, setCustomFoods] = useState<Food[]>([]);
   const [displayedFoods, setDisplayedFoods] = useState<Food[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  useEffect(() => {
+    if (currentUser?.uid) {
+      setCustomFoods(loadUserState<Food[]>(currentUser.uid, "customFoods", []));
+    } else {
+      setCustomFoods([]);
+    }
+  }, [currentUser?.uid]);
   const [newFood, setNewFood] = useState({
     name: "",
     category: "Outros",
@@ -101,7 +103,9 @@ const FoodDatabase: React.FC = () => {
     };
     const updated = [...customFoods, food];
     setCustomFoods(updated);
-    localStorage.setItem(CUSTOM_FOODS_KEY, JSON.stringify(updated));
+    if (currentUser?.uid) {
+      saveUserState(currentUser.uid, "customFoods", updated);
+    }
     setShowAddModal(false);
     setNewFood({
       name: "",

@@ -15,6 +15,7 @@ import {
   getNutritionistProfile,
   createNutritionistProfile,
 } from "../services/firebaseService";
+import { clearUserSessionData, purgeLegacyDrafts } from "../utils/localStorage";
 import type {
   PatientPortalProfile,
   NutritionistProfile,
@@ -130,11 +131,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   useEffect(() => {
+    // Purge any legacy un-scoped drafts on initialization
+    purgeLegacyDrafts();
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       const sessionId = ++activeSessionId.current;
       setCurrentUser(user);
 
       if (!user) {
+        clearUserSessionData();
         setUserRole(null);
         setPatientProfile(null);
         setNutritionistProfile(null);
@@ -193,6 +198,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = useCallback(async () => {
     activeSessionId.current++; // Invalidate in-flight responses immediately
+    const uidToClear = currentUser?.uid;
+    clearUserSessionData(uidToClear);
     setCurrentUser(null);
     setUserRole(null);
     setPatientProfile(null);
@@ -204,7 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (err) {
       console.error("[AuthContext] Erro ao deslogar:", err);
     }
-  }, []);
+  }, [currentUser]);
 
   const loading = status === "loading";
 

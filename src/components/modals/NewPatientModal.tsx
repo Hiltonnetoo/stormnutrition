@@ -5,7 +5,7 @@ import { addPatient, updatePatient } from "../../services/firebaseService";
 import { useAuth } from "../../contexts/AuthContext";
 import type { Patient } from "../../types";
 import usePersistentState from "../../hooks/usePersistentState";
-import { loadState } from "../../utils/localStorage";
+import { loadState, getUserStorageKey } from "../../utils/localStorage";
 import { CloseIcon } from "../icons";
 import { Button } from "../ui";
 
@@ -30,7 +30,6 @@ interface NewPatientModalProps {
 }
 
 const TOTAL_STEPS = 7;
-const FORM_STATE_KEY = "newPatientFormState";
 
 const initialFormData: Omit<
   Patient,
@@ -80,10 +79,13 @@ const NewPatientModal: React.FC<NewPatientModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { currentUser } = useAuth();
+  const storageKey = currentUser?.uid
+    ? getUserStorageKey(currentUser.uid, "newPatientDraft")
+    : null;
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData, clearFormData] = usePersistentState<
     Omit<Patient, "id" | "createdAt" | "avatarUrl" | "status">
-  >(FORM_STATE_KEY, initialFormData);
+  >(storageKey, initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -96,7 +98,7 @@ const NewPatientModal: React.FC<NewPatientModalProps> = ({
         const { id, createdAt, avatarUrl, status, ...formDataFromPatient } =
           patient;
         setFormData(formDataFromPatient);
-      } else if (!isEditMode && loadState(FORM_STATE_KEY)) {
+      } else if (!isEditMode && storageKey && loadState(storageKey)) {
         // Data is already loaded by the hook
       } else {
         setFormData(initialFormData);
@@ -104,7 +106,7 @@ const NewPatientModal: React.FC<NewPatientModalProps> = ({
       setCurrentStep(1);
       setErrors({});
     }
-  }, [isOpen, patient, isEditMode]);
+  }, [isOpen, patient, isEditMode, storageKey]);
 
   const handleDataChange = (data: Partial<typeof formData>) => {
     setFormData((prev) => ({ ...prev, ...data }));

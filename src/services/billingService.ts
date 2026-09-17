@@ -94,7 +94,11 @@ export interface BillingState {
   invoices: Invoice[];
 }
 
-const KEY = "billingState";
+import { getUserStorageKey, loadState, saveState } from "../utils/localStorage";
+
+const getStorageKey = (uid?: string): string => {
+  return uid ? getUserStorageKey(uid, "billingState") : "billingState";
+};
 
 const addMonths = (date: Date, months: number): Date => {
   const d = new Date(date);
@@ -125,20 +129,25 @@ const buildDefaultState = (): BillingState => {
   };
 };
 
-export const getBillingState = (): BillingState => {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as BillingState;
-  } catch {
-    /* ignore invalid JSON and recreate below */
+export const getBillingState = (uid?: string): BillingState => {
+  const key = getStorageKey(uid);
+  const loaded = loadState<BillingState>(key);
+  if (
+    loaded &&
+    loaded.tier &&
+    loaded.status &&
+    Array.isArray(loaded.invoices)
+  ) {
+    return loaded;
   }
   const fresh = buildDefaultState();
-  localStorage.setItem(KEY, JSON.stringify(fresh));
+  saveState(key, fresh);
   return fresh;
 };
 
-const save = (state: BillingState): BillingState => {
-  localStorage.setItem(KEY, JSON.stringify(state));
+const save = (state: BillingState, uid?: string): BillingState => {
+  const key = getStorageKey(uid);
+  saveState(key, state);
   return state;
 };
 
@@ -146,8 +155,8 @@ const save = (state: BillingState): BillingState => {
  * Swaps the subscription plan. (TODO(stripe): in production, open Checkout/
  * Customer Portal and apply the change via webhook instead of locally.)
  */
-export const changePlan = (tier: PlanTier): BillingState => {
-  const current = getBillingState();
+export const changePlan = (tier: PlanTier, uid?: string): BillingState => {
+  const current = getBillingState(uid);
   const now = new Date();
   const plan = PLANS[tier];
   const invoices = [...current.invoices];
@@ -160,29 +169,35 @@ export const changePlan = (tier: PlanTier): BillingState => {
       status: "paid",
     });
   }
-  return save({
-    ...current,
-    tier,
-    status: "active",
-    renewsAt: addMonths(now, 1).toISOString(),
-    invoices,
-  });
+  return save(
+    {
+      ...current,
+      tier,
+      status: "active",
+      renewsAt: addMonths(now, 1).toISOString(),
+      invoices,
+    },
+    uid,
+  );
 };
 
 /** Cancels the subscription retaining access until the renewal date. */
-export const cancelSubscription = (): BillingState => {
-  const current = getBillingState();
-  return save({ ...current, status: "canceled" });
+export const cancelSubscription = (uid?: string): BillingState => {
+  const current = getBillingState(uid);
+  return save({ ...current, status: "canceled" }, uid);
 };
 
 /** Reactivates a canceled subscription. */
-export const reactivateSubscription = (): BillingState => {
-  const current = getBillingState();
-  return save({
-    ...current,
-    status: "active",
-    renewsAt: addMonths(new Date(), 1).toISOString(),
-  });
+export const reactivateSubscription = (uid?: string): BillingState => {
+  const current = getBillingState(uid);
+  return save(
+    {
+      ...current,
+      status: "active",
+      renewsAt: addMonths(new Date(), 1).toISOString(),
+    },
+    uid,
+  );
 };
 
 export const formatBRL = (value: number): string =>

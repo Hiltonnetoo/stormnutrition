@@ -13,6 +13,8 @@ import ClinicalReviewModal from "../modals/ClinicalReviewModal";
 const ExportDietModal = lazy(() => import("../modals/ExportDietModal"));
 import MealOptionTable from "../MealOptionTable";
 import { Button } from "../ui";
+import { useAuth } from "../../contexts/AuthContext";
+import { loadUserState, saveUserState } from "../../utils/localStorage";
 
 const translateMealName = (name: string, t: TFunction) => {
   const normalized = name.toLowerCase().trim();
@@ -70,18 +72,9 @@ interface DietPlanDisplayProps {
   plan: DietPlan;
   onSave: () => void;
   onDiscard: () => void;
-  isSaving: boolean;
-  saveSuccess: boolean;
+  isSaving?: boolean;
+  saveSuccess?: boolean;
 }
-
-const TEMPLATES_KEY = "dietPlanTemplates";
-const loadTemplates = (): { id: string; name: string; plan: DietPlan }[] => {
-  try {
-    return JSON.parse(localStorage.getItem(TEMPLATES_KEY) || "[]");
-  } catch {
-    return [];
-  }
-};
 
 const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
   plan,
@@ -91,6 +84,7 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
   saveSuccess,
 }) => {
   const { t, i18n } = useTranslation();
+  const { currentUser } = useAuth();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isLogExpanded, setIsLogExpanded] = useState(false);
@@ -117,9 +111,20 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
       defaultName,
     );
     if (!name) return;
-    const templates = loadTemplates();
-    templates.push({ id: `tmpl_${Date.now()}`, name, plan });
-    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
+    const currentTemplates = currentUser?.uid
+      ? loadUserState<{ id: string; name: string; plan: DietPlan }[]>(
+          currentUser.uid,
+          "dietPlanTemplates",
+          [],
+        )
+      : [];
+    const updated = [
+      ...currentTemplates,
+      { id: `tmpl_${Date.now()}`, name, plan },
+    ];
+    if (currentUser?.uid) {
+      saveUserState(currentUser.uid, "dietPlanTemplates", updated);
+    }
     setTemplateSaved(true);
     setTimeout(() => setTemplateSaved(false), 3000);
   };

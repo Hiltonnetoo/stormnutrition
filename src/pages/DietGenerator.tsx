@@ -13,6 +13,7 @@ import {
   getGeneralObservations,
 } from "../services/dietAlgorithmService";
 import usePersistentState from "../hooks/usePersistentState";
+import { getUserStorageKey, loadUserState } from "../utils/localStorage";
 import * as M from "../services/metabolicCalculations";
 import { dietaryOptionsMap } from "../components/patient-form/Step4Nutritional";
 
@@ -26,8 +27,6 @@ import Step3MealPlan from "../components/diet-generator/DietStep3MealPlan";
 import DietPlanDisplay from "../components/diet-generator/DietPlanDisplay";
 import LabExamsModule from "../components/diet-generator/LabExamsModule";
 import { PageHeader, Card, Button, Badge, Spinner } from "../components/ui";
-
-const FORM_STATE_KEY = "dietGeneratorFormState";
 
 const fieldClass = "input-field";
 
@@ -214,21 +213,29 @@ const DietGenerator: React.FC = () => {
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
+  const formStorageKey = currentUser?.uid
+    ? getUserStorageKey(currentUser.uid, "dietGeneratorDraft")
+    : null;
   const [formData, setFormData, clearFormData] =
-    usePersistentState<DietFormData>(FORM_STATE_KEY, {});
+    usePersistentState<DietFormData>(formStorageKey, {});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showCalculator, setShowCalculator] = useState(false);
   const [tdeeAppliedMsg, setTdeeAppliedMsg] = useState("");
   const [showTemplates, setShowTemplates] = useState(false);
-  const [dietTemplates] = useState<
+  const [dietTemplates, setDietTemplates] = useState<
     { id: string; name: string; plan: DietPlan }[]
-  >(() => {
-    try {
-      return JSON.parse(localStorage.getItem("dietPlanTemplates") || "[]");
-    } catch {
-      return [];
+  >([]);
+
+  useEffect(() => {
+    if (currentUser?.uid) {
+      const loaded = loadUserState<
+        { id: string; name: string; plan: DietPlan }[]
+      >(currentUser.uid, "dietPlanTemplates", []);
+      setDietTemplates(loaded);
+    } else {
+      setDietTemplates([]);
     }
-  });
+  }, [currentUser?.uid]);
 
   const [generatedPlan, setGeneratedPlan] = useState<DietPlan | null>(null);
   const [loading, setLoading] = useState(false);

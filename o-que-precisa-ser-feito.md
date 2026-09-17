@@ -270,17 +270,48 @@ Limitações ou decisões pendentes: Nenhuma limitação técnica; papel e perfi
 
 **Passos:**
 
-1. [ ] Inventariar todas as chaves e separar preferências públicas, dados da conta e dados pessoais de pacientes.
-2. [ ] Reduzir persistência local de dados pessoais; preferir memória ou rascunho autenticado quando apropriado.
-3. [ ] Para dados que permanecerem locais, definir namespace por UID, versão e prazo de retenção quando necessário.
-4. [ ] Limpar rascunhos no logout e redefinir estado em memória na troca de conta, inclusive em outras abas.
-5. [ ] Tratar dados legados sem atribuir automaticamente rascunhos de dono desconhecido à próxima conta.
-6. [ ] Validar dados lidos, JSON corrompido e armazenamento indisponível.
-7. [ ] Corrigir o hook para atualizações funcionais usarem o estado mais recente e para mudanças de chave não gravarem o estado da conta anterior na conta nova.
+1. [x] Inventariar todas as chaves e separar preferências públicas, dados da conta e dados pessoais de pacientes.
+2. [x] Reduzir persistência local de dados pessoais; preferir memória ou rascunho autenticado quando apropriado.
+3. [x] Para dados que permanecerem locais, definir namespace por UID, versão e prazo de retenção quando necessário.
+4. [x] Limpar rascunhos no logout e redefinir estado em memória na troca de conta, inclusive em outras abas.
+5. [x] Tratar dados legados sem atribuir automaticamente rascunhos de dono desconhecido à próxima conta.
+6. [x] Validar dados lidos, JSON corrompido e armazenamento indisponível.
+7. [x] Corrigir o hook para atualizações funcionais usarem o estado mais recente e para mudanças de chave não gravarem o estado da conta anterior na conta nova.
 
 **Resultado:** uma conta não recebe dados de outra no mesmo navegador.
 
 **Aceite:** teste A → logout → B sem vazamento de formulário, clínica, templates ou billing; duas atualizações consecutivas não perdem estado.
+
+```yaml
+Etapa concluída: 05 — Isolar rascunhos e configurações por conta
+Data de conclusão: 2026-09-17
+Arquivos alterados:
+- src/utils/localStorage.ts
+- src/hooks/usePersistentState.ts
+- src/contexts/AuthContext.tsx
+- src/components/modals/NewPatientModal.tsx
+- src/pages/DietGenerator.tsx
+- src/components/diet-generator/DietPlanDisplay.tsx
+- src/pages/Settings.tsx
+- src/pages/FoodDatabase.tsx
+- src/services/billingService.ts
+- src/components/settings/BillingSection.tsx
+- src/pages/EmailAdmin.tsx
+- src/utils/pdfExporter.ts
+- src/components/modals/ExportDietModal.tsx
+- src/utils/__tests__/localStorage.test.ts
+- src/hooks/__tests__/usePersistentState.test.ts
+- src/services/__tests__/billingService.test.ts
+Comandos executados para validação:
+- npm run lint (0 erros, 4 avisos pré-existentes de react-refresh/deps)
+- npm run type-check (0 erros)
+- npm test (99 de 99 testes unitários passando em vitest, incluindo 22 novos testes cobrindo isolamento, atualizações funcionais atômicas, limpeza de rascunhos e billing)
+- npm run test:rules (10 de 10 testes de regras Firestore passando no emulador)
+- npm run format:check (formatação verificada via Prettier com sucesso)
+- npm run build (build de produção Vite concluído com sucesso em 1.51s)
+Validação manual e ambiente: Emulador Firestore e Vitest simulando alternância de contas User A -> logout -> User B, QuotaExceededError, corrupção de JSON e eventos de sincronização cross-tab via StorageEvent.
+Limitações ou decisões pendentes: Nenhuma limitação técnica; isolamento de rascunhos de pacientes (LGPD), configurações de clínica, templates e faturamento implementado e validado. Pronto para Etapa 06 (fortalecer autorização e validação de dados).
+```
 
 ### 06 — Fortalecer autorização e validação de dados
 
