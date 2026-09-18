@@ -7,6 +7,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  getDoc,
   type FirestoreError,
   type Query,
   type DocumentData,
@@ -625,6 +626,19 @@ const getDietDoc = (userId: string, dietId: string) =>
 export const saveDietPlan = async (userId: string, dietPlan: DietPlan) => {
   if (!userId || typeof userId !== "string") {
     throw new Error("ID do usuário nutricionista é obrigatório.");
+  }
+  if (dietPlan.patientId) {
+    const patientSnap = await getDoc(
+      doc(db, "users", userId, "patients", dietPlan.patientId),
+    );
+    if (patientSnap.exists()) {
+      const patientData = patientSnap.data();
+      if (patientData.deletionPending) {
+        throw new Error(
+          "PATIENT_DELETION_PENDING: Não é possível prescrever dieta para um paciente em processo de exclusão.",
+        );
+      }
+    }
   }
   const dto = validateAndSerializeDietPlan(dietPlan);
   try {

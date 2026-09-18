@@ -7,6 +7,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  getDoc,
   type FirestoreError,
 } from "firebase/firestore";
 import { db } from "./firebaseCore";
@@ -111,11 +112,23 @@ export const findAppointmentConflict = (
   return null;
 };
 
-export const addAppointment = (
+export const addAppointment = async (
   userId: string,
   data: Omit<Appointment, "id">,
 ) => {
   validateAppointmentData(data);
+  const patientSnap = await getDoc(
+    doc(db, "users", userId, "patients", data.patientId.trim()),
+  );
+  if (patientSnap.exists()) {
+    const patientData = patientSnap.data();
+    if (patientData.deletionPending) {
+      throw new Error(
+        "PATIENT_DELETION_PENDING: Não é possível agendar consulta para um paciente em processo de exclusão.",
+      );
+    }
+  }
+
   const cleanData: Omit<Appointment, "id"> = {
     patientId: data.patientId.trim(),
     patientName: data.patientName.trim(),

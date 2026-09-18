@@ -6,6 +6,7 @@ import {
   revokeInvitation,
   getInvitationByToken,
   sendPortalPasswordReset,
+  revokePatientPortalAccess,
 } from "../../services/firebaseService";
 import {
   isEmailConfigured,
@@ -68,7 +69,33 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
   const [revoking, setRevoking] = useState(false);
   const [revokedMessage, setRevokedMessage] = useState(false);
 
-  const alreadyHasAccess = !!patient.portalUid;
+  // Portal Revocation state
+  const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
+  const [revokingAccess, setRevokingAccess] = useState(false);
+  const [accessRevokedSuccess, setAccessRevokedSuccess] = useState(false);
+
+  const alreadyHasAccess = !!patient.portalUid && !accessRevokedSuccess;
+
+  const handleRevokePortalAccess = async () => {
+    if (!currentUser || !patient.id) return;
+    setRevokingAccess(true);
+    setError("");
+    try {
+      await revokePatientPortalAccess(currentUser.uid, patient.id);
+      setAccessRevokedSuccess(true);
+      setRevokeConfirmOpen(false);
+      setActiveInvitation(null);
+    } catch (err) {
+      console.error("Erro ao revogar acesso:", err);
+      setError(
+        t("modals.patient_access.error_revoke", {
+          defaultValue: "Falha ao revogar acesso ao portal.",
+        }),
+      );
+    } finally {
+      setRevokingAccess(false);
+    }
+  };
 
   const checkExistingInvitation = useCallback(async () => {
     if (patient.pendingInvitationId) {
@@ -245,6 +272,96 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                 })}
               </p>
             )}
+
+            <div className="mt-4 pt-3 border-t border-amber-200/80 dark:border-amber-900/60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-rose-700 dark:text-rose-400">
+                    {t("modals.patient_access.revoke_title", {
+                      defaultValue: "Revogar acesso ao portal",
+                    })}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {t("modals.patient_access.revoke_hint", {
+                      defaultValue:
+                        "Desconecta o paciente do app sem apagar histórico nem a conta Auth.",
+                    })}
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/60 dark:hover:bg-rose-950/30"
+                  onClick={() => setRevokeConfirmOpen(true)}
+                  disabled={revokingAccess}
+                >
+                  {t("modals.patient_access.btn_revoke_access", {
+                    defaultValue: "Revogar Acesso",
+                  })}
+                </Button>
+              </div>
+
+              {revokeConfirmOpen && (
+                <div className="mt-3 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs space-y-2">
+                  <p className="font-semibold text-rose-800 dark:text-rose-300">
+                    ⚠️{" "}
+                    {t("modals.patient_access.revoke_confirm_title", {
+                      defaultValue: "Confirmar revogação de acesso ao portal?",
+                    })}
+                  </p>
+                  <ul className="list-disc list-inside text-rose-700 dark:text-rose-400 space-y-1">
+                    <li>
+                      {t("modals.patient_access.revoke_effect_1", {
+                        defaultValue:
+                          "O paciente perderá acesso imediato ao aplicativo e histórico via portal.",
+                      })}
+                    </li>
+                    <li>
+                      {t("modals.patient_access.revoke_effect_2", {
+                        defaultValue:
+                          "Todas as dietas, consultas e prontuário serão mantidos no consultório.",
+                      })}
+                    </li>
+                    <li>
+                      {t("modals.patient_access.revoke_effect_3", {
+                        defaultValue:
+                          "A conta de e-mail do paciente é preservada e você poderá reemitir um convite futuramente.",
+                      })}
+                    </li>
+                  </ul>
+                  <div className="flex gap-2 justify-end pt-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={revokingAccess}
+                      onClick={() => setRevokeConfirmOpen(false)}
+                    >
+                      {t("common.cancel", { defaultValue: "Cancelar" })}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-rose-600 hover:bg-rose-700 text-white border-none"
+                      loading={revokingAccess}
+                      onClick={handleRevokePortalAccess}
+                    >
+                      {t("modals.patient_access.btn_confirm_revoke", {
+                        defaultValue: "Sim, Revogar Acesso",
+                      })}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {accessRevokedSuccess && (
+          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3.5 text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+            ✅{" "}
+            {t("modals.patient_access.revoke_success_message", {
+              defaultValue:
+                "Acesso ao portal revogado com sucesso. O paciente não consegue mais visualizar os dados via app, mas o prontuário foi preservado integralmente.",
+            })}
           </div>
         )}
 

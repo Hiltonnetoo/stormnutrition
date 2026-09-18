@@ -393,4 +393,84 @@ describe("Firestore security rules - Authorization Matrix", () => {
       );
     });
   });
+
+  describe("8. Patient Lifecycle: Archival, Portal Revocation and Cascade Deletion", () => {
+    it("FORBIDS direct SDK read of patient and diets when portal profile has status 'revoked'", async () => {
+      // Mark patientProfile as revoked
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(
+          doc(ctx.firestore(), `patientProfiles/${PATIENT_UID}`),
+          {
+            status: "revoked",
+            revokedAt: "2026-09-18T00:00:00Z",
+          },
+        );
+      });
+
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      // Direct SDK reads must FAIL with permission-denied
+      await assertFails(getDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`)));
+      await assertFails(getDoc(doc(patientDb, `users/${NUTRI_A}/diets/d1`)));
+    });
+
+    it("FORBIDS direct SDK read when patientProfile is deleted", async () => {
+      // Delete patientProfile
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const { deleteDoc } = await import("firebase/firestore");
+        await deleteDoc(doc(ctx.firestore(), `patientProfiles/${PATIENT_UID}`));
+      });
+
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      await assertFails(getDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`)));
+      await assertFails(getDoc(doc(patientDb, `users/${NUTRI_A}/diets/d1`)));
+    });
+
+    it("allows nutritionist to unlink portalUid by setting it to null", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertSucceeds(
+        updateDoc(doc(nutriDb, `users/${NUTRI_A}/patients/p1`), {
+          portalUid: null,
+          portalStatus: "revoked",
+        }),
+      );
+    });
+
+    it("allows nutritionist to delete invitations for their patients", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "invitations/inv-to-delete"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1",
+          patientEmail: "ana@test.com",
+          status: "pending",
+          expiresAt: "2026-10-01T00:00:00Z",
+        });
+      });
+
+      const { deleteDoc } = await import("firebase/firestore");
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertSucceeds(
+        deleteDoc(doc(nutriDb, "invitations/inv-to-delete")),
+      );
+    });
+
+    it("FORBIDS patient self-service writes when deletionPending is true", async () => {
+      // Set deletionPending on patient doc
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p1`), {
+          deletionPending: true,
+        });
+      });
+
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      await assertFails(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`), {
+          weight: 62.0,
+          weightHistory: [
+            { date: "2026-01-01", weight: 60, origin: "clinical" },
+            { date: "2026-09-18", weight: 62.0, origin: "self_reported" },
+          ],
+        }),
+      );
+    });
+  });
 });

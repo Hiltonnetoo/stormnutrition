@@ -119,7 +119,11 @@ export interface Patient {
   termsAccepted: boolean;
 
   // Metadata
-  status: "Active" | "Inactive";
+  status: "Active" | "Inactive" | "Archived";
+  archivedAt?: string;
+  deletionPending?: boolean;
+  portalStatus?: "none" | "pending" | "active" | "revoked";
+  portalRevokedAt?: string;
   portalUid?: string; // Firebase Auth UID of the patient (when portal access is granted)
   createdAt: string;
   avatarUrl: string;
@@ -147,4 +151,7 @@ export interface PatientPortalProfile {
   nutritionistEmail: string;
   role: "patient";
   createdAt: string;
+  status?: "active" | "revoked";
+  revokedAt?: string;
+  revokedReason?: string;
 }

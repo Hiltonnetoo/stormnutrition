@@ -9,6 +9,7 @@ import {
   updateDoc,
   writeBatch,
   getDoc,
+  deleteDoc,
   type FirestoreError,
   type Query,
   type DocumentData,
@@ -66,18 +67,273 @@ export const getPatientById = async (
   return validatePatient({ ...data, id: snap.id, createdAt });
 };
 
-export const deletePatient = async (userId: string, patientId: string) => {
-  const dietsRef = getDietsCollection(userId);
-  const q = query(dietsRef, where("patientId", "==", patientId));
-  const dietsSnapshot = await getDocs(q);
-  const dietDocs = dietsSnapshot.docs;
-
-  const batch = writeBatch(db);
-  dietDocs.forEach((doc) => batch.delete(doc.ref));
-  batch.delete(getPatientDoc(userId, patientId));
-
-  return batch.commit();
+/**
+ * Archives a patient, preserving full history, diets, and appointments
+ * while marking them as inactive/archived for active consultation lists.
+ */
+export const archivePatient = async (
+  userId: string,
+  patientId: string,
+): Promise<void> => {
+  const patientRef = getPatientDoc(userId, patientId);
+  await updateDoc(patientRef, {
+    status: "Archived",
+    archivedAt: new Date().toISOString(),
+  });
 };
+
+/**
+ * Restores an archived patient back to Active status.
+ */
+export const unarchivePatient = async (
+  userId: string,
+  patientId: string,
+): Promise<void> => {
+  const patientRef = getPatientDoc(userId, patientId);
+  await updateDoc(patientRef, {
+    status: "Active",
+    archivedAt: null,
+  });
+};
+
+/**
+ * Revokes portal access for a patient without deleting clinical records or Auth account.
+ * Deletes/marks revoked the patientProfiles document so security rules block direct SDK reads.
+ */
+export const revokePatientPortalAccess = async (
+  userId: string,
+  patientId: string,
+  reason = "Acesso revogado pelo nutricionista.",
+): Promise<{ portalUid?: string; revokedInvitationsCount: number }> => {
+  const patientRef = getPatientDoc(userId, patientId);
+  const patientSnap = await getDoc(patientRef);
+  if (!patientSnap.exists()) {
+    throw new Error("PACIENTE_NAO_ENCONTRADO: Paciente inexistente.");
+  }
+  const patientData = patientSnap.data();
+  const portalUid = patientData.portalUid as string | undefined;
+
+  // 1. Revoke patientProfile if portalUid exists
+  if (portalUid) {
+    const profileRef = doc(db, "patientProfiles", portalUid);
+    try {
+      await updateDoc(profileRef, {
+        status: "revoked",
+        revokedAt: new Date().toISOString(),
+        revokedReason: reason,
+      });
+    } catch {
+      try {
+        await deleteDoc(profileRef);
+      } catch {
+        // Ignored if already removed
+      }
+    }
+  }
+
+  // 2. Revoke any pending invitations for this patient
+  let revokedInvitationsCount = 0;
+  try {
+    const invQuery = query(
+      collection(db, "invitations"),
+      where("nutritionistId", "==", userId),
+      where("patientId", "==", patientId),
+    );
+    const invSnap = await getDocs(invQuery);
+    for (const invDoc of invSnap.docs) {
+      const invData = invDoc.data();
+      if (invData.status === "pending") {
+        await updateDoc(invDoc.ref, {
+          status: "revoked",
+          revokedAt: new Date().toISOString(),
+        });
+        revokedInvitationsCount++;
+      }
+    }
+  } catch (err) {
+    console.warn("Aviso ao revogar convites do paciente:", err);
+  }
+
+  // 3. Clear portalUid and record revocation on patient document
+  await updateDoc(patientRef, {
+    portalUid: null,
+    portalStatus: "revoked",
+    portalRevokedAt: new Date().toISOString(),
+    pendingInvitationId: null,
+  });
+
+  return { portalUid, revokedInvitationsCount };
+};
+
+export interface CascadeDeletionResult {
+  patientId: string;
+  deletedDietsCount: number;
+  deletedAppointmentsCount: number;
+  deletedInvitationsCount: number;
+  portalRevoked: boolean;
+  success: boolean;
+}
+
+export interface DeletionProgress {
+  phase:
+    | "locking"
+    | "discovering"
+    | "deleting_batches"
+    | "finalizing"
+    | "completed";
+  percent: number;
+  processedCount: number;
+  totalCount: number;
+}
+
+/**
+ * Permanently deletes a patient and cascades deletions to all associated diets,
+ * appointments, invitations, and portal profiles.
+ *
+ * Implements chunked batching (max 400 docs per batch) to support arbitrary volumes
+ * beyond Firestore's 500-operation writeBatch limit, with full idempotency and concurrency locks.
+ */
+export const deletePatientCascade = async (
+  userId: string,
+  patientId: string,
+  onProgress?: (progress: DeletionProgress) => void,
+): Promise<CascadeDeletionResult> => {
+  const patientRef = getPatientDoc(userId, patientId);
+  const patientSnap = await getDoc(patientRef);
+
+  // Idempotency: if patient document already does not exist, return cleanly
+  if (!patientSnap.exists()) {
+    onProgress?.({
+      phase: "completed",
+      percent: 100,
+      processedCount: 0,
+      totalCount: 0,
+    });
+    return {
+      patientId,
+      deletedDietsCount: 0,
+      deletedAppointmentsCount: 0,
+      deletedInvitationsCount: 0,
+      portalRevoked: false,
+      success: true,
+    };
+  }
+
+  // Phase 1: Lock patient to prevent concurrent creation of new appointments or diets
+  onProgress?.({
+    phase: "locking",
+    percent: 10,
+    processedCount: 0,
+    totalCount: 0,
+  });
+  await updateDoc(patientRef, {
+    deletionPending: true,
+    status: "Inactive",
+  });
+
+  const patientData = patientSnap.data();
+  const portalUid = patientData.portalUid as string | undefined;
+
+  // Phase 2: Discover all related document references
+  onProgress?.({
+    phase: "discovering",
+    percent: 25,
+    processedCount: 0,
+    totalCount: 0,
+  });
+
+  // 2a. Diets
+  const dietsQuery = query(
+    getDietsCollection(userId),
+    where("patientId", "==", patientId),
+  );
+  const dietsSnap = await getDocs(dietsQuery);
+  const dietDocs = dietsSnap.docs;
+
+  // 2b. Appointments
+  const apptsQuery = query(
+    collection(db, "users", userId, "appointments"),
+    where("patientId", "==", patientId),
+  );
+  const apptsSnap = await getDocs(apptsQuery);
+  const apptDocs = apptsSnap.docs;
+
+  // 2c. Invitations
+  const invQuery = query(
+    collection(db, "invitations"),
+    where("nutritionistId", "==", userId),
+    where("patientId", "==", patientId),
+  );
+  const invSnap = await getDocs(invQuery);
+  const invDocs = invSnap.docs;
+
+  // 2d. Patient portal profile
+  const profileRef = portalUid ? doc(db, "patientProfiles", portalUid) : null;
+
+  // Collect all document references to delete in batches
+  const allRefsToDelete = [
+    ...dietDocs.map((d) => d.ref),
+    ...apptDocs.map((d) => d.ref),
+    ...invDocs.map((d) => d.ref),
+  ];
+  if (profileRef) {
+    allRefsToDelete.push(profileRef);
+  }
+
+  const totalCount = allRefsToDelete.length + 1; // +1 for patient doc itself
+  let processedCount = 0;
+
+  // Phase 3: Chunk deletions into batches of max 400 operations (Firestore limit is 500)
+  const BATCH_SIZE = 400;
+  for (let i = 0; i < allRefsToDelete.length; i += BATCH_SIZE) {
+    const chunk = allRefsToDelete.slice(i, i + BATCH_SIZE);
+    const batch = writeBatch(db);
+    for (const ref of chunk) {
+      batch.delete(ref);
+    }
+    await batch.commit();
+    processedCount += chunk.length;
+    const percent = Math.min(
+      90,
+      25 + Math.round((processedCount / totalCount) * 65),
+    );
+    onProgress?.({
+      phase: "deleting_batches",
+      percent,
+      processedCount,
+      totalCount,
+    });
+  }
+
+  // Phase 4: Finalize by deleting the root patient document
+  onProgress?.({
+    phase: "finalizing",
+    percent: 95,
+    processedCount,
+    totalCount,
+  });
+  await deleteDoc(patientRef);
+  processedCount++;
+
+  onProgress?.({
+    phase: "completed",
+    percent: 100,
+    processedCount,
+    totalCount,
+  });
+
+  return {
+    patientId,
+    deletedDietsCount: dietDocs.length,
+    deletedAppointmentsCount: apptDocs.length,
+    deletedInvitationsCount: invDocs.length,
+    portalRevoked: !!portalUid,
+    success: true,
+  };
+};
+
+/** Backwards-compatible alias for deletePatientCascade */
+export const deletePatient = deletePatientCascade;
 
 export const getPatients = (
   userId: string,

@@ -23,7 +23,8 @@ service cloud.firestore {
 
     function hasPatientProfile() {
       return isAuthenticated() &&
-        exists(/databases/$(database)/documents/patientProfiles/$(request.auth.uid));
+        exists(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)) &&
+        (!('status' in getPatientProfile()) || getPatientProfile().status != 'revoked');
     }
 
     // True when the signed-in patient is the one linked to
@@ -91,14 +92,16 @@ service cloud.firestore {
         ||
         // Accept by authenticated patient:
         (resource.data.status == "pending" &&
-         request.resource.data.status == "accepted" &&
-         request.resource.data.acceptedByUid == request.auth.uid &&
-         request.resource.data.nutritionistId == resource.data.nutritionistId &&
-         request.resource.data.patientId == resource.data.patientId &&
-         request.resource.data.patientEmail == resource.data.patientEmail)
+          request.resource.data.status == "accepted" &&
+          request.resource.data.acceptedByUid == request.auth.uid &&
+          request.resource.data.nutritionistId == resource.data.nutritionistId &&
+          request.resource.data.patientId == resource.data.patientId &&
+          request.resource.data.patientEmail == resource.data.patientEmail)
       );
 
-      allow delete: if false;
+      // Nutritionist can delete invitations associated with their patients
+      allow delete: if isAuthenticated() &&
+        resource.data.nutritionistId == request.auth.uid;
     }
 
     // ------------------------------------------------------ patientProfiles
@@ -154,16 +157,21 @@ service cloud.firestore {
           request.resource.data.firstName.size() > 0 &&
           request.resource.data.firstName.size() <= 100;
 
-        // Update by nutritionist ensures portalUid immutability once linked
+        // Update by nutritionist ensures portalUid immutability once linked,
+        // but allows unlinking/revoking by setting portalUid to null or omitting it
         allow update: if isNutritionist(userId) &&
           (!('portalUid' in resource.data) ||
            resource.data.portalUid == null ||
-           request.resource.data.portalUid == resource.data.portalUid);
+           request.resource.data.portalUid == resource.data.portalUid ||
+           request.resource.data.portalUid == null ||
+           !('portalUid' in request.resource.data));
 
         // The associated patient may read their own record...
         allow read: if isAssociatedPatient(userId, patientId);
         // ...and update ONLY self-service fields with validated non-decreasing history.
+        // Blocked if deletion is pending.
         allow update: if isAssociatedPatient(userId, patientId) &&
+          (!('deletionPending' in resource.data) || resource.data.deletionPending != true) &&
           patientWriteIsSelfServiceValid();
 
         // Patient claiming portal access upon accepting invitation:

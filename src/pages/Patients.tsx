@@ -16,12 +16,32 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import {
   getPatients,
-  deletePatient,
+  deletePatientCascade,
+  archivePatient,
+  unarchivePatient,
   getAllDiets,
 } from "../services/firebaseService";
 import PatientDietHistoryModal from "../components/modals/PatientDietHistoryModal";
 import NewPatientModal from "../components/modals/NewPatientModal";
 import { ConfirmationModal } from "../components/modals/PatientModal";
+
+const ArchiveIcon: React.FC<{ className?: string }> = ({
+  className = "w-4 h-4",
+}) => (
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={1.75}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+    />
+  </svg>
+);
 import LoadingState from "../components/patient-list/LoadingState";
 import EmptyState from "../components/patient-list/EmptyState";
 import PatientAccessModal from "../components/modals/PatientAccessModal";
@@ -115,6 +135,13 @@ const Patients: React.FC = () => {
     useState<Patient | null>(null);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [patientToArchive, setPatientToArchive] = useState<Patient | null>(
+    null,
+  );
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "archived"
+  >("all");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     title: string;
@@ -228,7 +255,7 @@ const Patients: React.FC = () => {
     if (!patientToDelete || !patientToDelete.id || !currentUser) return;
     setIsDeleting(true);
     try {
-      await deletePatient(currentUser.uid, patientToDelete.id);
+      await deletePatientCascade(currentUser.uid, patientToDelete.id);
       showToast({
         title: t("patients.toast_success_title"),
         message: t("patients.success_delete_patient"),
@@ -247,6 +274,46 @@ const Patients: React.FC = () => {
     }
   };
 
+  const handleArchiveToggle = async (patient: Patient) => {
+    if (!currentUser || !patient.id) return;
+    const isCurrentlyArchived = patient.status === "Archived";
+    setIsArchiving(true);
+    try {
+      if (isCurrentlyArchived) {
+        await unarchivePatient(currentUser.uid, patient.id);
+        showToast({
+          title: t("patients.toast_success_title"),
+          message: t("patients.success_unarchive_patient", {
+            defaultValue: "Paciente restaurado para a lista de ativos.",
+          }),
+          type: "success",
+        });
+      } else {
+        await archivePatient(currentUser.uid, patient.id);
+        showToast({
+          title: t("patients.toast_success_title"),
+          message: t("patients.success_archive_patient", {
+            defaultValue:
+              "Paciente arquivado com sucesso. Prontuário e histórico foram preservados.",
+          }),
+          type: "success",
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao alterar arquivamento do paciente:", err);
+      showToast({
+        title: t("patients.toast_error_title"),
+        message: t("patients.error_archive_patient", {
+          defaultValue: "Falha ao alterar status de arquivamento.",
+        }),
+        type: "error",
+      });
+    } finally {
+      setIsArchiving(false);
+      setPatientToArchive(null);
+    }
+  };
+
   const getAge = (dob: string): number | "N/A" => {
     if (!dob || typeof dob !== "string" || !/^\d{2}\/\d{2}\/\d{4}$/.test(dob))
       return "N/A";
@@ -258,13 +325,22 @@ const Patients: React.FC = () => {
     return age >= 0 ? age : "N/A";
   };
 
-  const filteredPatients = patients.filter(
-    (patient) =>
+  const filteredPatients = patients.filter((patient) => {
+    const matchesSearch =
       `${patient.firstName} ${patient.lastName}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      patient.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+      patient.email.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+
+    if (statusFilter === "active") {
+      return patient.status !== "Archived";
+    }
+    if (statusFilter === "archived") {
+      return patient.status === "Archived";
+    }
+    return true;
+  });
 
   const ActionButtons: React.FC<{ patient: Patient }> = ({ patient }) => {
     const isOpen = openMenuId === patient.id;
@@ -390,6 +466,23 @@ const Patients: React.FC = () => {
                 <EditIcon className="w-4 h-4 text-slate-400 shrink-0" />
                 {t("patients.edit_patient_menu")}
               </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setPatientToArchive(patient);
+                  setOpenMenuId(null);
+                }}
+                className={itemCls}
+              >
+                <ArchiveIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                {patient.status === "Archived"
+                  ? t("patients.unarchive_patient_menu", {
+                      defaultValue: "Desarquivar Paciente",
+                    })
+                  : t("patients.archive_patient_menu", {
+                      defaultValue: "Arquivar Paciente",
+                    })}
+              </button>
               <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
               <button
                 role="menuitem"
@@ -470,9 +563,18 @@ const Patients: React.FC = () => {
                           alt=""
                         />
                         <div className="min-w-0">
-                          <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-sage-600 transition-colors truncate">
-                            {patient.firstName} {patient.lastName}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-sage-600 transition-colors truncate">
+                              {patient.firstName} {patient.lastName}
+                            </p>
+                            {patient.status === "Archived" && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                {t("patients.badge_archived", {
+                                  defaultValue: "Arquivado",
+                                })}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-slate-400 truncate">
                             {patient.email}
                           </p>
@@ -516,9 +618,18 @@ const Patients: React.FC = () => {
                     alt=""
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                      {patient.firstName} {patient.lastName}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                        {patient.firstName} {patient.lastName}
+                      </p>
+                      {patient.status === "Archived" && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                          {t("patients.badge_archived", {
+                            defaultValue: "Arquivado",
+                          })}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-400">
                       {age === "N/A"
                         ? "N/A"
@@ -556,13 +667,52 @@ const Patients: React.FC = () => {
         }
       />
 
-      <div className="mb-5 max-w-md">
-        <Input
-          leftIcon={<SearchIcon className="h-4 w-4" />}
-          placeholder={t("patients.search_placeholder")}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="mb-5 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="max-w-md w-full">
+          <Input
+            leftIcon={<SearchIcon className="h-4 w-4" />}
+            placeholder={t("patients.search_placeholder")}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Status Filter Tabs */}
+        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold shrink-0">
+          <button
+            onClick={() => setStatusFilter("all")}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
+              statusFilter === "all"
+                ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+            }`}
+          >
+            {t("patients.filter_all", { defaultValue: "Todos" })} (
+            {patients.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter("active")}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
+              statusFilter === "active"
+                ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+            }`}
+          >
+            {t("patients.filter_active", { defaultValue: "Ativos" })} (
+            {patients.filter((p) => p.status !== "Archived").length})
+          </button>
+          <button
+            onClick={() => setStatusFilter("archived")}
+            className={`px-3 py-1.5 rounded-lg transition-colors ${
+              statusFilter === "archived"
+                ? "bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm"
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+            }`}
+          >
+            {t("patients.filter_archived", { defaultValue: "Arquivados" })} (
+            {patients.filter((p) => p.status === "Archived").length})
+          </button>
+        </div>
       </div>
 
       <div className="card overflow-hidden">{renderContent()}</div>
@@ -596,13 +746,50 @@ const Patients: React.FC = () => {
         />
       )}
       <ConfirmationModal
+        isOpen={!!patientToArchive}
+        onClose={() => !isArchiving && setPatientToArchive(null)}
+        onConfirm={() =>
+          patientToArchive && handleArchiveToggle(patientToArchive)
+        }
+        isConfirmLoading={isArchiving}
+        title={
+          patientToArchive?.status === "Archived"
+            ? t("patients.unarchive_confirm_title", {
+                defaultValue: "Desarquivar paciente",
+              })
+            : t("patients.archive_confirm_title", {
+                defaultValue: "Arquivar paciente",
+              })
+        }
+        message={
+          patientToArchive?.status === "Archived"
+            ? t("patients.unarchive_confirm_message", {
+                name: patientToArchive?.firstName,
+                defaultValue: `Deseja desarquivar ${patientToArchive?.firstName}? O paciente voltará a constar na lista de pacientes ativos.`,
+              })
+            : t("patients.archive_confirm_message", {
+                name: patientToArchive?.firstName,
+                defaultValue: `Deseja arquivar ${patientToArchive?.firstName}? Todo o histórico clínico, dietas e consultas serão preservados, mas o paciente deixará de constar na lista de ativos.`,
+              })
+        }
+        confirmText={
+          patientToArchive?.status === "Archived"
+            ? t("patients.btn_unarchive", { defaultValue: "Desarquivar" })
+            : t("patients.btn_archive", { defaultValue: "Arquivar" })
+        }
+      />
+      <ConfirmationModal
         isOpen={!!patientToDelete}
         onClose={() => !isDeleting && setPatientToDelete(null)}
         onConfirm={executeDeletePatient}
         isConfirmLoading={isDeleting}
         title={t("patients.delete_confirm_title")}
-        message={t("patients.delete_confirm_message", {
+        message={t("patients.delete_cascade_warning", {
           name: patientToDelete?.firstName,
+          defaultValue: `Atenção: Esta ação é definitiva e irreversível. Serão excluídos permanentemente: o cadastro de ${patientToDelete?.firstName}, todas as dietas geradas, todas as consultas e convites pendentes. O vínculo com o portal será revogado (a conta individual do usuário não é deletada do Auth, mas perde todo acesso aos dados). Deseja continuar?`,
+        })}
+        confirmText={t("patients.btn_confirm_permanent_delete", {
+          defaultValue: "Sim, Excluir Permanentemente",
         })}
       />
       {portalPatient && (

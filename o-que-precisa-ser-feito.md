@@ -561,16 +561,44 @@ Limitações ou decisões pendentes: Pronto para Etapa 11 (Definir arquivamento,
 
 **Passos:**
 
-1. [ ] Definir diferenças entre arquivar paciente, revogar portal e excluir dados. Informar consequências na UI.
-2. [ ] Mapear paciente, dietas, consultas, perfil de acesso, eventos, uploads e convites.
-3. [ ] Implementar operação autorizada e idempotente com estado de progresso/falha. Considerar volumes que excedam uma única operação em lote.
-4. [ ] Revogar leitura de registros remanescentes quando o vínculo for encerrado, sem depender apenas de esconder a tela.
-5. [ ] Não excluir uma conta Auth automaticamente quando ela pode ter outro vínculo. Decidir política de retenção e propriedade antes disso.
-6. [ ] Tratar falhas parciais e impedir novos registros durante exclusão quando isso comprometer consistência.
+1. [x] Definir diferenças entre arquivar paciente, revogar portal e excluir dados. Informar consequências na UI.
+2. [x] Mapear paciente, dietas, consultas, perfil de acesso, eventos, uploads e convites.
+3. [x] Implementar operação autorizada e idempotente com estado de progresso/falha. Considerar volumes que excedam uma única operação em lote.
+4. [x] Revogar leitura de registros remanescentes quando o vínculo for encerrado, sem depender apenas de esconder a tela.
+5. [x] Não excluir uma conta Auth automaticamente quando ela pode ter outro vínculo. Decidir política de retenção e propriedade antes disso.
+6. [x] Tratar falhas parciais e impedir novos registros durante exclusão quando isso comprometer consistência.
 
 **Resultado:** ciclo de vida completo, sem acesso residual involuntário ou dados órfãos não documentados.
 
 **Aceite:** operação repetida é segura; consultas/vínculos relacionados seguem a política; paciente revogado não consegue ler via SDK direto.
+
+```yaml
+Data de conclusão: 2026-09-17
+Arquivos modificados ou criados:
+- firestore.rules
+- src/types/patient.ts
+- src/services/patientService.ts
+- src/services/appointmentService.ts
+- src/services/dietService.ts
+- src/services/firebaseService.ts
+- src/utils/validation.ts
+- src/components/modals/PatientAccessModal.tsx
+- src/pages/Patients.tsx
+- src/locales/pt/common.json
+- src/locales/en/common.json
+- tests-rules/firestore.rules.test.ts
+- src/services/__tests__/patientLifecycle.test.ts
+- src/services/__tests__/evaluationService.test.ts
+Comandos executados para validação:
+- npm test (178 de 178 testes unitários passando em 19 suítes Vitest, cobrindo ciclo de vida de arquivamento, desarquivamento, revogação do portal, exclusão em cascata com chunking de lotes >400 docs, idempotência e bloqueio por deletionPending)
+- npm run test:rules (29 de 29 testes no emulador Firestore passando com validação em nível de regras para revogação imediata de leitura SDK, bloqueio de escritas concorrentes por deletionPending e desvinculação de portalUid)
+- npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
+- npm run type-check (0 erros TypeScript com strict mode)
+- npm run format:check (100% dos arquivos validados pelo Prettier)
+- npm run build (Build Vite de produção concluído com sucesso em 1.64s)
+Validação manual e ambiente: Diferenciação clara entre Arquivar (preserva dados clínicos e retira da listagem ativa), Revogar Portal (corta acesso do paciente ao app instantaneamente via regras de segurança sem apagar prontuário do nutricionista) e Excluir em Cascata (limpeza de dietas, agendamentos, convites e perfis com chunks de 400 docs prevenindo estouro do limite de 500 do Firestore, com preservação da identidade de autenticação Firebase Auth e trava de concorrência deletionPending).
+Limitações ou decisões pendentes: Pronto para Etapa 12 (Completar testes que sustentam as promessas).
+```
 
 ### 12 — Completar testes que sustentam as promessas
 

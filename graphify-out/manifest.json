@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "src/components/modals/PatientAccessModal.tsx": {
-    "mtime": 1789688531.0901742,
-    "seen": 1789688684.3786619,
-    "ast_hash": "3b55291866753fca1ed2acc13c165819",
+    "mtime": 1789692146.6292734,
+    "seen": 1789692300.124059,
+    "ast_hash": "5433e054ec74617cac0b4373375e06b9",
     "semantic_hash": ""
   },
   "src/components/modals/PatientDietHistoryModal.tsx": {
@@ -342,15 +342,15 @@
     "semantic_hash": "fd41c1a8220a0a0c9b8ed933945b5966"
   },
   "src/locales/en/common.json": {
-    "mtime": 1789689995.8216636,
-    "seen": 1789690389.130189,
-    "ast_hash": "9157c5f462c5281ed4a94a5b767b48b4",
+    "mtime": 1789691984.150067,
+    "seen": 1789692300.12407,
+    "ast_hash": "aa9f7d7f32397a498c627940d36d37f3",
     "semantic_hash": ""
   },
   "src/locales/pt/common.json": {
-    "mtime": 1789689979.344077,
-    "seen": 1789690389.1301901,
-    "ast_hash": "f1e6a2de587a2394f134a84e9119eb73",
+    "mtime": 1789691956.601824,
+    "seen": 1789692300.124071,
+    "ast_hash": "399cb67e4cc96df1788642bef9ab738c",
     "semantic_hash": ""
   },
   "src/pages/Calendar.tsx": {
@@ -414,10 +414,10 @@
     "semantic_hash": ""
   },
   "src/pages/Patients.tsx": {
-    "mtime": 1781133786.4444869,
-    "seen": 1789681967.256535,
-    "ast_hash": "16fd9fcd76209857f3bbe189310fcb23",
-    "semantic_hash": "16fd9fcd76209857f3bbe189310fcb23"
+    "mtime": 1789692273.9369826,
+    "seen": 1789692300.1240761,
+    "ast_hash": "1602f064c53d494c498b2410187de0f0",
+    "semantic_hash": ""
   },
   "src/pages/Register.tsx": {
     "mtime": 1789686598.817637,
@@ -462,9 +462,9 @@
     "semantic_hash": "bf5882c92cb24cf3bb856cd514f99fe1"
   },
   "src/services/appointmentService.ts": {
-    "mtime": 1789691223.258917,
-    "seen": 1789691250.0856059,
-    "ast_hash": "fcdd6a7cd2632336e594d81d90fb1092",
+    "mtime": 1789691690.3903751,
+    "seen": 1789692300.1240819,
+    "ast_hash": "5bd9550634e19a5ab2f374abfdd52a62",
     "semantic_hash": ""
   },
   "src/services/authService.ts": {
@@ -486,9 +486,9 @@
     "semantic_hash": ""
   },
   "src/services/dietService.ts": {
-    "mtime": 1789690359.4552636,
-    "seen": 1789690389.1302001,
-    "ast_hash": "67905a1d77636c9b13f4dbc7c4437851",
+    "mtime": 1789691719.6313329,
+    "seen": 1789692300.124084,
+    "ast_hash": "bc1e8e946fe6a9bdb88d466cdccd39a3",
     "semantic_hash": ""
   },
   "src/services/emailService.ts": {
@@ -516,9 +516,9 @@
     "semantic_hash": ""
   },
   "src/services/firebaseService.ts": {
-    "mtime": 1789690833.726303,
-    "seen": 1789691250.085609,
-    "ast_hash": "03186913a7d22674547f8409a3215c93",
+    "mtime": 1789691730.3539853,
+    "seen": 1789692300.124086,
+    "ast_hash": "3d9196f17b676c11db330413003c2e4d",
     "semantic_hash": ""
   },
   "src/services/foodService.ts": {
@@ -534,9 +534,9 @@
     "semantic_hash": "c7d389ceef99134bda434ca8d4b4aa20"
   },
   "src/services/patientService.ts": {
-    "mtime": 1789687895.6542387,
-    "seen": 1789688167.617144,
-    "ast_hash": "9aa7393a366f93511b239ab2f220873e",
+    "mtime": 1789691671.1896749,
+    "seen": 1789692300.124088,
+    "ast_hash": "791f01493aeda77385f9b1450af037b9",
     "semantic_hash": ""
   },
   "src/test/setup.ts": {
@@ -576,9 +576,9 @@
     "semantic_hash": ""
   },
   "src/types/patient.ts": {
-    "mtime": 1789690651.4907498,
-    "seen": 1789691250.085614,
-    "ast_hash": "b58f294d11a009a05d42f6586c492037",
+    "mtime": 1789691557.0292103,
+    "seen": 1789692300.124091,
+    "ast_hash": "e29b1afcabed88da586dc399b20f2344",
     "semantic_hash": ""
   },
   "src/utils/calcAge.ts": {
@@ -624,9 +624,9 @@
     "semantic_hash": "fe7b99ec2c8c4561baf21d77afd011bf"
   },
   "tests-rules/firestore.rules.test.ts": {
-    "mtime": 1789688592.2133348,
-    "seen": 1789688684.3786922,
-    "ast_hash": "256471c292d9b8609a31891998a819bb",
+    "mtime": 1789691636.2879136,
+    "seen": 1789692300.124095,
+    "ast_hash": "8f3f7c1d73aac9d5b2440931715e78ca",
     "semantic_hash": ""
   },
   "tsconfig.json": {
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789691244.9506345,
-    "seen": 1789691250.085641,
-    "ast_hash": "eb129a072e5e20417a28e8a5cfda74e5",
+    "mtime": 1789692293.8510885,
+    "seen": 1789692300.124116,
+    "ast_hash": "597c976b0216cdc5e1eaba2439239c0c",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1074,9 +1074,9 @@
     "semantic_hash": ""
   },
   "src/utils/validation.ts": {
-    "mtime": 1789691223.419076,
-    "seen": 1789691250.0856168,
-    "ast_hash": "851b12facac3a8da2c818b1930aacaaf",
+    "mtime": 1789691582.6342273,
+    "seen": 1789692300.124094,
+    "ast_hash": "18b36e19ed085a1abeca0c369af9325f",
     "semantic_hash": ""
   },
   "src/pages/AcceptInvitation.tsx": {
@@ -1104,9 +1104,9 @@
     "semantic_hash": ""
   },
   "src/services/__tests__/evaluationService.test.ts": {
-    "mtime": 1789691223.2254045,
-    "seen": 1789691250.0856042,
-    "ast_hash": "b6e119e5b72f4724b89ec2abd4fb35b5",
+    "mtime": 1789692105.2874553,
+    "seen": 1789692300.124079,
+    "ast_hash": "487a19bf65ffdc8bbab6e866594e1787",
     "semantic_hash": ""
   },
   "src/services/__tests__/patientMigrationService.test.ts": {
@@ -1125,6 +1125,12 @@
     "mtime": 1789690849.092721,
     "seen": 1789691250.085614,
     "ast_hash": "d1efc38830375917415f0797501d007e",
+    "semantic_hash": ""
+  },
+  "src/services/__tests__/patientLifecycle.test.ts": {
+    "mtime": 1789692274.020271,
+    "seen": 1789692300.124081,
+    "ast_hash": "4068fc6e79df6c6defbdfd139759fe0a",
     "semantic_hash": ""
   }
 }

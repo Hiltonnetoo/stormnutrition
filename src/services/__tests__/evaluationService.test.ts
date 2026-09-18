@@ -5,12 +5,7 @@ import {
   completeSelfEvaluation,
   logAdherence,
 } from "../evaluationService";
-import type {
-  Patient,
-  WeightRecord,
-  AdherenceEntry,
-  SelfEvaluation,
-} from "../../types";
+import type { Patient, WeightRecord } from "../../types";
 
 // In-memory document storage for transaction testing
 let mockStore: Record<string, Record<string, unknown>> = {};

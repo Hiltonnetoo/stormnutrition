@@ -220,7 +220,24 @@ export const validatePatient = (raw: unknown): Patient => {
     anthropometryMetadata,
     weightHistory,
     selfEvaluations,
-    status: obj.status === "Inactive" ? "Inactive" : "Active",
+    status:
+      obj.status === "Archived"
+        ? "Archived"
+        : obj.status === "Inactive"
+          ? "Inactive"
+          : "Active",
+    archivedAt: obj.archivedAt ? sanitizeString(obj.archivedAt) : undefined,
+    deletionPending: Boolean(obj.deletionPending),
+    portalStatus:
+      obj.portalStatus === "active" ||
+      obj.portalStatus === "pending" ||
+      obj.portalStatus === "revoked" ||
+      obj.portalStatus === "none"
+        ? obj.portalStatus
+        : undefined,
+    portalRevokedAt: obj.portalRevokedAt
+      ? sanitizeString(obj.portalRevokedAt)
+      : undefined,
     createdAt: sanitizeString(obj.createdAt, new Date().toISOString()),
     avatarUrl: sanitizeString(obj.avatarUrl),
     portalUid: obj.portalUid ? sanitizeString(obj.portalUid) : undefined,
