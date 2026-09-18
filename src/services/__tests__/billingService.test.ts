@@ -4,6 +4,7 @@ import {
   changePlan,
   cancelSubscription,
   reactivateSubscription,
+  resetBillingState,
 } from "../billingService";
 
 describe("billingService - multi-account isolation", () => {
@@ -63,5 +64,19 @@ describe("billingService - multi-account isolation", () => {
     const state = getBillingState(userC);
     expect(state.tier).toBe("pro");
     expect(state.status).toBe("active");
+  });
+
+  it("resets simulated billing to default Pro state on demand", () => {
+    const userD = "uid_daniela";
+    changePlan("clinic", userD);
+    cancelSubscription(userD);
+    expect(getBillingState(userD).tier).toBe("clinic");
+    expect(getBillingState(userD).status).toBe("canceled");
+
+    const resetState = resetBillingState(userD);
+    expect(resetState.tier).toBe("pro");
+    expect(resetState.status).toBe("active");
+    expect(getBillingState(userD).tier).toBe("pro");
+    expect(getBillingState(userD).status).toBe("active");
   });
 });

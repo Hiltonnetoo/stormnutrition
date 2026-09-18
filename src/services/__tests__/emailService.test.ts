@@ -4,6 +4,7 @@ import {
   sendPortalAccessEmail,
   isEmailConfigured,
   isValidEmail,
+  isDemoRecipient,
   clearEmailRateLimits,
 } from "../emailService";
 import emailjs from "@emailjs/browser";
@@ -178,6 +179,60 @@ describe("emailService and abuse controls", () => {
       expect(callArgs[2].portal_url).toBe(
         "https://example.com/accept-invite?token=abc",
       );
+    });
+  });
+
+  describe("demo recipient simulation and isolation", () => {
+    it("identifies demo and test domains as demo recipients", () => {
+      expect(isDemoRecipient("ana.silva@demo.stormnutrition.com")).toBe(true);
+      expect(isDemoRecipient("dra.clara@demo.stormnutrition.com")).toBe(true);
+      expect(isDemoRecipient("patient@realclinic.com.br")).toBe(false);
+    });
+
+    it("safely intercepts sending to demo recipients without calling EmailJS even without keys", async () => {
+      vi.stubEnv("VITE_EMAILJS_SERVICE_ID", "");
+      vi.stubEnv("VITE_EMAILJS_PUBLIC_KEY", "");
+
+      await expect(
+        sendDietEmail({
+          toEmail: "ana.silva@demo.stormnutrition.com",
+          toName: "Ana Silva",
+          fromName: "Dra. Clara",
+          dietDate: "2026-09-18",
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(emailjs.send).not.toHaveBeenCalled();
+
+      clearEmailRateLimits();
+
+      await expect(
+        sendPortalAccessEmail({
+          toEmail: "ana.silva@demo.stormnutrition.com",
+          toName: "Ana Silva",
+          fromName: "Dra. Clara",
+          portalUrl: "https://demo.stormnutrition.com/paciente",
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(emailjs.send).not.toHaveBeenCalled();
+    });
+
+    it("intercepts test.com and example.com when emulator or demo mode is enabled", async () => {
+      vi.stubEnv("VITE_DEMO_MODE", "true");
+      expect(isDemoRecipient("evaluator@example.com")).toBe(true);
+      expect(isDemoRecipient("test@test.com")).toBe(true);
+    });
+
+    it("still enforces abuse and syntax validation for demo recipients", async () => {
+      await expect(
+        sendDietEmail({
+          toEmail: "invalid-demo-syntax",
+          toName: "Demo User",
+          fromName: "Doctor",
+          dietDate: "2026-09-18",
+        }),
+      ).rejects.toThrow("EMAIL_INVALID_RECIPIENT");
     });
   });
 });

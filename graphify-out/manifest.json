@@ -24,9 +24,9 @@
     "semantic_hash": "7a815136c555770bcbd105beb9ccbb34"
   },
   "package.json": {
-    "mtime": 1789741715.8378608,
-    "seen": 1789743124.171368,
-    "ast_hash": "40abf9017d93d8987d9ab9e1b4ca656d",
+    "mtime": 1789744351.7608662,
+    "seen": 1789744619.839042,
+    "ast_hash": "fd4979034c403ba156a45fbb781a247e",
     "semantic_hash": ""
   },
   "playwright.config.ts": {
@@ -54,9 +54,9 @@
     "semantic_hash": ""
   },
   "src/components/AppShell.tsx": {
-    "mtime": 1789741931.4067981,
-    "seen": 1789743124.171372,
-    "ast_hash": "70ecd658c08313de04f86f649b8c396c",
+    "mtime": 1789744537.0680528,
+    "seen": 1789744619.839045,
+    "ast_hash": "2d85b623f788356d3784a370f08d03ca",
     "semantic_hash": ""
   },
   "src/components/AuthLayout.tsx": {
@@ -168,9 +168,9 @@
     "semantic_hash": "300b305073f0ad03def5f14d825813a2"
   },
   "src/components/icons.tsx": {
-    "mtime": 1789698210.766705,
-    "seen": 1789738357.671471,
-    "ast_hash": "9605f1dbe656034a10509255a1c43e88",
+    "mtime": 1789744316.1327066,
+    "seen": 1789744619.839062,
+    "ast_hash": "6ed8461999cd8c0c2a35a4d958b53ace",
     "semantic_hash": ""
   },
   "src/components/modals/ClinicalReviewModal.tsx": {
@@ -282,9 +282,9 @@
     "semantic_hash": ""
   },
   "src/components/settings/BillingSection.tsx": {
-    "mtime": 1789697297.0601413,
-    "seen": 1789697320.772161,
-    "ast_hash": "de68f5bce115fa54b62356b64653738b",
+    "mtime": 1789744090.7110205,
+    "seen": 1789744619.8390772,
+    "ast_hash": "5fde0230babd5beb6018296edfeacbfa",
     "semantic_hash": ""
   },
   "src/components/settings/__tests__/BillingSection.test.tsx": {
@@ -342,15 +342,15 @@
     "semantic_hash": ""
   },
   "src/locales/en/common.json": {
-    "mtime": 1789742123.93226,
-    "seen": 1789743124.171413,
-    "ast_hash": "5feff9a9210b8a2c3c1ce9b34221a70d",
+    "mtime": 1789744013.3173115,
+    "seen": 1789744619.839087,
+    "ast_hash": "f73846c490465f04949615d33f2a2ee2",
     "semantic_hash": ""
   },
   "src/locales/pt/common.json": {
-    "mtime": 1789742118.4558277,
-    "seen": 1789743124.171413,
-    "ast_hash": "aec62845b9d678dab0146d0d904c9698",
+    "mtime": 1789743997.8701022,
+    "seen": 1789744619.8390882,
+    "ast_hash": "8e10275034e6587d6813bfbfa2da269f",
     "semantic_hash": ""
   },
   "src/pages/Calendar.tsx": {
@@ -384,15 +384,15 @@
     "semantic_hash": ""
   },
   "src/pages/Home.tsx": {
-    "mtime": 1789739406.2146142,
-    "seen": 1789740013.124668,
-    "ast_hash": "6bb8d4578cba59d3240811f3f5ecdda1",
+    "mtime": 1789744106.8118165,
+    "seen": 1789744619.8390899,
+    "ast_hash": "718e695a5a1fed5b9eab9dd5ba29559b",
     "semantic_hash": ""
   },
   "src/pages/Login.tsx": {
-    "mtime": 1789737023.1046352,
-    "seen": 1789738357.671495,
-    "ast_hash": "8e1aa3b932026da0861d9667374c381f",
+    "mtime": 1789744467.4380288,
+    "seen": 1789744619.839091,
+    "ast_hash": "2791b0af2a178990e0b1e4cdd479e6f7",
     "semantic_hash": ""
   },
   "src/pages/MetabolicCalculator.tsx": {
@@ -474,9 +474,9 @@
     "semantic_hash": ""
   },
   "src/services/billingService.ts": {
-    "mtime": 1789687570.1033309,
-    "seen": 1789687608.1069582,
-    "ast_hash": "55520352ffbefa24d3563aa9fc45f588",
+    "mtime": 1789744034.4087925,
+    "seen": 1789744619.839099,
+    "ast_hash": "c310e0b0a090b3f47167e67484a7ca88",
     "semantic_hash": ""
   },
   "src/services/dietAlgorithmService.ts": {
@@ -492,9 +492,9 @@
     "semantic_hash": ""
   },
   "src/services/emailService.ts": {
-    "mtime": 1789743066.725337,
-    "seen": 1789743124.171427,
-    "ast_hash": "0cc86699c5e4150167e19d00c1b30a2f",
+    "mtime": 1789744190.1544106,
+    "seen": 1789744619.8391008,
+    "ast_hash": "e9ae7c71bb9bf80c874604f8ab4acf55",
     "semantic_hash": ""
   },
   "src/services/evaluationService.ts": {
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789741127.3839898,
-    "seen": 1789743124.171469,
-    "ast_hash": "c433d5a120d7ba174f4b60ee91a54405",
+    "mtime": 1789743140.8204203,
+    "seen": 1789744619.8391402,
+    "ast_hash": "9c7579b72d24af52ce9f1a951b28f020",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1056,9 +1056,9 @@
     "semantic_hash": ""
   },
   "src/services/__tests__/billingService.test.ts": {
-    "mtime": 1789687570.087164,
-    "seen": 1789687608.106955,
-    "ast_hash": "acc1f79d48d7f1a83c1caf21bcce6069",
+    "mtime": 1789744257.4957736,
+    "seen": 1789744619.839095,
+    "ast_hash": "e304fda7bead0e031adbde965a4beb86",
     "semantic_hash": ""
   },
   "src/utils/__tests__/localStorage.test.ts": {
@@ -1530,9 +1530,9 @@
     "semantic_hash": ""
   },
   "src/services/__tests__/emailService.test.ts": {
-    "mtime": 1789742310.53243,
-    "seen": 1789743124.171422,
-    "ast_hash": "4ccc36c6baf6e1dbcb6e3cdbcfba21a6",
+    "mtime": 1789744240.772645,
+    "seen": 1789744619.839096,
+    "ast_hash": "a69f817004443692e4991158fee4f949",
     "semantic_hash": ""
   },
   "src/services/configValidation.ts": {
@@ -1557,6 +1557,24 @@
     "mtime": 1789742227.4911425,
     "seen": 1789743124.171468,
     "ast_hash": "bc89a5dfcd50b4ad12d0aedb54ff3048",
+    "semantic_hash": ""
+  },
+  "src/components/modals/DemoGuideModal.tsx": {
+    "mtime": 1789744537.2758558,
+    "seen": 1789744619.839063,
+    "ast_hash": "a5e0c758624d66421a8525642abe219b",
+    "semantic_hash": ""
+  },
+  "src/components/modals/__tests__/DemoGuideModal.test.tsx": {
+    "mtime": 1789744493.0071266,
+    "seen": 1789744619.839066,
+    "ast_hash": "1dd5135985dd2f9a40aaf0dbb11401ed",
+    "semantic_hash": ""
+  },
+  "docs/demo-guide.md": {
+    "mtime": 1789744363.574676,
+    "seen": 1789744619.839139,
+    "ast_hash": "1c7dac5ed6f89f15268e94e96eac81b8",
     "semantic_hash": ""
   }
 }

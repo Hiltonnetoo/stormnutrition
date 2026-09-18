@@ -841,6 +841,9 @@ const Pricing: React.FC = () => {
         <p className="mt-8 text-center text-sm text-slate-400">
           {t("home.pricing_footnote")}
         </p>
+        <p className="mt-3 text-center text-xs text-amber-800 dark:text-amber-200 bg-amber-50/80 dark:bg-amber-950/20 max-w-2xl mx-auto px-4 py-2 rounded-xl border border-amber-200/80 dark:border-amber-800/40">
+          {t("home.pricing_demo_badge")}
+        </p>
       </div>
     </section>
   );

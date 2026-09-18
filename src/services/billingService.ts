@@ -152,6 +152,19 @@ const save = (state: BillingState, uid?: string): BillingState => {
 };
 
 /**
+ * Resets the simulated billing state to the initial demo default.
+ * Allows evaluators and testers to reset any local plan changes or cancellations.
+ * NOTE: This state is isolated per user in localStorage and has zero effect on
+ * backend Firestore security rules or access permissions.
+ */
+export const resetBillingState = (uid?: string): BillingState => {
+  const key = getStorageKey(uid);
+  const fresh = buildDefaultState();
+  saveState(key, fresh);
+  return fresh;
+};
+
+/**
  * Swaps the subscription plan. (TODO(stripe): in production, open Checkout/
  * Customer Portal and apply the change via webhook instead of locally.)
  */

@@ -6,6 +6,7 @@ import {
   PLANS,
   PLAN_ORDER,
   getBillingState,
+  resetBillingState,
   changePlan,
   cancelSubscription,
   reactivateSubscription,
@@ -26,6 +27,7 @@ const BillingSection: React.FC = () => {
   );
   const [patientCount, setPatientCount] = useState<number | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [pendingTier, setPendingTier] = useState<PlanTier | null>(null);
   const [notice, setNotice] = useState("");
 
@@ -88,6 +90,12 @@ const BillingSection: React.FC = () => {
     flash(t("billing.notice_card_stripe"));
   };
 
+  const handleResetDemo = () => {
+    setBilling(resetBillingState(currentUser?.uid));
+    setConfirmReset(false);
+    flash(t("billing.notice_reset"));
+  };
+
   return (
     <>
       <Card className="p-6">
@@ -101,6 +109,28 @@ const BillingSection: React.FC = () => {
             <CheckCircleIcon className="w-5 h-5 shrink-0" /> {notice}
           </div>
         )}
+
+        {/* Portfolio / Local Simulation Disclaimer */}
+        <div className="mb-6 p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <Badge tone="amber" className="shrink-0 mt-0.5 sm:mt-0">
+                {t("billing.simulation_badge")}
+              </Badge>
+              <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
+                {t("billing.simulation_disclaimer")}
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="shrink-0 text-xs border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-900 dark:text-amber-200"
+              onClick={() => setConfirmReset(true)}
+            >
+              {t("billing.reset_demo_btn")}
+            </Button>
+          </div>
+        </div>
 
         {/* Plano atual */}
         <div className="p-4 rounded-2xl bg-sage-50 dark:bg-sage-900/20 border border-sage-100 dark:border-sage-800">
@@ -355,6 +385,16 @@ const BillingSection: React.FC = () => {
         }
         confirmText={t("billing.change_confirm_btn")}
         cancelText={t("billing.change_back_btn")}
+      />
+
+      <ConfirmationModal
+        isOpen={confirmReset}
+        onClose={() => setConfirmReset(false)}
+        onConfirm={handleResetDemo}
+        title={t("billing.reset_confirm_title")}
+        message={t("billing.reset_confirm_message")}
+        confirmText={t("billing.reset_confirm_btn")}
+        cancelText={t("billing.cancel_keep_btn")}
       />
     </>
   );

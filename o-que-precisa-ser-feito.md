@@ -1108,16 +1108,53 @@ passo_18:
 
 **Passos:**
 
-1. [ ] Criar um caminho simples para experimentar a jornada com pessoas e dados fictícios.
-2. [ ] Escolher demo local isolada ou ambiente público separado. Em ambiente público, impedir que visitantes compartilhem dados privados ou façam operações irrestritas no mesmo workspace.
-3. [ ] Identificar claramente cobrança simulada, dados de demonstração e recursos informativos ainda sem automação.
-4. [ ] Desabilitar envio real de e-mails na demo ou limitar a um mecanismo de teste explicitamente controlado.
-5. [ ] Fornecer reset seguro dos dados sintéticos e roteiro curto de avaliação.
-6. [ ] Diferenciar plano comercial ilustrativo de autorização real; não permitir que localStorage determine permissões de backend.
+1. [x] Criar um caminho simples para experimentar a jornada com pessoas e dados fictícios.
+2. [x] Escolher demo local isolada ou ambiente público separado. Em ambiente público, impedir que visitantes compartilhem dados privados ou façam operações irrestritas no mesmo workspace.
+3. [x] Identificar claramente cobrança simulada, dados de demonstração e recursos informativos ainda sem automação.
+4. [x] Desabilitar envio real de e-mails na demo ou limitar a um mecanismo de teste explicitamente controlado.
+5. [x] Fornecer reset seguro dos dados sintéticos e roteiro curto de avaliação.
+6. [x] Diferenciar plano comercial ilustrativo de autorização real; não permitir que localStorage determine permissões de backend.
 
 **Resultado:** avaliador experimenta o diferencial em poucos minutos e entende o escopo entregue.
 
 **Aceite:** demo não exige dados pessoais reais, não cobra e não envia mensagens inadvertidas; recursos simulados são identificados na interface.
+
+```yaml
+etapa: 19
+status: concluido
+data: 2026-09-18
+arquivos_alterados:
+  - src/services/billingService.ts
+  - src/services/__tests__/billingService.test.ts
+  - src/components/settings/BillingSection.tsx
+  - src/pages/Home.tsx
+  - src/pages/Login.tsx
+  - src/services/emailService.ts
+  - src/services/__tests__/emailService.test.ts
+  - src/components/modals/DemoGuideModal.tsx
+  - src/components/modals/__tests__/DemoGuideModal.test.tsx
+  - src/components/AppShell.tsx
+  - src/components/icons.tsx
+  - src/locales/pt/common.json
+  - src/locales/en/common.json
+  - package.json
+  - docs/demo-guide.md
+mudancas_principais:
+  - Painel de Acesso Rápido em 1 Clique no Login: Adicionado painel de personas sintéticas com 3 perfis pré-configurados (Dra. Clara Mendes como nutricionista principal, Dr. Marcos Lima para validação de isolamento multi-tenant e Ana Silva para o portal do paciente), permitindo que avaliadores preencham credenciais instantaneamente com senha padrão Password123!.
+  - Identificação Visual e Reset de Faturamento Local: Adicionado badge e card informativo semafórico em BillingSection.tsx e aviso de portfólio em Home.tsx (#precos) esclarecendo que a cobrança opera via protótipo ilustrativo em localStorage, arquiteturalmente desacoplada das permissões e regras de segurança do Firestore. Implementada a função resetBillingState e botão "Restaurar Simulação Padrão" com modal de confirmação.
+  - Interceptação Segura de E-mails e Anti-Spam: Implementada a função isDemoRecipient em src/services/emailService.ts interceptando envios para domínios de demonstração (@demo.stormnutrition.com, @example.com, @test.com) sem invocar chamadas externas à API do EmailJS, mantendo ativas todas as validações de sintaxe, tamanho de payload e rate limiting in-memory.
+  - Banner Superior e Roteiro de Avaliação em 5 Passos (3-5 min): Criado o componente DemoGuideModal.tsx e integrado banner responsivo e descartável no AppShell.tsx, apresentando o roteiro clínico completo com foco nas inovações de usabilidade e garantias de segurança.
+  - Documentação Completa e Scripts de Reset: Criado o documento docs/demo-guide.md com instruções passo a passo, personas, matriz de componentes reais vs. simulados e adicionados os scripts demo:seed e demo:reset no package.json.
+testes_executados:
+  - npm test (300 testes unitários e de integração passando em 37 arquivos, incluindo testes dedicados em billingService.test.ts, emailService.test.ts e DemoGuideModal.test.tsx)
+  - npm run test:rules (34 testes passando nos emuladores locais do Firebase)
+  - npm run test:e2e:emulated (14 testes Playwright passando de ponta a ponta com emuladores Firebase)
+  - npm run type-check (0 erros TypeScript)
+  - npm run lint (0 erros de linting)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (build Vite de produção concluído com sucesso em 1,63s)
+  - graphify update . (grafo de conhecimento atualizado com sucesso)
+```
 
 ### 20 — Alinhar apresentação pública e evidências finais
 

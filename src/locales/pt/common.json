@@ -126,6 +126,7 @@
       "Suporte prioritário"
     ],
     "pricing_footnote": "Todos os planos incluem atualizações gratuitas e dados hospedados com segurança. Preços em reais (BRL).",
+    "pricing_demo_badge": "Demonstração de Portfólio: Os planos apresentados são ilustrativos. Todas as funcionalidades estão desbloqueadas para avaliação sem necessidade de cartão de crédito.",
     "pricing_period_forever": "para sempre",
     "pricing_period_monthly": "/mês",
     "cta_title": "Comece a transformar seus atendimentos hoje",
@@ -410,7 +411,14 @@
     "notice_canceled": "Assinatura cancelada. Você mantém o acesso até a data de renovação.",
     "notice_reactivated": "Assinatura reativada com sucesso!",
     "notice_card_stripe": "Em produção isso abre o portal seguro do Stripe para trocar o cartão.",
-    "notice_pdf_stripe": "Em produção, o PDF da nota é baixado do Stripe."
+    "notice_pdf_stripe": "Em produção, o PDF da nota é baixado do Stripe.",
+    "simulation_badge": "Simulação de Demonstração (Portfólio)",
+    "simulation_disclaimer": "Esta seção demonstra o fluxo de interface para gestão de assinaturas e faturas. As transações, cartões e cobranças são simulados localmente no seu navegador. Nenhuma cobrança real é efetuada, e a seleção do plano não restringe privilégios técnicos no backend.",
+    "reset_demo_btn": "Restaurar Simulação Padrão",
+    "reset_confirm_title": "Restaurar Simulação de Faturamento",
+    "reset_confirm_message": "Deseja redefinir o estado de assinatura e faturas para o padrão inicial da demonstração (Plano Pro ativo com faturas de exemplo)?",
+    "reset_confirm_btn": "Restaurar Padrão",
+    "notice_reset": "Simulação de faturamento restaurada para os valores padrão."
   },
   "pdf": {
     "personalized_plan": "Plano Alimentar Personalizado",
@@ -1457,5 +1465,31 @@
     "btn_retry": "Tentar novamente",
     "btn_reload": "Recarregar página",
     "btn_home": "Ir para o Início"
+  },
+  "demo": {
+    "banner_title": "Ambiente de Demonstração (Dados Sintéticos)",
+    "banner_desc": "Você está navegando com contas e dados fictícios para avaliação do portfólio. Cobranças e e-mails operam em modo simulado seguro.",
+    "guide_button": "Roteiro de Avaliação (3 min)",
+    "dismiss_banner": "Ocultar aviso",
+    "quick_login_title": "Contas de Demonstração (Acesso em 1 Clique)",
+    "quick_login_desc": "Selecione uma persona sintética para preencher as credenciais e testar a plataforma:",
+    "role_nutri_main": "Nutricionista Principal (Com Pacientes & Dietas)",
+    "role_nutri_secondary": "Nutricionista Independente (Isolamento de Dados)",
+    "role_patient": "Paciente Vinculada (Portal do Paciente)",
+    "role_patient_2": "Paciente Secundário",
+    "fill_credentials": "Usar esta conta",
+    "guide_modal_title": "Roteiro de Avaliação Rápida (3 a 5 minutos)",
+    "guide_modal_subtitle": "Siga estes 5 passos para experimentar todas as inovações e diferenciais técnicos do Storm Nutrition:",
+    "step_1_title": "1. Visão Profissional & Prontuário Clínico",
+    "step_1_desc": "Acesse como Dra. Clara. Veja o dashboard com métricas consolidadas, abra a lista de pacientes e inspecione o prontuário completo da paciente Ana Silva com linha do tempo e evolução antropométrica.",
+    "step_2_title": "2. Prescrição Algorítmica e Determinística",
+    "step_2_desc": "Abra o 'Gerador de Dietas'. Configure restrições (ex.: sem glúten, limite de sódio) e gere uma dieta completa. O algoritmo resolve metas de macronutrientes de forma auditável e determinística.",
+    "step_3_title": "3. Exportação de PDF Editorial",
+    "step_3_desc": "Clique em 'Exportar PDF'. Gere o arquivo com renderização vetorial pura de alta resolução (~50 KB), sem quebras de cabeçalhos órfãos, com texto selecionável e alertas clínicos semafóricos.",
+    "step_4_title": "4. Portal do Paciente & Check-in",
+    "step_4_desc": "Deslogue e entre como Ana Silva. Acesse o portal exclusivo do paciente, visualize a dieta prescrita com refeições e alternativas, registre um check-in de adesão e atualize o peso.",
+    "step_5_title": "5. Isolamento Multi-Tenant & Segurança",
+    "step_5_desc": "Entre como Dr. Marcos Lima. Comprove que as regras do Firestore (Security Rules) isolam 100% dos dados: ele não visualiza nenhum paciente ou dieta da Dra. Clara.",
+    "close_guide": "Entendido, iniciar avaliação"
   }
 }

@@ -79,6 +79,29 @@ const getEmailConfig = () => ({
   publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined,
 });
 
+export const DEMO_DOMAINS = [
+  "demo.stormnutrition.com",
+  "example.com",
+  "example.org",
+  "test.com",
+];
+
+export const isDemoRecipient = (email: string): boolean => {
+  if (!email || typeof email !== "string") return false;
+  const lower = email.trim().toLowerCase();
+  if (
+    lower.endsWith("@demo.stormnutrition.com") ||
+    lower.endsWith(".demo.stormnutrition.com")
+  ) {
+    return true;
+  }
+  const isDemoOrEmulator =
+    import.meta.env.VITE_DEMO_MODE === "true" ||
+    (import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true" &&
+      DEMO_DOMAINS.some((d) => lower.endsWith(`@${d}`)));
+  return isDemoOrEmulator;
+};
+
 export const isEmailConfigured = (): boolean => {
   const { serviceId, templateId, publicKey } = getEmailConfig();
   return Boolean(serviceId && templateId && publicKey);
@@ -95,13 +118,6 @@ export interface DietEmailParams {
 }
 
 export const sendDietEmail = async (params: DietEmailParams): Promise<void> => {
-  const { serviceId, templateId, publicKey } = getEmailConfig();
-  if (!serviceId || !templateId || !publicKey) {
-    throw new AppError("EMAIL_NOT_CONFIGURED", "unavailable", {
-      originalCode: "EMAIL_NOT_CONFIGURED",
-    });
-  }
-
   const messageText =
     params.message ||
     i18n.t("email.diet_message", {
@@ -111,6 +127,21 @@ export const sendDietEmail = async (params: DietEmailParams): Promise<void> => {
     });
 
   enforceAbuseControls(params.toEmail, messageText.length);
+
+  if (isDemoRecipient(params.toEmail)) {
+    console.info(
+      "[EmailService:DemoSimulation] Disparo de dieta simulado com sucesso para ambiente de demonstração.",
+      { recipient: params.toEmail, toName: params.toName },
+    );
+    return;
+  }
+
+  const { serviceId, templateId, publicKey } = getEmailConfig();
+  if (!serviceId || !templateId || !publicKey) {
+    throw new AppError("EMAIL_NOT_CONFIGURED", "unavailable", {
+      originalCode: "EMAIL_NOT_CONFIGURED",
+    });
+  }
 
   try {
     await emailjs.send(
@@ -148,13 +179,6 @@ export interface PortalAccessEmailParams {
 export const sendPortalAccessEmail = async (
   params: PortalAccessEmailParams,
 ): Promise<void> => {
-  const { serviceId, templateId, publicKey } = getEmailConfig();
-  if (!serviceId || !templateId || !publicKey) {
-    throw new AppError("EMAIL_NOT_CONFIGURED", "unavailable", {
-      originalCode: "EMAIL_NOT_CONFIGURED",
-    });
-  }
-
   const actionUrl = params.inviteUrl || params.portalUrl;
   const messageText = i18n.t("email.portal_message", {
     lng: getNormalizedLanguage(params.locale),
@@ -165,6 +189,21 @@ export const sendPortalAccessEmail = async (
   });
 
   enforceAbuseControls(params.toEmail, messageText.length);
+
+  if (isDemoRecipient(params.toEmail)) {
+    console.info(
+      "[EmailService:DemoSimulation] Disparo de convite de portal simulado com sucesso para ambiente de demonstração.",
+      { recipient: params.toEmail, toName: params.toName },
+    );
+    return;
+  }
+
+  const { serviceId, templateId, publicKey } = getEmailConfig();
+  if (!serviceId || !templateId || !publicKey) {
+    throw new AppError("EMAIL_NOT_CONFIGURED", "unavailable", {
+      originalCode: "EMAIL_NOT_CONFIGURED",
+    });
+  }
 
   try {
     await emailjs.send(

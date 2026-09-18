@@ -126,6 +126,7 @@
       "Priority support"
     ],
     "pricing_footnote": "All plans include free updates and securely hosted data. Prices in Brazilian Real (BRL).",
+    "pricing_demo_badge": "Portfolio Demonstration: Plans presented are illustrative. All technical features are unlocked for immediate evaluation without requiring a credit card.",
     "pricing_period_forever": "forever",
     "pricing_period_monthly": "/mo",
     "cta_title": "Start transforming your consultations today",
@@ -406,11 +407,18 @@
     "change_confirm_message": "You will switch to the {{name}} plan ({{price}}{{perMonth}}). The change will take effect immediately.",
     "change_confirm_btn": "Confirm switch",
     "change_back_btn": "Go back",
-    "notice_changed": "Plan changed to {{name}}.",
+    "notice_changed": "Plan switched to {{name}}.",
     "notice_canceled": "Subscription canceled. You retain access until the renewal date.",
-    "notice_reactivated": "Subscription reactivated successfully!",
-    "notice_card_stripe": "In production this opens the secure Stripe portal to change cards.",
-    "notice_pdf_stripe": "In production, the invoice PDF is downloaded from Stripe."
+    "notice_reactivated": "Subscription successfully reactivated!",
+    "notice_card_stripe": "In production, this opens the secure Stripe portal to update payment method.",
+    "notice_pdf_stripe": "In production, the invoice PDF is downloaded from Stripe.",
+    "simulation_badge": "Portfolio Demo Simulation",
+    "simulation_disclaimer": "This section demonstrates the complete UI flow for subscription and invoice management. Transactions, cards, and charges are simulated locally in your browser. No real charges are made, and plan selection does not restrict backend technical permissions.",
+    "reset_demo_btn": "Reset Demo Simulation",
+    "reset_confirm_title": "Reset Billing Simulation",
+    "reset_confirm_message": "Do you want to reset the subscription and invoice state to the initial demo default (active Pro Plan with sample invoices)?",
+    "reset_confirm_btn": "Reset to Default",
+    "notice_reset": "Billing simulation restored to default values."
   },
   "pdf": {
     "personalized_plan": "Personalized Meal Plan",
@@ -1457,5 +1465,31 @@
     "btn_retry": "Try again",
     "btn_reload": "Reload page",
     "btn_home": "Go to Home"
+  },
+  "demo": {
+    "banner_title": "Demonstration Environment (Synthetic Data)",
+    "banner_desc": "You are browsing with sample accounts and data for portfolio evaluation. Billing and emails operate in safe simulated mode.",
+    "guide_button": "Evaluation Script (3 min)",
+    "dismiss_banner": "Dismiss notice",
+    "quick_login_title": "Demo Accounts (1-Click Access)",
+    "quick_login_desc": "Select a pre-configured synthetic persona to test the platform immediately:",
+    "role_nutri_main": "Primary Nutritionist (With Patients & Diets)",
+    "role_nutri_secondary": "Independent Nutritionist (Data Isolation)",
+    "role_patient": "Linked Patient (Patient Portal)",
+    "role_patient_2": "Secondary Patient",
+    "fill_credentials": "Use this account",
+    "guide_modal_title": "Quick Evaluation Script (3 to 5 minutes)",
+    "guide_modal_subtitle": "Follow these 5 steps to explore all key features and technical differentiators of Storm Nutrition:",
+    "step_1_title": "1. Professional Dashboard & Clinical Records",
+    "step_1_desc": "Log in as Dra. Clara. Review dashboard metrics, open the patient list, and inspect patient Ana Silva's complete record including timeline and evolution charts.",
+    "step_2_title": "2. Algorithmic & Deterministic Prescription",
+    "step_2_desc": "Open 'Diet Generator'. Select dietary restrictions (e.g. gluten-free, sodium limit) and generate a meal plan. The algorithm solves macronutrient targets deterministically.",
+    "step_3_title": "3. Editorial PDF Export",
+    "step_3_desc": "Click 'Export PDF'. Generate the high-resolution vector PDF (~50 KB) without orphan header breaks, with selectable text and clinical alert badges.",
+    "step_4_title": "4. Patient Portal & Adherence Check-in",
+    "step_4_desc": "Log out and sign in as Ana Silva. Access the patient portal, view the assigned meal plan and alternatives, log a daily adherence check-in, and log weight.",
+    "step_5_title": "5. Multi-Tenant Isolation & Security",
+    "step_5_desc": "Log in as Dr. Marcos Lima. Verify that Firestore Security Rules isolate 100% of the data: he cannot view any patients or meal plans belonging to Dra. Clara.",
+    "close_guide": "Understood, start evaluation"
   }
 }
