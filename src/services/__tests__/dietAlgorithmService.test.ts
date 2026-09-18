@@ -15,6 +15,7 @@ import {
   foodIsVegetarian,
   foodIsVegan,
 } from "../foodService";
+import type { Food, Meal } from "../../types";
 
 describe("dietAlgorithmService", () => {
   beforeAll(async () => {

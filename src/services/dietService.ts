@@ -951,19 +951,27 @@ export const saveDietPlan = async (userId: string, dietPlan: DietPlan) => {
   if (!userId || typeof userId !== "string") {
     throw new Error("ID do usuário nutricionista é obrigatório.");
   }
-  if (dietPlan.patientId) {
-    const patientSnap = await getDoc(
-      doc(db, "users", userId, "patients", dietPlan.patientId),
-    );
-    if (patientSnap.exists()) {
-      const patientData = patientSnap.data();
-      if (patientData.deletionPending) {
-        throw new Error(
-          "PATIENT_DELETION_PENDING: Não é possível prescrever dieta para um paciente em processo de exclusão.",
-        );
-      }
-    }
+  if (!dietPlan.patientId || typeof dietPlan.patientId !== "string" || !dietPlan.patientId.trim()) {
+    throw new Error("ID do paciente é obrigatório para prescrever dieta.");
   }
+  const patientSnap = await getDoc(
+    doc(db, "users", userId, "patients", dietPlan.patientId.trim()),
+  );
+  if (!patientSnap.exists()) {
+    throw new Error("PACIENTE_NAO_ENCONTRADO: Paciente inexistente.");
+  }
+  const patientData = patientSnap.data();
+  if (patientData?.deletionPending) {
+    throw new Error(
+      "PATIENT_DELETION_PENDING: Não é possível prescrever dieta para um paciente em processo de exclusão.",
+    );
+  }
+  if (patientData?.status === "Archived") {
+    throw new Error(
+      "PATIENT_ARCHIVED: Não é possível prescrever dieta para um paciente arquivado.",
+    );
+  }
+
   const dto = validateAndSerializeDietPlan(dietPlan);
   try {
     return await addDoc(getDietsCollection(userId), dto);
@@ -994,33 +1002,48 @@ export const updateDietPlan = async (
 
   let fullPartial = { ...dietPlan };
   let existing: DietPlan | undefined;
+  const existingSnap = await getDoc(getDietDoc(userId, dietId));
+  if (existingSnap.exists()) {
+    existing = existingSnap.data() as DietPlan;
+  }
+
+  const targetPatientId = dietPlan.patientId || existing?.patientId;
+  if (targetPatientId) {
+    const patientSnap = await getDoc(
+      doc(db, "users", userId, "patients", targetPatientId.trim()),
+    );
+    if (!patientSnap.exists()) {
+      throw new Error("PACIENTE_NAO_ENCONTRADO: Paciente inexistente.");
+    }
+    const patientData = patientSnap.data();
+    if (patientData?.deletionPending) {
+      throw new Error(
+        "PATIENT_DELETION_PENDING: Não é possível atualizar dieta para um paciente em processo de exclusão.",
+      );
+    }
+    if (patientData?.status === "Archived") {
+      throw new Error(
+        "PATIENT_ARCHIVED: Não é possível atualizar dieta para um paciente arquivado.",
+      );
+    }
+  }
+
   const needsMerge =
     (dietPlan.meals && (!dietPlan.dailyCalories || !dietPlan.macronutrients)) ||
     (!dietPlan.meals && (dietPlan.dailyCalories || dietPlan.macronutrients));
 
-  if (needsMerge) {
-    try {
-      const existingSnap = await getDoc(getDietDoc(userId, dietId));
-      if (existingSnap.exists()) {
-        existing = existingSnap.data() as DietPlan;
-        fullPartial = {
-          meals: existing.meals,
-          dailyCalories: existing.dailyCalories,
-          macronutrients: existing.macronutrients,
-          clinicalTags: existing.clinicalTags,
-          mode: existing.mode,
-          algorithmVersion: existing.algorithmVersion,
-          datasetVersion: existing.datasetVersion,
-          seed: existing.seed,
-          ...dietPlan,
-        };
-      }
-    } catch (err) {
-      console.warn(
-        "[dietService] Falha ao carregar dados do plano para sincronização de metas e validação:",
-        err,
-      );
-    }
+  if (needsMerge && existing) {
+    fullPartial = {
+      meals: existing.meals,
+      dailyCalories: existing.dailyCalories,
+      macronutrients: existing.macronutrients,
+      clinicalTags: existing.clinicalTags,
+      mode: existing.mode,
+      algorithmVersion: existing.algorithmVersion,
+      datasetVersion: existing.datasetVersion,
+      seed: existing.seed,
+      ...dietPlan,
+    };
   }
 
   const updateDto = validateAndSerializeDietUpdate(fullPartial, existing, options);

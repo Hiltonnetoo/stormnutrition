@@ -51,6 +51,10 @@ beforeEach(async () => {
       role: "nutritionist",
       email: "nutriB@test.com",
     });
+    await setDoc(doc(db, `users/${NUTRI_A}/patients/${PATIENT_ID}`), {
+      firstName: "Paciente Teste",
+      status: "Active",
+    });
   });
 });
 
@@ -275,7 +279,7 @@ describe("Diet Persistence Contract - Firestore Integration", () => {
     // 1. Initial Plan A with 2000 kcal meals and metadata
     const planA: DietPlan = {
       version: 2,
-      patientId: "patient-c05",
+      patientId: PATIENT_ID,
       patientName: "Paciente C05 Regressao",
       mode: "general",
       createdAt: new Date().toISOString(),
@@ -467,7 +471,7 @@ describe("Diet Persistence Contract - Firestore Integration", () => {
     // Nutri A creates a diet
     const plan: DietPlan = {
       version: 2,
-      patientId: "patient-isolated",
+      patientId: PATIENT_ID,
       patientName: "Privado",
       mode: "general",
       createdAt: new Date().toISOString(),

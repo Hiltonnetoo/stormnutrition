@@ -112,22 +112,54 @@ export const revokePatientPortalAccess = async (
   const patientData = patientSnap.data();
   const portalUid = patientData.portalUid as string | undefined;
 
-  // 1. Revoke patientProfile if portalUid exists
+  // 1. Confirmed revocation of patientProfile if portalUid exists.
+  // We do not swallow permission/network errors as if the document was already removed.
+  // Profile absence is treated as a specific case (already absent / never created).
   if (portalUid) {
     const profileRef = doc(db, "patientProfiles", portalUid);
-    try {
-      await updateDoc(profileRef, {
-        status: "revoked",
-        revokedAt: new Date().toISOString(),
-        revokedReason: reason,
-      });
-    } catch {
+    const profileSnap = await getDoc(profileRef);
+    if (profileSnap.exists()) {
       try {
-        await deleteDoc(profileRef);
-      } catch {
-        // Ignored if already removed
+        await updateDoc(profileRef, {
+          status: "revoked",
+          revokedAt: new Date().toISOString(),
+          revokedReason: reason,
+        });
+      } catch (updateErr) {
+        try {
+          await deleteDoc(profileRef);
+        } catch (deleteErr) {
+          throw new Error(
+            `FALHA_REVOGACAO_PERFIL: Não foi possível revogar a autorização do perfil do paciente (${portalUid}). O acesso não foi encerrado com sucesso.`,
+          );
+        }
       }
     }
+  }
+
+  // Clean up any lingering patientProfile records pointing to this (userId, patientId)
+  try {
+    const orphanProfilesQuery = query(
+      collection(db, "patientProfiles"),
+      where("nutritionistId", "==", userId),
+      where("patientId", "==", patientId),
+    );
+    const orphanSnap = await getDocs(orphanProfilesQuery);
+    for (const pDoc of orphanSnap.docs) {
+      if (pDoc.id !== portalUid) {
+        try {
+          await updateDoc(pDoc.ref, {
+            status: "revoked",
+            revokedAt: new Date().toISOString(),
+            revokedReason: reason,
+          });
+        } catch {
+          await deleteDoc(pDoc.ref);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Aviso ao revogar perfis vinculados ao paciente:", err);
   }
 
   // 2. Revoke any pending invitations for this patient
@@ -190,7 +222,8 @@ export interface DeletionProgress {
  * appointments, invitations, and portal profiles.
  *
  * Implements chunked batching (max 400 docs per batch) to support arbitrary volumes
- * beyond Firestore's 500-operation writeBatch limit, with full idempotency and concurrency locks.
+ * beyond Firestore's 500-operation writeBatch limit, with full idempotency, concurrency locks,
+ * resumability upon retry, and orphan cleanup even if the root patient document is absent.
  */
 export const deletePatientCascade = async (
   userId: string,
@@ -199,41 +232,26 @@ export const deletePatientCascade = async (
 ): Promise<CascadeDeletionResult> => {
   const patientRef = getPatientDoc(userId, patientId);
   const patientSnap = await getDoc(patientRef);
+  const patientExists = patientSnap.exists();
+  const patientData = patientExists ? patientSnap.data() : null;
 
-  // Idempotency: if patient document already does not exist, return cleanly
-  if (!patientSnap.exists()) {
+  // Phase 1: Lock patient if it exists to prevent concurrent creation of new appointments or diets
+  if (patientExists) {
     onProgress?.({
-      phase: "completed",
-      percent: 100,
+      phase: "locking",
+      percent: 10,
       processedCount: 0,
       totalCount: 0,
     });
-    return {
-      patientId,
-      deletedDietsCount: 0,
-      deletedAppointmentsCount: 0,
-      deletedInvitationsCount: 0,
-      portalRevoked: false,
-      success: true,
-    };
+    const existingDeletionStartedAt = patientData?.deletionStartedAt as string | undefined;
+    await updateDoc(patientRef, {
+      deletionPending: true,
+      deletionStartedAt: existingDeletionStartedAt || new Date().toISOString(),
+      status: "Inactive",
+    });
   }
 
-  // Phase 1: Lock patient to prevent concurrent creation of new appointments or diets
-  onProgress?.({
-    phase: "locking",
-    percent: 10,
-    processedCount: 0,
-    totalCount: 0,
-  });
-  await updateDoc(patientRef, {
-    deletionPending: true,
-    status: "Inactive",
-  });
-
-  const patientData = patientSnap.data();
-  const portalUid = patientData.portalUid as string | undefined;
-
-  // Phase 2: Discover all related document references
+  // Phase 2: Discover all related document references (even if root patient doc does not exist, to clean up orphans!)
   onProgress?.({
     phase: "discovering",
     percent: 25,
@@ -266,23 +284,58 @@ export const deletePatientCascade = async (
   const invSnap = await getDocs(invQuery);
   const invDocs = invSnap.docs;
 
-  // 2d. Patient portal profile
-  const profileRef = portalUid ? doc(db, "patientProfiles", portalUid) : null;
+  // 2d. Patient portal profiles (check portalUid + query for any linked profile)
+  const profileRefsMap = new Map<string, ReturnType<typeof doc>>();
+  const portalUid = patientData?.portalUid as string | undefined;
+  if (portalUid) {
+    profileRefsMap.set(portalUid, doc(db, "patientProfiles", portalUid));
+  }
+  try {
+    const orphanProfilesQuery = query(
+      collection(db, "patientProfiles"),
+      where("nutritionistId", "==", userId),
+      where("patientId", "==", patientId),
+    );
+    const profileSnap = await getDocs(orphanProfilesQuery);
+    for (const pDoc of profileSnap.docs) {
+      profileRefsMap.set(pDoc.id, pDoc.ref);
+    }
+  } catch (err) {
+    console.warn("Aviso ao buscar perfis do paciente para exclusão em cascata:", err);
+  }
 
   // Collect all document references to delete in batches
   const allRefsToDelete = [
     ...dietDocs.map((d) => d.ref),
     ...apptDocs.map((d) => d.ref),
     ...invDocs.map((d) => d.ref),
+    ...Array.from(profileRefsMap.values()),
   ];
-  if (profileRef) {
-    allRefsToDelete.push(profileRef);
+
+  const totalCount = allRefsToDelete.length + (patientExists ? 1 : 0);
+
+  // If both the patient document and all associated documents are already gone, return cleanly
+  if (totalCount === 0) {
+    onProgress?.({
+      phase: "completed",
+      percent: 100,
+      processedCount: 0,
+      totalCount: 0,
+    });
+    return {
+      patientId,
+      deletedDietsCount: 0,
+      deletedAppointmentsCount: 0,
+      deletedInvitationsCount: 0,
+      portalRevoked: false,
+      success: true,
+    };
   }
 
-  const totalCount = allRefsToDelete.length + 1; // +1 for patient doc itself
   let processedCount = 0;
 
   // Phase 3: Chunk deletions into batches of max 400 operations (Firestore limit is 500)
+  // Resumable: if any batch fails, earlier batches remain committed and deletionPending remains true.
   const BATCH_SIZE = 400;
   for (let i = 0; i < allRefsToDelete.length; i += BATCH_SIZE) {
     const chunk = allRefsToDelete.slice(i, i + BATCH_SIZE);
@@ -304,15 +357,17 @@ export const deletePatientCascade = async (
     });
   }
 
-  // Phase 4: Finalize by deleting the root patient document
-  onProgress?.({
-    phase: "finalizing",
-    percent: 95,
-    processedCount,
-    totalCount,
-  });
-  await deleteDoc(patientRef);
-  processedCount++;
+  // Phase 4: Finalize by deleting the root patient document (if it exists)
+  if (patientExists) {
+    onProgress?.({
+      phase: "finalizing",
+      percent: 95,
+      processedCount,
+      totalCount,
+    });
+    await deleteDoc(patientRef);
+    processedCount++;
+  }
 
   onProgress?.({
     phase: "completed",
@@ -326,7 +381,7 @@ export const deletePatientCascade = async (
     deletedDietsCount: dietDocs.length,
     deletedAppointmentsCount: apptDocs.length,
     deletedInvitationsCount: invDocs.length,
-    portalRevoked: !!portalUid,
+    portalRevoked: profileRefsMap.size > 0,
     success: true,
   };
 };

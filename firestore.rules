@@ -54,6 +54,17 @@ service cloud.firestore {
          get(/databases/$(database)/documents/users/$(userId)/patients/$(getPatientProfile().patientId)).data.deletionPending != true);
     }
 
+    // Patient validity for related writes (diets, appointments, invitations, direct profile provisioning)
+    // Ensures patient exists under the nutritionist's workspace, is not archived, and is not in deletion pending.
+    function isPatientActiveAndWritable(userId, patientId) {
+      return patientId is string &&
+        exists(/databases/$(database)/documents/users/$(userId)/patients/$(patientId)) &&
+        (!('deletionPending' in get(/databases/$(database)/documents/users/$(userId)/patients/$(patientId)).data) ||
+          get(/databases/$(database)/documents/users/$(userId)/patients/$(patientId)).data.deletionPending != true) &&
+        (!('status' in get(/databases/$(database)/documents/users/$(userId)/patients/$(patientId)).data) ||
+          get(/databases/$(database)/documents/users/$(userId)/patients/$(patientId)).data.status != 'Archived');
+    }
+
     // Patient self-service update validation:
     // 1. Only self-service fields can be modified.
     // 2. Existing historical entries (weightHistory, adherenceLog) cannot be replaced, altered or truncated.
@@ -138,7 +149,7 @@ service cloud.firestore {
       // Nutritionist can list only invitations they issued
       allow list: if isAuthenticated() && resource.data.nutritionistId == request.auth.uid;
 
-      // Nutritionist creates pending invitation for an existing patient
+      // Nutritionist creates pending invitation for an existing active patient
       allow create: if isAuthenticated() &&
         request.resource.data.nutritionistId == request.auth.uid &&
         isNutritionist(request.auth.uid) &&
@@ -149,7 +160,7 @@ service cloud.firestore {
         'expiresAtTimestamp' in request.resource.data &&
         request.resource.data.expiresAtTimestamp is timestamp &&
         request.resource.data.expiresAtTimestamp > request.time &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)/patients/$(request.resource.data.patientId));
+        isPatientActiveAndWritable(request.auth.uid, request.resource.data.patientId);
 
       // Nutritionist can revoke, OR patient can accept in an atomic batch
       allow update: if isAuthenticated() && (
@@ -204,7 +215,7 @@ service cloud.firestore {
           (
             request.resource.data.nutritionistId == request.auth.uid &&
             isNutritionist(request.auth.uid) &&
-            exists(/databases/$(database)/documents/users/$(request.auth.uid)/patients/$(request.resource.data.patientId))
+            isPatientActiveAndWritable(request.auth.uid, request.resource.data.patientId)
           )
           ||
           // Scenario 2: Patient accepting invitation via atomic batch
@@ -337,13 +348,19 @@ service cloud.firestore {
       }
 
       match /diets/{dietId} {
-        allow read, write: if isNutritionist(userId);
+        allow read, delete: if isNutritionist(userId);
+        allow create, update: if isNutritionist(userId) &&
+          'patientId' in request.resource.data &&
+          isPatientActiveAndWritable(userId, request.resource.data.patientId);
         // The associated patient may read only their own diets.
         allow read: if isOwnerPatientByField(userId);
       }
 
       match /appointments/{apptId} {
-        allow read, write: if isNutritionist(userId);
+        allow read, delete: if isNutritionist(userId);
+        allow create, update: if isNutritionist(userId) &&
+          'patientId' in request.resource.data &&
+          isPatientActiveAndWritable(userId, request.resource.data.patientId);
         // The associated patient may read only their own appointments.
         allow read: if isOwnerPatientByField(userId);
       }

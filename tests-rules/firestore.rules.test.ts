@@ -78,6 +78,12 @@ beforeEach(async () => {
     await setDoc(doc(db, `users/${NUTRI_A}/diets/d1`), { patientId: "p1" });
     await setDoc(doc(db, `users/${NUTRI_A}/diets/d2`), { patientId: "p2" });
 
+    // Nutritionist A's patient p2
+    await setDoc(doc(db, `users/${NUTRI_A}/patients/p2`), {
+      firstName: "Carlos",
+      status: "Active",
+    });
+
     // Nutritionist B's patient
     await setDoc(doc(db, `users/${NUTRI_B}/patients/pb`), { firstName: "Bob" });
   });
@@ -1286,6 +1292,153 @@ describe("Firestore security rules - Authorization Matrix", () => {
       );
 
       await assertSucceeds(batch.commit());
+    });
+  });
+
+  describe("13. Passo C07 - Revocation, Cascade Deletion and Concurrency Guards", () => {
+    beforeEach(async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        // Active patient
+        await setDoc(doc(db, `users/${NUTRI_A}/patients/p_active`), {
+          firstName: "Active Patient",
+          status: "Active",
+        });
+        // Archived patient
+        await setDoc(doc(db, `users/${NUTRI_A}/patients/p_archived`), {
+          firstName: "Archived Patient",
+          status: "Archived",
+        });
+        // Deletion pending patient
+        await setDoc(doc(db, `users/${NUTRI_A}/patients/p_deleting`), {
+          firstName: "Deleting Patient",
+          status: "Inactive",
+          deletionPending: true,
+        });
+
+        // Existing diet & appt for deleting patient (so cascade delete can be tested)
+        await setDoc(doc(db, `users/${NUTRI_A}/diets/diet_deleting`), {
+          patientId: "p_deleting",
+          name: "Plano Antigo",
+        });
+        await setDoc(doc(db, `users/${NUTRI_A}/appointments/appt_deleting`), {
+          patientId: "p_deleting",
+          dateTime: "2026-10-10 10:00",
+        });
+      });
+    });
+
+    it("ALLOWS nutritionist to create diet and appointment for an active patient", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertSucceeds(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/diets/diet_new_active`), {
+          patientId: "p_active",
+          name: "Nova Dieta",
+        }),
+      );
+      await assertSucceeds(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/appt_new_active`), {
+          patientId: "p_active",
+          dateTime: "2026-10-12 14:00",
+        }),
+      );
+    });
+
+    it("FORBIDS nutritionist from creating diet or appointment for a non-existent patient", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertFails(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/diets/diet_nonexistent`), {
+          patientId: "p_ghost_nonexistent",
+          name: "Dieta Fantasma",
+        }),
+      );
+      await assertFails(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/appt_nonexistent`), {
+          patientId: "p_ghost_nonexistent",
+          dateTime: "2026-10-12 14:00",
+        }),
+      );
+    });
+
+    it("FORBIDS nutritionist from creating diet or appointment for an Archived patient", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertFails(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/diets/diet_arch`), {
+          patientId: "p_archived",
+          name: "Dieta Arquivada",
+        }),
+      );
+      await assertFails(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/appt_arch`), {
+          patientId: "p_archived",
+          dateTime: "2026-10-12 14:00",
+        }),
+      );
+    });
+
+    it("FORBIDS nutritionist from creating diet or appointment for a patient in deletionPending", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertFails(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/diets/diet_deleting_new`), {
+          patientId: "p_deleting",
+          name: "Dieta Nova Para Deletando",
+        }),
+      );
+      await assertFails(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/appt_deleting_new`), {
+          patientId: "p_deleting",
+          dateTime: "2026-10-12 14:00",
+        }),
+      );
+    });
+
+    it("FORBIDS nutritionist from updating diet or appointment to refer to a deletionPending patient", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertFails(
+        updateDoc(doc(nutriDb, `users/${NUTRI_A}/diets/diet_deleting`), {
+          name: "Atualizando Dieta de Paciente em Exclusão",
+        }),
+      );
+      await assertFails(
+        updateDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/appt_deleting`), {
+          dateTime: "2026-11-11 11:00",
+        }),
+      );
+    });
+
+    it("ALLOWS nutritionist to delete existing diets and appointments of a deletionPending patient (cascade deletion)", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      const { deleteDoc } = await import("firebase/firestore");
+      await assertSucceeds(
+        deleteDoc(doc(nutriDb, `users/${NUTRI_A}/diets/diet_deleting`)),
+      );
+      await assertSucceeds(
+        deleteDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/appt_deleting`)),
+      );
+    });
+
+    it("FORBIDS creating an invitation for a patient with deletionPending or status Archived", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertFails(
+        setDoc(doc(nutriDb, "invitations/inv_fail_deleting"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_deleting",
+          patientEmail: "del@test.com",
+          status: "pending",
+          expiresAt: "2026-12-01T00:00:00Z",
+          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+        }),
+      );
+      await assertFails(
+        setDoc(doc(nutriDb, "invitations/inv_fail_archived"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_archived",
+          patientEmail: "arch@test.com",
+          status: "pending",
+          expiresAt: "2026-12-01T00:00:00Z",
+          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+        }),
+      );
     });
   });
 });

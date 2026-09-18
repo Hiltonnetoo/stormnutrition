@@ -121,16 +121,25 @@ export const addAppointment = async (
   data: Omit<Appointment, "id">,
 ) => {
   validateAppointmentData(data);
+  if (!data.patientId || typeof data.patientId !== "string" || !data.patientId.trim()) {
+    throw new Error("ID do paciente é obrigatório para agendamento.");
+  }
   const patientSnap = await getDoc(
     doc(db, "users", userId, "patients", data.patientId.trim()),
   );
-  if (patientSnap.exists()) {
-    const patientData = patientSnap.data();
-    if (patientData.deletionPending) {
-      throw new Error(
-        "PATIENT_DELETION_PENDING: Não é possível agendar consulta para um paciente em processo de exclusão.",
-      );
-    }
+  if (!patientSnap.exists()) {
+    throw new Error("PACIENTE_NAO_ENCONTRADO: Paciente inexistente.");
+  }
+  const patientData = patientSnap.data();
+  if (patientData?.deletionPending) {
+    throw new Error(
+      "PATIENT_DELETION_PENDING: Não é possível agendar consulta para um paciente em processo de exclusão.",
+    );
+  }
+  if (patientData?.status === "Archived") {
+    throw new Error(
+      "PATIENT_ARCHIVED: Não é possível agendar consulta para um paciente arquivado.",
+    );
   }
 
   const cleanData: Omit<Appointment, "id"> = {
@@ -148,12 +157,41 @@ export const addAppointment = async (
   return addDoc(getAppointmentsCollection(userId), cleanData);
 };
 
-export const updateAppointment = (
+export const updateAppointment = async (
   userId: string,
   apptId: string,
   data: Partial<Appointment>,
 ) => {
   validateAppointmentData(data);
+
+  let targetPatientId = data.patientId?.trim();
+  if (!targetPatientId) {
+    const existingSnap = await getDoc(getAppointmentDoc(userId, apptId));
+    if (existingSnap.exists()) {
+      targetPatientId = existingSnap.data()?.patientId;
+    }
+  }
+
+  if (targetPatientId) {
+    const patientSnap = await getDoc(
+      doc(db, "users", userId, "patients", targetPatientId),
+    );
+    if (!patientSnap.exists()) {
+      throw new Error("PACIENTE_NAO_ENCONTRADO: Paciente inexistente.");
+    }
+    const patientData = patientSnap.data();
+    if (patientData?.deletionPending) {
+      throw new Error(
+        "PATIENT_DELETION_PENDING: Não é possível atualizar consulta para um paciente em processo de exclusão.",
+      );
+    }
+    if (patientData?.status === "Archived") {
+      throw new Error(
+        "PATIENT_ARCHIVED: Não é possível atualizar consulta para um paciente arquivado.",
+      );
+    }
+  }
+
   const cleanData: Partial<Appointment> = {};
 
   if (data.patientId !== undefined) cleanData.patientId = data.patientId.trim();

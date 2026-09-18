@@ -12,6 +12,10 @@ import type { DietPlan } from "../../types";
 // In-memory document storage for lifecycle unit tests
 let mockStore: Record<string, Record<string, unknown>> = {};
 let batchDeletions: string[] = [];
+let mockFailProfileUpdate = false;
+let mockFailProfileDelete = false;
+let mockFailBatchCommitOnCount = 0;
+let mockBatchCommitCount = 0;
 
 vi.mock("../firebaseCore", () => ({
   db: {},
@@ -69,12 +73,18 @@ vi.mock("firebase/firestore", () => {
       },
     ),
     updateDoc: vi.fn(async (path: string, updates: Record<string, unknown>) => {
+      if (mockFailProfileUpdate && typeof path === "string" && path.startsWith("patientProfiles/")) {
+        throw new Error("Network error during profile update");
+      }
       if (!mockStore[path]) {
         throw new Error(`Doc not found for update: ${path}`);
       }
       mockStore[path] = { ...mockStore[path], ...updates };
     }),
     deleteDoc: vi.fn(async (path: string) => {
+      if (mockFailProfileDelete && typeof path === "string" && path.startsWith("patientProfiles/")) {
+        throw new Error("Network error during profile delete fallback");
+      }
       delete mockStore[path];
       batchDeletions.push(path);
     }),
@@ -85,6 +95,10 @@ vi.mock("firebase/firestore", () => {
           pendingDeletes.push(ref);
         }),
         commit: vi.fn(async () => {
+          mockBatchCommitCount++;
+          if (mockFailBatchCommitOnCount > 0 && mockBatchCommitCount === mockFailBatchCommitOnCount) {
+            throw new Error("Network interruption on second batch");
+          }
           for (const ref of pendingDeletes) {
             delete mockStore[ref];
             batchDeletions.push(ref);
@@ -109,6 +123,10 @@ describe("Patient Lifecycle Service", () => {
   beforeEach(() => {
     mockStore = {};
     batchDeletions = [];
+    mockFailProfileUpdate = false;
+    mockFailProfileDelete = false;
+    mockFailBatchCommitOnCount = 0;
+    mockBatchCommitCount = 0;
   });
 
   describe("1. Archiving and Unarchiving", () => {
@@ -182,6 +200,47 @@ describe("Patient Lifecycle Service", () => {
       await expect(
         revokePatientPortalAccess(NUTRI_ID, "non_existent"),
       ).rejects.toThrow("PACIENTE_NAO_ENCONTRADO");
+    });
+
+    it("throws and DOES NOT clear portalUid if profile revocation and deletion both fail", async () => {
+      const PORTAL_UID = "portal_user_err";
+      mockStore[PATIENT_PATH] = {
+        firstName: "Carlos",
+        portalUid: PORTAL_UID,
+        portalStatus: "active",
+      };
+      mockStore[`patientProfiles/${PORTAL_UID}`] = {
+        patientId: PATIENT_ID,
+        nutritionistId: NUTRI_ID,
+        status: "active",
+      };
+
+      mockFailProfileUpdate = true;
+      mockFailProfileDelete = true;
+
+      await expect(
+        revokePatientPortalAccess(NUTRI_ID, PATIENT_ID),
+      ).rejects.toThrow("FALHA_REVOGACAO_PERFIL");
+
+      // portalUid must NOT have been cleared because revocation was not confirmed!
+      expect(mockStore[PATIENT_PATH].portalUid).toBe(PORTAL_UID);
+      expect(mockStore[PATIENT_PATH].portalStatus).toBe("active");
+    });
+
+    it("succeeds when profile document is absent (already removed or never provisioned)", async () => {
+      const PORTAL_UID = "portal_user_missing";
+      mockStore[PATIENT_PATH] = {
+        firstName: "Carlos",
+        portalUid: PORTAL_UID,
+        portalStatus: "active",
+      };
+      // Notice: patientProfiles/PORTAL_UID is NOT in mockStore
+
+      const result = await revokePatientPortalAccess(NUTRI_ID, PATIENT_ID);
+
+      expect(result.portalUid).toBe(PORTAL_UID);
+      expect(mockStore[PATIENT_PATH].portalUid).toBeNull();
+      expect(mockStore[PATIENT_PATH].portalStatus).toBe("revoked");
     });
   });
 
@@ -266,6 +325,77 @@ describe("Patient Lifecycle Service", () => {
         mockStore[`users/${NUTRI_ID}/diets/diet_bulk_449`],
       ).toBeUndefined();
     });
+
+    it("cleans up orphaned diets, appointments, invitations and profiles even if the root patient document is absent", async () => {
+      const PORTAL_UID = "portal_orphan";
+      // Patient document does NOT exist in mockStore: mockStore[PATIENT_PATH] is undefined
+      mockStore[`users/${NUTRI_ID}/diets/orphan_diet`] = {
+        patientId: PATIENT_ID,
+        name: "Dieta Órfã",
+      };
+      mockStore[`users/${NUTRI_ID}/appointments/orphan_appt`] = {
+        patientId: PATIENT_ID,
+        dateTime: "2026-10-10 10:00",
+      };
+      mockStore["invitations/orphan_inv"] = {
+        nutritionistId: NUTRI_ID,
+        patientId: PATIENT_ID,
+      };
+      mockStore[`patientProfiles/${PORTAL_UID}`] = {
+        patientId: PATIENT_ID,
+        nutritionistId: NUTRI_ID,
+      };
+
+      const result = await deletePatientCascade(NUTRI_ID, PATIENT_ID);
+
+      expect(result.success).toBe(true);
+      expect(result.deletedDietsCount).toBe(1);
+      expect(result.deletedAppointmentsCount).toBe(1);
+      expect(result.deletedInvitationsCount).toBe(1);
+      expect(result.portalRevoked).toBe(true);
+
+      // All orphans removed
+      expect(mockStore[`users/${NUTRI_ID}/diets/orphan_diet`]).toBeUndefined();
+      expect(mockStore[`users/${NUTRI_ID}/appointments/orphan_appt`]).toBeUndefined();
+      expect(mockStore["invitations/orphan_inv"]).toBeUndefined();
+      expect(mockStore[`patientProfiles/${PORTAL_UID}`]).toBeUndefined();
+    });
+
+    it("supports retry and resumes after an interrupted intermediate batch without duplicating work", async () => {
+      mockStore[PATIENT_PATH] = { firstName: "RetryPatient" };
+
+      // Seed 600 diets (requires 2 batches: 400 + 200)
+      for (let i = 0; i < 600; i++) {
+        mockStore[`users/${NUTRI_ID}/diets/diet_${i}`] = {
+          patientId: PATIENT_ID,
+        };
+      }
+
+      mockFailBatchCommitOnCount = 2;
+
+      // Attempt 1: Fails on batch 2
+      await expect(deletePatientCascade(NUTRI_ID, PATIENT_ID)).rejects.toThrow(
+        "Network interruption on second batch",
+      );
+
+      // Verify that batch 1 deleted 400 items, but patient doc still exists with deletionPending: true
+      expect(mockStore[PATIENT_PATH]).toBeDefined();
+      expect(mockStore[PATIENT_PATH].deletionPending).toBe(true);
+      expect(mockStore[`users/${NUTRI_ID}/diets/diet_0`]).toBeUndefined();
+      expect(mockStore[`users/${NUTRI_ID}/diets/diet_399`]).toBeUndefined();
+      expect(mockStore[`users/${NUTRI_ID}/diets/diet_400`]).toBeDefined();
+
+      // Attempt 2: Reset failure flag, retry succeeds and cleans up remaining 200 items + patient doc
+      mockFailBatchCommitOnCount = 0;
+      mockBatchCommitCount = 0;
+      const retryResult = await deletePatientCascade(NUTRI_ID, PATIENT_ID);
+
+      expect(retryResult.success).toBe(true);
+      expect(retryResult.deletedDietsCount).toBe(200);
+      expect(mockStore[PATIENT_PATH]).toBeUndefined();
+      expect(mockStore[`users/${NUTRI_ID}/diets/diet_400`]).toBeUndefined();
+      expect(mockStore[`users/${NUTRI_ID}/diets/diet_599`]).toBeUndefined();
+    });
   });
 
   describe("4. Concurrency Guard: deletionPending", () => {
@@ -347,6 +477,78 @@ describe("Patient Lifecycle Service", () => {
 
       await expect(saveDietPlan(NUTRI_ID, dummyPlan)).rejects.toThrow(
         "PATIENT_DELETION_PENDING",
+      );
+    });
+
+    it("rejects addAppointment when patient does not exist or is archived", async () => {
+      // 1. Non-existent patient
+      await expect(
+        addAppointment(NUTRI_ID, {
+          patientId: "ghost_patient",
+          patientName: "Ghost",
+          dateTime: "2026-10-10T14:00",
+          durationMinutes: 45,
+          type: "consultation",
+          status: "scheduled",
+          createdAt: "2026-09-17T00:00:00Z",
+        }),
+      ).rejects.toThrow("PACIENTE_NAO_ENCONTRADO");
+
+      // 2. Archived patient
+      mockStore[PATIENT_PATH] = {
+        firstName: "ArchivedPatient",
+        status: "Archived",
+      };
+      await expect(
+        addAppointment(NUTRI_ID, {
+          patientId: PATIENT_ID,
+          patientName: "ArchivedPatient",
+          dateTime: "2026-10-10T14:00",
+          durationMinutes: 45,
+          type: "consultation",
+          status: "scheduled",
+          createdAt: "2026-09-17T00:00:00Z",
+        }),
+      ).rejects.toThrow("PATIENT_ARCHIVED");
+    });
+
+    it("rejects saveDietPlan when patient does not exist or is archived", async () => {
+      const dummyPlan: DietPlan = {
+        version: 2,
+        patientId: PATIENT_ID,
+        patientName: "TestPlan",
+        mode: "general",
+        createdAt: new Date().toISOString(),
+        startDate: "2026-09-17",
+        durationDays: 30,
+        dailyCalories: 2000,
+        macronutrients: {
+          proteinGrams: 150,
+          proteinPercentage: 30,
+          carbsGrams: 200,
+          carbsPercentage: 40,
+          fatGrams: 67,
+          fatPercentage: 30,
+        },
+        waterRecommendationLiters: 2.5,
+        generalObservations: [],
+        dietType: "traditional",
+        meals: [],
+      };
+
+      // 1. Non-existent patient
+      delete mockStore[PATIENT_PATH];
+      await expect(saveDietPlan(NUTRI_ID, dummyPlan)).rejects.toThrow(
+        "PACIENTE_NAO_ENCONTRADO",
+      );
+
+      // 2. Archived patient
+      mockStore[PATIENT_PATH] = {
+        firstName: "ArchivedPatient",
+        status: "Archived",
+      };
+      await expect(saveDietPlan(NUTRI_ID, dummyPlan)).rejects.toThrow(
+        "PATIENT_ARCHIVED",
       );
     });
   });

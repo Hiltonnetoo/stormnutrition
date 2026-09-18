@@ -1451,14 +1451,14 @@ Os dez achados da revisão foram desdobrados em doze entregas para facilitar imp
 
 **Passo a passo:**
 
-1. [ ] Definir invariantes: paciente inexistente/em exclusão não recebe novos registros; vínculo revogado não autoriza leitura mesmo que existam documentos remanescentes.
-2. [ ] Fazer regras/backend validarem existência e estado do paciente nas gravações relacionadas. Não depender só da consulta prévia do cliente.
-3. [ ] Separar dados de progresso da fonte confiável de autorização. O bloqueio precisa valer no instante da gravação.
-4. [ ] Revogar acesso de forma confirmada antes de declarar sucesso. Não interpretar qualquer falha de permissão/rede como documento já removido.
-5. [ ] Tornar exclusão em lotes retomável; preservar estado suficiente para continuar após falha no lote intermediário.
-6. [ ] Impedir reativação por convite antigo, gravação concorrente ou perfil recriado, usando os contratos C01/C03.
-7. [ ] Decidir como limpar órfãos já existentes sem tratar paciente ausente como prova de que todos os dados relacionados foram removidos.
-8. [ ] Tratar ausência do perfil como caso específico; excluir conta Auth somente quando houver política e autorização próprias.
+1. [x] Definir invariantes: paciente inexistente/em exclusão não recebe novos registros; vínculo revogado não autoriza leitura mesmo que existam documentos remanescentes.
+2. [x] Fazer regras/backend validarem existência e estado do paciente nas gravações relacionadas. Não depender só da consulta prévia do cliente.
+3. [x] Separar dados de progresso da fonte confiável de autorização. O bloqueio precisa valer no instante da gravação.
+4. [x] Revogar acesso de forma confirmada antes de declarar sucesso. Não interpretar qualquer falha de permissão/rede como documento já removido.
+5. [x] Tornar exclusão em lotes retomável; preservar estado suficiente para continuar após falha no lote intermediário.
+6. [x] Impedir reativação por convite antigo, gravação concorrente ou perfil recriado, usando os contratos C01/C03.
+7. [x] Decidir como limpar órfãos já existentes sem tratar paciente ausente como prova de que todos os dados relacionados foram removidos.
+8. [x] Tratar ausência do perfil como caso específico; excluir conta Auth somente quando houver política e autorização próprias.
 
 **Resultado esperado:** “acesso revogado” corresponde a autorização efetivamente encerrada; exclusão não deixa novos órfãos produzidos durante a operação.
 
