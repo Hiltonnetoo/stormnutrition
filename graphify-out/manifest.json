@@ -624,9 +624,9 @@
     "semantic_hash": ""
   },
   "tests-rules/firestore.rules.test.ts": {
-    "mtime": 1789750373.5224862,
-    "seen": 1789750472.492377,
-    "ast_hash": "1fb25361f21c795d066afa8a71b90c9a",
+    "mtime": 1789751022.3012905,
+    "seen": 1789751144.5758588,
+    "ast_hash": "8aa8057b1eb5e957b3c604d1c761cfd8",
     "semantic_hash": ""
   },
   "tsconfig.json": {
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789750439.2688112,
-    "seen": 1789750472.492401,
-    "ast_hash": "20460308616e3474f95a8254f0218164",
+    "mtime": 1789751121.582948,
+    "seen": 1789751144.575882,
+    "ast_hash": "e8c4997159397179968e57062b500663",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1080,21 +1080,21 @@
     "semantic_hash": ""
   },
   "src/pages/AcceptInvitation.tsx": {
-    "mtime": 1789737034.0234516,
-    "seen": 1789738357.671493,
-    "ast_hash": "ef81e562cafd7f55df0e4304d3d443b1",
+    "mtime": 1789750855.3729012,
+    "seen": 1789751144.575831,
+    "ast_hash": "e49fe836a4b16f553a82f18ee484a256",
     "semantic_hash": ""
   },
   "src/services/__tests__/invitationService.test.ts": {
-    "mtime": 1789749957.4333563,
-    "seen": 1789750045.816303,
-    "ast_hash": "dd7e035fcfb227ab03b4d77c23ca40c5",
+    "mtime": 1789750917.6808162,
+    "seen": 1789751144.57584,
+    "ast_hash": "38e5f14446c56fd7fb0ae01e8b2f2f91",
     "semantic_hash": ""
   },
   "src/services/invitationService.ts": {
-    "mtime": 1789749766.700216,
-    "seen": 1789750045.816309,
-    "ast_hash": "c548ef338a65eeb8b09aceb988a8ffe2",
+    "mtime": 1789750842.135204,
+    "seen": 1789751144.575846,
+    "ast_hash": "3f8570d5f6078c830d9c4fa8c233f229",
     "semantic_hash": ""
   },
   "src/services/__tests__/appointmentService.test.ts": {

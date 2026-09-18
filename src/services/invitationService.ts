@@ -1,13 +1,12 @@
 import {
   doc,
   getDoc,
-  setDoc,
-  updateDoc,
   collection,
   query,
   where,
   getDocs,
   writeBatch,
+  runTransaction,
   Timestamp,
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
@@ -39,7 +38,7 @@ export const computeInvitationStatus = (
 };
 
 /**
- * Creates or retrieves an existing unexpired pending invitation for a patient (idempotent).
+ * Creates or retrieves an existing unexpired pending invitation for a patient (idempotent and concurrent-safe).
  */
 export const createOrGetPendingInvitation = async (
   params: CreateInvitationParams,
@@ -47,7 +46,7 @@ export const createOrGetPendingInvitation = async (
   const normalizedEmail = params.patientEmail.toLowerCase().trim();
   const validityDays = params.validityDays || 7;
 
-  // 1. Check for existing pending invitation for this patient
+  // 1. First check existing pending invitation via query for backwards compatibility
   const invRef = collection(db, "invitations");
   const q = query(
     invRef,
@@ -56,8 +55,6 @@ export const createOrGetPendingInvitation = async (
   );
 
   const snap = await getDocs(q);
-  const now = new Date();
-
   for (const docSnap of snap.docs) {
     const data = docSnap.data() as Omit<PatientInvitation, "id">;
     const computed = computeInvitationStatus(data.status, data.expiresAt);
@@ -70,53 +67,87 @@ export const createOrGetPendingInvitation = async (
     }
   }
 
-  // 2. Create new invitation
-  const newDocRef = doc(collection(db, "invitations"));
-  const expiresAtDate = new Date(
-    now.getTime() + validityDays * 24 * 60 * 60 * 1000,
-  );
-  const expiresAt = expiresAtDate.toISOString();
+  // 2. Concurrency-safe atomic creation via Firestore transaction
+  return await runTransaction(db, async (tx) => {
+    const patientRef = doc(
+      db,
+      "users",
+      params.nutritionistId,
+      "patients",
+      params.patientId,
+    );
+    const patientSnap = await tx.get(patientRef);
+    if (!patientSnap.exists()) {
+      throw new Error("PACIENTE_NAO_ENCONTRADO: Paciente não encontrado.");
+    }
+    const patientData = patientSnap.data();
 
-  const invitation: PatientInvitation = {
-    id: newDocRef.id,
-    nutritionistId: params.nutritionistId,
-    nutritionistName: params.nutritionistName,
-    nutritionistEmail: params.nutritionistEmail,
-    patientId: params.patientId,
-    patientEmail: normalizedEmail,
-    patientName: params.patientName,
-    status: "pending",
-    createdAt: now.toISOString(),
-    expiresAt,
-  };
+    // Check if another concurrent transaction just created a pending invitation
+    if (patientData.pendingInvitationId) {
+      const existingInvRef = doc(
+        db,
+        "invitations",
+        patientData.pendingInvitationId,
+      );
+      const existingInvSnap = await tx.get(existingInvRef);
+      if (existingInvSnap.exists()) {
+        const existingData = existingInvSnap.data() as Omit<
+          PatientInvitation,
+          "id"
+        >;
+        const computed = computeInvitationStatus(
+          existingData.status,
+          existingData.expiresAt,
+        );
+        if (computed === "pending") {
+          return {
+            id: existingInvSnap.id,
+            ...existingData,
+            status: "pending",
+          };
+        }
+      }
+    }
 
-  await setDoc(newDocRef, {
-    nutritionistId: invitation.nutritionistId,
-    nutritionistName: invitation.nutritionistName,
-    nutritionistEmail: invitation.nutritionistEmail,
-    patientId: invitation.patientId,
-    patientEmail: invitation.patientEmail,
-    patientName: invitation.patientName,
-    status: invitation.status,
-    createdAt: invitation.createdAt,
-    expiresAt: invitation.expiresAt,
-    expiresAtTimestamp: Timestamp.fromDate(expiresAtDate),
+    const now = new Date();
+    const newDocRef = doc(collection(db, "invitations"));
+    const expiresAtDate = new Date(
+      now.getTime() + validityDays * 24 * 60 * 60 * 1000,
+    );
+    const expiresAt = expiresAtDate.toISOString();
+
+    const invitation: PatientInvitation = {
+      id: newDocRef.id,
+      nutritionistId: params.nutritionistId,
+      nutritionistName: params.nutritionistName,
+      nutritionistEmail: params.nutritionistEmail,
+      patientId: params.patientId,
+      patientEmail: normalizedEmail,
+      patientName: params.patientName,
+      status: "pending",
+      createdAt: now.toISOString(),
+      expiresAt,
+    };
+
+    tx.set(newDocRef, {
+      nutritionistId: invitation.nutritionistId,
+      nutritionistName: invitation.nutritionistName,
+      nutritionistEmail: invitation.nutritionistEmail,
+      patientId: invitation.patientId,
+      patientEmail: invitation.patientEmail,
+      patientName: invitation.patientName,
+      status: invitation.status,
+      createdAt: invitation.createdAt,
+      expiresAt: invitation.expiresAt,
+      expiresAtTimestamp: Timestamp.fromDate(expiresAtDate),
+    });
+
+    tx.update(patientRef, {
+      pendingInvitationId: newDocRef.id,
+    });
+
+    return invitation;
   });
-
-  // Link pendingInvitationId to patient doc
-  try {
-    await updateDoc(
-      doc(db, "users", params.nutritionistId, "patients", params.patientId),
-      { pendingInvitationId: newDocRef.id },
-    );
-  } catch (err) {
-    console.warn(
-      "Não foi possível atualizar pendingInvitationId no paciente:",
-      err,
-    );
-  }
-
-  return invitation;
 };
 
 /**
@@ -140,25 +171,41 @@ export const getInvitationByToken = async (
 };
 
 /**
- * Revokes an invitation, preventing it from being used.
+ * Revokes an invitation atomically, preventing it from being used.
  */
 export const revokeInvitation = async (
   token: string,
   nutritionistId: string,
 ): Promise<void> => {
-  const inv = await getInvitationByToken(token);
-  if (!inv) throw new Error("INVITATION_NOT_FOUND");
-  if (inv.nutritionistId !== nutritionistId) throw new Error("UNAUTHORIZED");
-  if (inv.status !== "pending") throw new Error("CANNOT_REVOKE_NON_PENDING");
+  await runTransaction(db, async (tx) => {
+    const invRef = doc(db, "invitations", token);
+    const invSnap = await tx.get(invRef);
+    if (!invSnap.exists()) throw new Error("INVITATION_NOT_FOUND");
+    const data = invSnap.data() as Omit<PatientInvitation, "id">;
+    if (data.nutritionistId !== nutritionistId) throw new Error("UNAUTHORIZED");
+    if (data.status !== "pending") throw new Error("CANNOT_REVOKE_NON_PENDING");
 
-  await updateDoc(doc(db, "invitations", token), {
-    status: "revoked",
-    revokedAt: new Date().toISOString(),
+    tx.update(invRef, {
+      status: "revoked",
+      revokedAt: new Date().toISOString(),
+    });
+
+    const patientRef = doc(
+      db,
+      "users",
+      data.nutritionistId,
+      "patients",
+      data.patientId,
+    );
+    tx.update(patientRef, {
+      pendingInvitationId: null,
+    });
   });
 };
 
 /**
  * Accepts an invitation by creating a brand new Firebase Auth account with the patient's chosen password.
+ * Includes compensation for newly-created Auth account if Firestore batch fails.
  */
 export const acceptInvitationWithNewAccount = async (
   token: string,
@@ -170,12 +217,26 @@ export const acceptInvitationWithNewAccount = async (
   if (inv.status === "revoked") throw new Error("INVITATION_REVOKED");
   if (inv.status === "accepted") throw new Error("INVITATION_ALREADY_ACCEPTED");
 
-  // Create Firebase Auth user
-  const userCred = await createUserWithEmailAndPassword(
-    auth,
-    inv.patientEmail,
-    passwordText,
-  );
+  // 1. Create Firebase Auth user
+  let userCred;
+  try {
+    userCred = await createUserWithEmailAndPassword(
+      auth,
+      inv.patientEmail,
+      passwordText,
+    );
+  } catch (err: unknown) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code: string }).code === "auth/email-already-in-use"
+    ) {
+      throw new Error("AUTH_EMAIL_ALREADY_IN_USE");
+    }
+    throw err;
+  }
+
   const uid = userCred.user.uid;
 
   try {
@@ -213,25 +274,49 @@ export const acceptInvitationWithNewAccount = async (
     await batch.commit();
 
     return { uid };
-  } catch (err) {
-    console.error("Falha na aceitação do convite:", err);
-    throw err;
+  } catch (firestoreErr) {
+    console.error("Falha na gravação do vínculo no Firestore:", firestoreErr);
+    // Passo C03.5: Compensação segura para conta recém-criada (sem apagar contas preexistentes)
+    try {
+      await userCred.user.delete();
+    } catch (cleanupErr) {
+      console.warn(
+        "Não foi possível compensar criação da nova conta Auth após falha no Firestore:",
+        cleanupErr,
+      );
+    }
+    throw new Error("FIRESTORE_LINK_FAILED");
   }
 };
 
 /**
  * Accepts an invitation using an already authenticated patient account.
- * Enforces explicit verification and multi-professional boundary check.
+ * Enforces explicit verification, idempotent retry, and multi-professional boundary check.
  */
 export const acceptInvitationWithExistingAccount = async (
   token: string,
   currentUser: User,
-): Promise<void> => {
+): Promise<{ alreadyAccepted?: boolean }> => {
   const inv = await getInvitationByToken(token);
   if (!inv) throw new Error("INVITATION_NOT_FOUND");
   if (inv.status === "expired") throw new Error("INVITATION_EXPIRED");
   if (inv.status === "revoked") throw new Error("INVITATION_REVOKED");
-  if (inv.status === "accepted") throw new Error("INVITATION_ALREADY_ACCEPTED");
+
+  // Passo C03.6: Idempotência de repetição pelo mesmo usuário
+  if (inv.status === "accepted") {
+    if (inv.acceptedByUid === currentUser.uid) {
+      const patientSnap = await getDoc(
+        doc(db, "users", inv.nutritionistId, "patients", inv.patientId),
+      );
+      if (
+        patientSnap.exists() &&
+        patientSnap.data().portalUid === currentUser.uid
+      ) {
+        return { alreadyAccepted: true };
+      }
+    }
+    throw new Error("INVITATION_ALREADY_ACCEPTED");
+  }
 
   // Check email match
   if (
@@ -241,13 +326,14 @@ export const acceptInvitationWithExistingAccount = async (
     throw new Error("EMAIL_MISMATCH");
   }
 
-  // Check existing patient profile for multi-professional restriction (Passo 7.8)
+  // Passo C03.7: Check existing patient profile for multi-professional restriction
   const existingProfileSnap = await getDoc(
     doc(db, "patientProfiles", currentUser.uid),
   );
   if (existingProfileSnap.exists()) {
     const existing = existingProfileSnap.data();
     if (
+      existing.status !== "revoked" &&
       existing.nutritionistId &&
       existing.nutritionistId !== inv.nutritionistId
     ) {
@@ -294,4 +380,5 @@ export const acceptInvitationWithExistingAccount = async (
   });
 
   await batch.commit();
+  return { alreadyAccepted: false };
 };

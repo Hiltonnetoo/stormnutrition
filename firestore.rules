@@ -146,6 +146,9 @@ service cloud.firestore {
         request.resource.data.patientId is string &&
         request.resource.data.patientEmail is string &&
         request.resource.data.expiresAt is string &&
+        'expiresAtTimestamp' in request.resource.data &&
+        request.resource.data.expiresAtTimestamp is timestamp &&
+        request.resource.data.expiresAtTimestamp > request.time &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)/patients/$(request.resource.data.patientId));
 
       // Nutritionist can revoke, OR patient can accept in an atomic batch
@@ -166,6 +169,11 @@ service cloud.firestore {
          (!('expiresAtTimestamp' in resource.data) || request.time < resource.data.expiresAtTimestamp) &&
          (!('email' in request.auth.token) ||
           request.auth.token.email.lower() == resource.data.patientEmail.lower()) &&
+         exists(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)) &&
+         ((!('status' in get(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data) ||
+           get(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data.status != 'Archived')) &&
+         ((!('deletionPending' in get(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data) ||
+           get(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data.deletionPending != true)) &&
          existsAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)) &&
          getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.patientId == resource.data.patientId &&
          getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.nutritionistId == resource.data.nutritionistId &&
@@ -306,7 +314,7 @@ service cloud.firestore {
         // Patient claiming portal access upon accepting invitation:
         // Can only set portalUid == request.auth.uid in an atomic batch that accepts a valid pending invitation
         allow update: if isAuthenticated() &&
-          (!('portalUid' in resource.data) || resource.data.portalUid == null) &&
+          (!('portalUid' in resource.data) || resource.data.portalUid == null || resource.data.portalUid == request.auth.uid) &&
           (!('deletionPending' in resource.data) || resource.data.deletionPending != true) &&
           (!('status' in resource.data) || resource.data.status != 'Archived') &&
           request.resource.data.portalUid == request.auth.uid &&

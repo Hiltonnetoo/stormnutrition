@@ -56,7 +56,15 @@ const AcceptInvitation: React.FC = () => {
         } else if (inv.status === "revoked") {
           setError(t("invite.status_revoked"));
         } else if (inv.status === "accepted") {
-          setError(t("invite.status_accepted"));
+          // Passo C03.6: Idempotência de retry para o mesmo usuário autenticado
+          if (currentUser && currentUser.uid === inv.acceptedByUid) {
+            setSuccess(true);
+            setTimeout(() => {
+              navigate("/paciente");
+            }, 2000);
+          } else {
+            setError(t("invite.status_accepted"));
+          }
         }
       }
     } catch (err) {
@@ -65,7 +73,7 @@ const AcceptInvitation: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, t]);
+  }, [token, t, currentUser, navigate]);
 
   useEffect(() => {
     fetchInvitation();
@@ -94,14 +102,23 @@ const AcceptInvitation: React.FC = () => {
       }, 2000);
     } catch (err: unknown) {
       if (
-        err instanceof FirebaseError &&
-        err.code === "auth/email-already-in-use"
+        (err instanceof Error &&
+          err.message === "AUTH_EMAIL_ALREADY_IN_USE") ||
+        (err instanceof FirebaseError &&
+          err.code === "auth/email-already-in-use")
       ) {
         setError(
           t(
             "modals.patient_access.error_already_use",
             "Este e-mail já possui uma conta no sistema. Por favor, faça login para vincular.",
           ),
+        );
+      } else if (
+        err instanceof Error &&
+        err.message === "FIRESTORE_LINK_FAILED"
+      ) {
+        setError(
+          "Falha ao concluir o vínculo do convite no servidor. O cadastro foi revertido com segurança. Por favor, tente novamente.",
         );
       } else {
         setError(

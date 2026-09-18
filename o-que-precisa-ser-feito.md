@@ -1361,16 +1361,16 @@ Os dez achados da revisão foram desdobrados em doze entregas para facilitar imp
 
 **Passo a passo:**
 
-1. [ ] Definir a máquina de estados do convite e a relação com o vínculo: pendente, aceito, expirado e revogado, com transições permitidas.
-2. [ ] Validar prazo pelo relógio confiável do servidor/regras. Preferir representação temporal adequada para comparar com `request.time`; planejar compatibilidade com as strings antigas.
-3. [ ] Validar identidade do destinatário, vínculo atual e existência/estado do paciente em toda aceitação, inclusive chamada direta.
-4. [ ] Tornar atômicas as alterações de Firestore: perfil, referência do paciente e consumo do convite devem ficar consistentes juntas.
-5. [ ] Tratar criação Auth separadamente: Auth e Firestore não compartilham uma transação. Definir compensação ou retomada segura para falha entre as etapas, sem apagar contas preexistentes.
-6. [ ] Tornar a repetição da mesma aceitação pelo mesmo usuário idempotente. Distinguir retry legítimo de tentativa por outro usuário.
-7. [ ] Corrigir o caso de perfil já existente, inclusive acesso revogado e novo convite do mesmo profissional. A regra deve permitir apenas a transição comprovadamente autorizada, sem liberar atualizações genéricas pelo paciente.
-8. [ ] Impedir convites duplicados em criações concorrentes; a consulta por pendentes seguida de criação aleatória, isoladamente, não garante idempotência.
-9. [ ] Tratar concorrência entre aceitação e revogação: só uma transição válida deve vencer.
-10. [ ] Não exibir sucesso antes de confirmar o vínculo completo. Mensagens devem orientar retomada sem mostrar senha ou dados sensíveis em logs.
+1. [x] Definir a máquina de estados do convite e a relação com o vínculo: pendente, aceito, expirado e revogado, com transições permitidas.
+2. [x] Validar prazo pelo relógio confiável do servidor/regras. Preferir representação temporal adequada para comparar com `request.time`; planejar compatibilidade com as strings antigas.
+3. [x] Validar identidade do destinatário, vínculo atual e existência/estado do paciente em toda aceitação, inclusive chamada direta.
+4. [x] Tornar atômicas as alterações de Firestore: perfil, referência do paciente e consumo do convite devem ficar consistentes juntas.
+5. [x] Tratar criação Auth separadamente: Auth e Firestore não compartilham uma transação. Definir compensação ou retomada segura para falha entre as etapas, sem apagar contas preexistentes.
+6. [x] Tornar a repetição da mesma aceitação pelo mesmo usuário idempotente. Distinguir retry legítimo de tentativa por outro usuário.
+7. [x] Corrigir o caso de perfil já existente, inclusive acesso revogado e novo convite do mesmo profissional. A regra deve permitir apenas a transição comprovadamente autorizada, sem liberar atualizações genéricas pelo paciente.
+8. [x] Impedir convites duplicados em criações concorrentes; a consulta por pendentes seguida de criação aleatória, isoladamente, não garante idempotência.
+9. [x] Tratar concorrência entre aceitação e revogação: só uma transição válida deve vencer.
+10. [x] Não exibir sucesso antes de confirmar o vínculo completo. Mensagens devem orientar retomada sem mostrar senha ou dados sensíveis em logs.
 
 **Resultado esperado:** falha intermediária não deixa acesso concedido parcialmente, convite utilizável indevidamente ou usuário preso em cadastro incompleto.
 

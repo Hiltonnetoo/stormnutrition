@@ -17,8 +17,23 @@ const mockBatch = {
   commit: vi.fn().mockResolvedValue(undefined),
 };
 
+const mockTx = {
+  get: vi.fn(),
+  set: vi.fn(),
+  update: vi.fn(),
+};
+
 vi.mock("firebase/firestore", () => ({
-  doc: vi.fn((_db, coll, id) => ({ path: `${coll}/${id || "auto_id"}` })),
+  doc: vi.fn((firstArg, secondArg, thirdArg, ...rest) => {
+    // Handling doc(collectionRef):
+    if (firstArg && typeof firstArg === "object" && "path" in firstArg) {
+      const generatedId = secondArg || "auto-doc-id-123";
+      return { id: generatedId, path: `${firstArg.path}/${generatedId}` };
+    }
+    const parts = [secondArg, thirdArg, ...rest].filter(Boolean);
+    const docId = parts[parts.length - 1] || "auto-id";
+    return { id: docId, path: parts.join("/") };
+  }),
   collection: vi.fn((_db, coll) => ({ path: coll })),
   query: vi.fn((...args) => ({ queryArgs: args })),
   where: vi.fn((field, op, val) => ({ field, op, val })),
@@ -26,6 +41,7 @@ vi.mock("firebase/firestore", () => ({
   getDocs: vi.fn(),
   setDoc: vi.fn(),
   updateDoc: vi.fn(),
+  runTransaction: vi.fn(async (_db, callback) => callback(mockTx)),
   writeBatch: vi.fn(() => mockBatch),
   Timestamp: {
     fromDate: vi.fn((d: Date) => ({
@@ -50,6 +66,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
     mockBatch.set.mockClear();
     mockBatch.update.mockClear();
     mockBatch.commit.mockClear();
+    mockTx.get.mockClear();
+    mockTx.set.mockClear();
+    mockTx.update.mockClear();
   });
 
   describe("computeInvitationStatus", () => {
@@ -70,14 +89,16 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
     });
   });
 
-  describe("1. Convite novo & Idempotência (Retry)", () => {
-    it("creates a new pending invitation with 7-day expiration and no password text", async () => {
+  describe("1. Convite novo & Idempotência Concorrente (Passo C03.8)", () => {
+    it("creates a new pending invitation via transaction with 7-day expiration", async () => {
       vi.mocked(firestore.getDocs).mockResolvedValueOnce({
         docs: [],
       } as unknown as firestore.QuerySnapshot);
 
-      vi.mocked(firestore.setDoc).mockResolvedValueOnce(undefined);
-      vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined);
+      mockTx.get.mockResolvedValueOnce({
+        exists: () => true,
+        data: () => ({ firstName: "Carlos", lastName: "Silva" }),
+      });
 
       const inv = await createOrGetPendingInvitation({
         nutritionistId: "nutri-123",
@@ -92,13 +113,10 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
       expect(inv.patientEmail).toBe("paciente@exemplo.com");
       expect(inv.nutritionistId).toBe("nutri-123");
       expect(inv.patientId).toBe("patient-456");
-      // Must not contain password
-      expect(
-        (inv as unknown as { password?: string }).password,
-      ).toBeUndefined();
+      expect((inv as unknown as { password?: string }).password).toBeUndefined();
 
-      // Check setDoc payload
-      expect(firestore.setDoc).toHaveBeenCalledWith(
+      // Check transaction set and update
+      expect(mockTx.set).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           status: "pending",
@@ -106,9 +124,15 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           nutritionistId: "nutri-123",
         }),
       );
+      expect(mockTx.update).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          pendingInvitationId: expect.any(String),
+        }),
+      );
     });
 
-    it("idempotently returns existing active pending invitation instead of creating a duplicate", async () => {
+    it("idempotently returns existing active pending invitation from query", async () => {
       const existingExpires = new Date(
         Date.now() + 3 * 24 * 60 * 60 * 1000,
       ).toISOString();
@@ -144,8 +168,48 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
 
       expect(inv.id).toBe("existing-inv-token");
       expect(inv.status).toBe("pending");
-      // Should NOT have called setDoc because an existing pending invite was found
-      expect(firestore.setDoc).not.toHaveBeenCalled();
+      expect(mockTx.set).not.toHaveBeenCalled();
+    });
+
+    it("concurrency-safe: returns pending invitation referenced on patient doc in transaction", async () => {
+      vi.mocked(firestore.getDocs).mockResolvedValueOnce({
+        docs: [],
+      } as unknown as firestore.QuerySnapshot);
+
+      const futureDate = new Date(Date.now() + 86400000).toISOString();
+
+      // Patient doc read in transaction has pendingInvitationId from a concurrent transaction
+      mockTx.get
+        .mockResolvedValueOnce({
+          exists: () => true,
+          data: () => ({
+            pendingInvitationId: "concurrent-inv-id",
+          }),
+        })
+        .mockResolvedValueOnce({
+          exists: () => true,
+          id: "concurrent-inv-id",
+          data: () => ({
+            nutritionistId: "nutri-123",
+            patientId: "patient-456",
+            patientEmail: "paciente@exemplo.com",
+            status: "pending",
+            expiresAt: futureDate,
+          }),
+        });
+
+      const inv = await createOrGetPendingInvitation({
+        nutritionistId: "nutri-123",
+        nutritionistName: "Dra. Ana",
+        nutritionistEmail: "ana@clinic.com",
+        patientId: "patient-456",
+        patientEmail: "paciente@exemplo.com",
+        patientName: "Carlos Silva",
+      });
+
+      expect(inv.id).toBe("concurrent-inv-id");
+      expect(inv.status).toBe("pending");
+      expect(mockTx.set).not.toHaveBeenCalled();
     });
   });
 
@@ -185,8 +249,8 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
     });
   });
 
-  describe("3. Convite reutilizado", () => {
-    it("rejects acceptance if invitation is already accepted", async () => {
+  describe("3. Convite reutilizado / já aceito", () => {
+    it("rejects acceptance if invitation is already accepted by someone else", async () => {
       vi.mocked(firestore.getDoc).mockResolvedValueOnce({
         exists: () => true,
         id: "used-token",
@@ -195,6 +259,7 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           patientId: "pat-1",
           patientEmail: "carlos@test.com",
           status: "accepted",
+          acceptedByUid: "other-user-uid",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
         }),
       } as unknown as firestore.DocumentSnapshot);
@@ -205,9 +270,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
     });
   });
 
-  describe("4. Convite revogado", () => {
-    it("allows nutritionist to revoke a pending invitation", async () => {
-      vi.mocked(firestore.getDoc).mockResolvedValueOnce({
+  describe("4. Convite revogado (Passo C03.9)", () => {
+    it("allows nutritionist to revoke a pending invitation atomically", async () => {
+      mockTx.get.mockResolvedValueOnce({
         exists: () => true,
         id: "rev-token",
         data: () => ({
@@ -216,22 +281,26 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           status: "pending",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
         }),
-      } as unknown as firestore.DocumentSnapshot);
-
-      vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined);
+      });
 
       await revokeInvitation("rev-token", "nutri-owner");
 
-      expect(firestore.updateDoc).toHaveBeenCalledWith(
+      expect(mockTx.update).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           status: "revoked",
         }),
       );
+      expect(mockTx.update).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          pendingInvitationId: null,
+        }),
+      );
     });
 
     it("forbids unauthorized nutritionist from revoking another's invitation", async () => {
-      vi.mocked(firestore.getDoc).mockResolvedValueOnce({
+      mockTx.get.mockResolvedValueOnce({
         exists: () => true,
         id: "rev-token",
         data: () => ({
@@ -240,7 +309,7 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           status: "pending",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
         }),
-      } as unknown as firestore.DocumentSnapshot);
+      });
 
       await expect(
         revokeInvitation("rev-token", "attacker-nutri"),
@@ -266,7 +335,7 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
     });
   });
 
-  describe("5. E-mail existente e Vínculo Explícito", () => {
+  describe("5. E-mail existente, Idempotência e Vínculo Explícito (Passo C03.6 e C03.7)", () => {
     const mockCurrentUser: User = {
       uid: "user-patient-existing",
       email: "carlos@test.com",
@@ -274,33 +343,30 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
     } as User;
 
     it("accepts link with explicit confirmation when logged-in email matches invitation", async () => {
-      // 1. getInvitationByToken
-      vi.mocked(firestore.getDoc).mockResolvedValueOnce({
-        exists: () => true,
-        id: "invite-100",
-        data: () => ({
-          nutritionistId: "nutri-1",
-          nutritionistName: "Dra. Ana",
-          nutritionistEmail: "ana@clinic.com",
-          patientId: "pat-1",
-          patientEmail: "carlos@test.com",
-          status: "pending",
-          expiresAt: new Date(Date.now() + 100000).toISOString(),
-        }),
-      } as unknown as firestore.DocumentSnapshot);
+      vi.mocked(firestore.getDoc)
+        .mockResolvedValueOnce({
+          exists: () => true,
+          id: "invite-100",
+          data: () => ({
+            nutritionistId: "nutri-1",
+            nutritionistName: "Dra. Ana",
+            nutritionistEmail: "ana@clinic.com",
+            patientId: "pat-1",
+            patientEmail: "carlos@test.com",
+            status: "pending",
+            expiresAt: new Date(Date.now() + 100000).toISOString(),
+          }),
+        } as unknown as firestore.DocumentSnapshot)
+        .mockResolvedValueOnce({
+          exists: () => false,
+        } as unknown as firestore.DocumentSnapshot);
 
-      // 2. check existing patient profile
-      vi.mocked(firestore.getDoc).mockResolvedValueOnce({
-        exists: () => false,
-      } as unknown as firestore.DocumentSnapshot);
+      const res = await acceptInvitationWithExistingAccount(
+        "invite-100",
+        mockCurrentUser,
+      );
 
-      vi.mocked(firestore.setDoc).mockResolvedValueOnce(undefined);
-      vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined);
-      vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined);
-
-      await acceptInvitationWithExistingAccount("invite-100", mockCurrentUser);
-
-      // Should set patientProfile with role patient and invitationId via batch
+      expect(res.alreadyAccepted).toBe(false);
       expect(mockBatch.set).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -311,22 +377,75 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
         }),
         { merge: true },
       );
-
-      // Should link portalUid on patient doc via batch
       expect(mockBatch.update).toHaveBeenCalledWith(expect.anything(), {
         portalUid: "user-patient-existing",
         portalStatus: "active",
       });
+      expect(mockBatch.commit).toHaveBeenCalled();
+    });
 
-      // Should mark invitation as accepted via batch
-      expect(mockBatch.update).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          status: "accepted",
-          acceptedByUid: "user-patient-existing",
-        }),
+    it("idempotent retry: recognizes when the same user already accepted this invitation", async () => {
+      vi.mocked(firestore.getDoc)
+        .mockResolvedValueOnce({
+          exists: () => true,
+          id: "invite-already-done",
+          data: () => ({
+            nutritionistId: "nutri-1",
+            patientId: "pat-1",
+            patientEmail: "carlos@test.com",
+            status: "accepted",
+            acceptedByUid: "user-patient-existing",
+            expiresAt: new Date(Date.now() + 100000).toISOString(),
+          }),
+        } as unknown as firestore.DocumentSnapshot)
+        .mockResolvedValueOnce({
+          exists: () => true,
+          data: () => ({
+            portalUid: "user-patient-existing",
+            portalStatus: "active",
+          }),
+        } as unknown as firestore.DocumentSnapshot);
+
+      const res = await acceptInvitationWithExistingAccount(
+        "invite-already-done",
+        mockCurrentUser,
       );
 
+      expect(res.alreadyAccepted).toBe(true);
+      expect(mockBatch.commit).not.toHaveBeenCalled();
+    });
+
+    it("allows re-link for a user whose previous portal access was revoked (Passo C03.7)", async () => {
+      vi.mocked(firestore.getDoc)
+        .mockResolvedValueOnce({
+          exists: () => true,
+          id: "invite-relink",
+          data: () => ({
+            nutritionistId: "nutri-2",
+            nutritionistName: "Dr. Bruno",
+            nutritionistEmail: "bruno@clinic.com",
+            patientId: "pat-99",
+            patientEmail: "carlos@test.com",
+            status: "pending",
+            expiresAt: new Date(Date.now() + 100000).toISOString(),
+          }),
+        } as unknown as firestore.DocumentSnapshot)
+        // Existing profile was revoked
+        .mockResolvedValueOnce({
+          exists: () => true,
+          data: () => ({
+            nutritionistId: "nutri-1",
+            status: "revoked",
+            role: "patient",
+          }),
+        } as unknown as firestore.DocumentSnapshot);
+
+      const res = await acceptInvitationWithExistingAccount(
+        "invite-relink",
+        mockCurrentUser,
+      );
+
+      expect(res.alreadyAccepted).toBe(false);
       expect(mockBatch.commit).toHaveBeenCalled();
     });
 
@@ -348,29 +467,28 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
       ).rejects.toThrow("EMAIL_MISMATCH");
     });
 
-    it("enforces multi-professional restriction (Passo 7.8) if already linked to another clinic", async () => {
-      // 1. getInvitationByToken
-      vi.mocked(firestore.getDoc).mockResolvedValueOnce({
-        exists: () => true,
-        id: "invite-100",
-        data: () => ({
-          nutritionistId: "nutri-NEW",
-          patientId: "pat-1",
-          patientEmail: "carlos@test.com",
-          status: "pending",
-          expiresAt: new Date(Date.now() + 100000).toISOString(),
-        }),
-      } as unknown as firestore.DocumentSnapshot);
-
-      // 2. check existing profile -> already linked to nutri-OLD
-      vi.mocked(firestore.getDoc).mockResolvedValueOnce({
-        exists: () => true,
-        data: () => ({
-          nutritionistId: "nutri-OLD",
-          patientId: "pat-999",
-          role: "patient",
-        }),
-      } as unknown as firestore.DocumentSnapshot);
+    it("enforces multi-professional restriction if already actively linked to another clinic", async () => {
+      vi.mocked(firestore.getDoc)
+        .mockResolvedValueOnce({
+          exists: () => true,
+          id: "invite-100",
+          data: () => ({
+            nutritionistId: "nutri-NEW",
+            patientId: "pat-1",
+            patientEmail: "carlos@test.com",
+            status: "pending",
+            expiresAt: new Date(Date.now() + 100000).toISOString(),
+          }),
+        } as unknown as firestore.DocumentSnapshot)
+        .mockResolvedValueOnce({
+          exists: () => true,
+          data: () => ({
+            nutritionistId: "nutri-OLD",
+            status: "active",
+            patientId: "pat-999",
+            role: "patient",
+          }),
+        } as unknown as firestore.DocumentSnapshot);
 
       await expect(
         acceptInvitationWithExistingAccount("invite-100", mockCurrentUser),
@@ -378,7 +496,7 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
     });
   });
 
-  describe("6. Ativação de Nova Conta com Senha Privada", () => {
+  describe("6. Ativação de Nova Conta com Senha Privada e Compensação (Passo C03.5)", () => {
     it("creates user in Firebase Auth and establishes profile and link without exposing credentials", async () => {
       vi.mocked(firestore.getDoc).mockResolvedValueOnce({
         exists: () => true,
@@ -400,10 +518,6 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
         user: { uid: "new-patient-uid" } as unknown as User,
       } as unknown as firebaseAuth.UserCredential);
 
-      vi.mocked(firestore.setDoc).mockResolvedValueOnce(undefined);
-      vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined);
-      vi.mocked(firestore.updateDoc).mockResolvedValueOnce(undefined);
-
       const res = await acceptInvitationWithNewAccount(
         "token-new",
         "minhaSenhaSuperSecreta123!",
@@ -415,20 +529,65 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
         "novo@test.com",
         "minhaSenhaSuperSecreta123!",
       );
-      expect(mockBatch.set).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          role: "patient",
-          patientId: "pat-1",
-          nutritionistId: "nutri-1",
-          invitationId: "token-new",
-        }),
-      );
-      expect(mockBatch.update).toHaveBeenCalledWith(expect.anything(), {
-        portalUid: "new-patient-uid",
-        portalStatus: "active",
-      });
       expect(mockBatch.commit).toHaveBeenCalled();
+    });
+
+    it("compensates newly created Auth user by deleting it if Firestore batch fails", async () => {
+      const mockUserDelete = vi.fn().mockResolvedValue(undefined);
+
+      vi.mocked(firestore.getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: "token-fail",
+        data: () => ({
+          nutritionistId: "nutri-1",
+          patientId: "pat-1",
+          patientEmail: "novo@test.com",
+          status: "pending",
+          expiresAt: new Date(Date.now() + 100000).toISOString(),
+        }),
+      } as unknown as firestore.DocumentSnapshot);
+
+      vi.mocked(
+        firebaseAuth.createUserWithEmailAndPassword,
+      ).mockResolvedValueOnce({
+        user: {
+          uid: "temp-uid",
+          delete: mockUserDelete,
+        } as unknown as User,
+      } as unknown as firebaseAuth.UserCredential);
+
+      mockBatch.commit.mockRejectedValueOnce(new Error("FIRESTORE_WRITE_ERROR"));
+
+      await expect(
+        acceptInvitationWithNewAccount("token-fail", "senhaValida123!"),
+      ).rejects.toThrow("FIRESTORE_LINK_FAILED");
+
+      // Verify that compensation deleted the newly created user
+      expect(mockUserDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it("throws AUTH_EMAIL_ALREADY_IN_USE when email already exists in Auth", async () => {
+      vi.mocked(firestore.getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: "token-email-exists",
+        data: () => ({
+          nutritionistId: "nutri-1",
+          patientId: "pat-1",
+          patientEmail: "existente@test.com",
+          status: "pending",
+          expiresAt: new Date(Date.now() + 100000).toISOString(),
+        }),
+      } as unknown as firestore.DocumentSnapshot);
+
+      vi.mocked(
+        firebaseAuth.createUserWithEmailAndPassword,
+      ).mockRejectedValueOnce({
+        code: "auth/email-already-in-use",
+      });
+
+      await expect(
+        acceptInvitationWithNewAccount("token-email-exists", "senha123!"),
+      ).rejects.toThrow("AUTH_EMAIL_ALREADY_IN_USE");
     });
   });
 });

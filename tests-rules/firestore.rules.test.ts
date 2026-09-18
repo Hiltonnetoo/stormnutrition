@@ -300,13 +300,15 @@ describe("Firestore security rules - Authorization Matrix", () => {
   describe("7. Invitations and Link Claiming", () => {
     it("allows nutritionist to create a pending invitation for an existing patient", async () => {
       const db = testEnv.authenticatedContext(NUTRI_A).firestore();
+      const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       await assertSucceeds(
         setDoc(doc(db, "invitations/inv-1"), {
           nutritionistId: NUTRI_A,
           patientId: "p1",
           patientEmail: "ana@test.com",
           status: "pending",
-          expiresAt: "2026-10-01T00:00:00Z",
+          expiresAt: futureDate.toISOString(),
+          expiresAtTimestamp: Timestamp.fromDate(futureDate),
         }),
       );
     });
@@ -1027,6 +1029,263 @@ describe("Firestore security rules - Authorization Matrix", () => {
           ],
         }),
       );
+    });
+  });
+
+  describe("12. Passo C03 - Atomic, Idempotent, and Recoverable Invitations", () => {
+    it("FORBIDS creating an invitation without a future expiresAtTimestamp", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+
+      // Missing expiresAtTimestamp
+      await assertFails(
+        setDoc(doc(nutriDb, "invitations/inv_no_ts"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1",
+          patientEmail: "c03@test.com",
+          status: "pending",
+          expiresAt: "2026-10-01T00:00:00Z",
+        }),
+      );
+
+      // Past timestamp
+      await assertFails(
+        setDoc(doc(nutriDb, "invitations/inv_past_ts"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1",
+          patientEmail: "c03@test.com",
+          status: "pending",
+          expiresAt: "2020-01-01T00:00:00Z",
+          expiresAtTimestamp: Timestamp.fromDate(new Date("2020-01-01T00:00:00Z")),
+        }),
+      );
+    });
+
+    it("ALLOWS creating a valid pending invitation with future expiresAtTimestamp", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      await assertSucceeds(
+        setDoc(doc(nutriDb, "invitations/inv_valid_c03"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1",
+          patientEmail: "c03@test.com",
+          status: "pending",
+          expiresAt: futureDate.toISOString(),
+          expiresAtTimestamp: Timestamp.fromDate(futureDate),
+        }),
+      );
+    });
+
+    it("FORBIDS accepting an invitation if the patient record is Archived or deletionPending", async () => {
+      const patientEmail = "archived@test.com";
+      const candidateUid = "candidateArchivedUid";
+
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_arch`), {
+          firstName: "Archived Patient",
+          status: "Archived",
+        });
+        await setDoc(doc(ctx.firestore(), "invitations/inv_arch"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_arch",
+          patientEmail,
+          status: "pending",
+          expiresAt: "2026-12-01T00:00:00Z",
+          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+        });
+      });
+
+      const candidateDb = testEnv
+        .authenticatedContext(candidateUid, { email: patientEmail })
+        .firestore();
+
+      const batch = writeBatch(candidateDb);
+      batch.update(doc(candidateDb, "invitations/inv_arch"), {
+        status: "accepted",
+        acceptedByUid: candidateUid,
+      });
+      batch.update(doc(candidateDb, `users/${NUTRI_A}/patients/p_arch`), {
+        portalUid: candidateUid,
+        portalStatus: "active",
+      });
+      batch.set(doc(candidateDb, `patientProfiles/${candidateUid}`), {
+        nutritionistId: NUTRI_A,
+        patientId: "p_arch",
+        invitationId: "inv_arch",
+        role: "patient",
+      });
+
+      // Must fail because patient is Archived
+      await assertFails(batch.commit());
+    });
+
+    it("FORBIDS transitioning an invitation from revoked to accepted (terminal state protection)", async () => {
+      const patientEmail = "revoked_user@test.com";
+      const candidateUid = "candidateRevokedUid";
+
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_rev_inv`), {
+          firstName: "Revoked Patient",
+        });
+        await setDoc(doc(ctx.firestore(), "invitations/inv_already_revoked"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_rev_inv",
+          patientEmail,
+          status: "revoked",
+          expiresAt: "2026-12-01T00:00:00Z",
+          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+        });
+      });
+
+      const candidateDb = testEnv
+        .authenticatedContext(candidateUid, { email: patientEmail })
+        .firestore();
+
+      const batch = writeBatch(candidateDb);
+      batch.update(doc(candidateDb, "invitations/inv_already_revoked"), {
+        status: "accepted",
+        acceptedByUid: candidateUid,
+      });
+      batch.update(doc(candidateDb, `users/${NUTRI_A}/patients/p_rev_inv`), {
+        portalUid: candidateUid,
+        portalStatus: "active",
+      });
+      batch.set(doc(candidateDb, `patientProfiles/${candidateUid}`), {
+        nutritionistId: NUTRI_A,
+        patientId: "p_rev_inv",
+        invitationId: "inv_already_revoked",
+        role: "patient",
+      });
+
+      await assertFails(batch.commit());
+    });
+
+    it("FORBIDS transitioning an invitation from accepted to revoked (terminal state protection)", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "invitations/inv_already_accepted"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1",
+          patientEmail: "ana@test.com",
+          status: "accepted",
+          acceptedByUid: PATIENT_UID,
+          expiresAt: "2026-12-01T00:00:00Z",
+          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+        });
+      });
+
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+
+      // Nutritionist cannot revoke an already accepted invitation
+      await assertFails(
+        updateDoc(doc(nutriDb, "invitations/inv_already_accepted"), {
+          status: "revoked",
+        }),
+      );
+    });
+
+    it("ALLOWS re-activating a patient whose access was revoked with a new valid pending invitation batch", async () => {
+      const reEmail = "relink@test.com";
+      const reUid = "relinkUserUid";
+
+      // Seed patient previously revoked
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_relink`), {
+          firstName: "Relink Patient",
+          portalUid: null,
+          portalStatus: "revoked",
+        });
+        // Existing profile from before
+        await setDoc(doc(ctx.firestore(), `patientProfiles/${reUid}`), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_relink",
+          role: "patient",
+          status: "revoked",
+        });
+        // New pending invitation issued by nutritionist
+        await setDoc(doc(ctx.firestore(), "invitations/inv_relink_new"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_relink",
+          patientEmail: reEmail,
+          status: "pending",
+          expiresAt: "2026-12-01T00:00:00Z",
+          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+        });
+      });
+
+      const reDb = testEnv
+        .authenticatedContext(reUid, { email: reEmail })
+        .firestore();
+
+      const batch = writeBatch(reDb);
+      batch.update(doc(reDb, "invitations/inv_relink_new"), {
+        status: "accepted",
+        acceptedByUid: reUid,
+      });
+      batch.update(doc(reDb, `users/${NUTRI_A}/patients/p_relink`), {
+        portalUid: reUid,
+        portalStatus: "active",
+      });
+      batch.set(
+        doc(reDb, `patientProfiles/${reUid}`),
+        {
+          nutritionistId: NUTRI_A,
+          patientId: "p_relink",
+          invitationId: "inv_relink_new",
+          role: "patient",
+          status: "active",
+        },
+        { merge: true },
+      );
+
+      await assertSucceeds(batch.commit());
+    });
+
+    it("ALLOWS idempotent retry: re-applying acceptance batch when already linked with same portalUid", async () => {
+      const patientEmail = "idempotent@test.com";
+      const patientUid = "idempotentUid";
+
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_idem`), {
+          firstName: "Idem Patient",
+          portalUid: patientUid,
+          portalStatus: "active",
+        });
+        await setDoc(doc(ctx.firestore(), "invitations/inv_idem"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_idem",
+          patientEmail,
+          status: "pending",
+          expiresAt: "2026-12-01T00:00:00Z",
+          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+        });
+      });
+
+      const patientDb = testEnv
+        .authenticatedContext(patientUid, { email: patientEmail })
+        .firestore();
+
+      const batch = writeBatch(patientDb);
+      batch.update(doc(patientDb, "invitations/inv_idem"), {
+        status: "accepted",
+        acceptedByUid: patientUid,
+      });
+      batch.update(doc(patientDb, `users/${NUTRI_A}/patients/p_idem`), {
+        portalUid: patientUid,
+        portalStatus: "active",
+      });
+      batch.set(
+        doc(patientDb, `patientProfiles/${patientUid}`),
+        {
+          nutritionistId: NUTRI_A,
+          patientId: "p_idem",
+          invitationId: "inv_idem",
+          role: "patient",
+          status: "active",
+        },
+        { merge: true },
+      );
+
+      await assertSucceeds(batch.commit());
     });
   });
 });
