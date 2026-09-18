@@ -8,6 +8,7 @@ export default defineConfig({
     include: ["tests-rules/**/*.test.ts"],
     environment: "node",
     globals: true,
+    fileParallelism: false,
     testTimeout: 20000,
     hookTimeout: 30000,
   },

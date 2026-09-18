@@ -473,4 +473,126 @@ describe("Firestore security rules - Authorization Matrix", () => {
       );
     });
   });
+
+  describe("9. Appointments (Consultas) Authorization Matrix", () => {
+    beforeEach(async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        // Seed appointments for Nutri A (p1 and p2)
+        await setDoc(doc(db, `users/${NUTRI_A}/appointments/apt_p1`), {
+          patientId: "p1",
+          patientName: "Ana",
+          date: "2026-10-10",
+          time: "14:00",
+          status: "confirmed",
+          type: "follow_up",
+        });
+        await setDoc(doc(db, `users/${NUTRI_A}/appointments/apt_p2`), {
+          patientId: "p2",
+          patientName: "Carlos",
+          date: "2026-10-10",
+          time: "15:00",
+          status: "confirmed",
+          type: "first_visit",
+        });
+      });
+    });
+
+    it("ALLOWS nutritionist to create, read, update and delete own appointments", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      const { deleteDoc } = await import("firebase/firestore");
+
+      // Read
+      await assertSucceeds(
+        getDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/apt_p1`)),
+      );
+
+      // Create
+      await assertSucceeds(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/apt_p3`), {
+          patientId: "p1",
+          patientName: "Ana",
+          date: "2026-10-15",
+          time: "10:00",
+          status: "scheduled",
+        }),
+      );
+
+      // Update
+      await assertSucceeds(
+        updateDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/apt_p1`), {
+          status: "completed",
+        }),
+      );
+
+      // Delete
+      await assertSucceeds(
+        deleteDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/apt_p1`)),
+      );
+    });
+
+    it("FORBIDS another nutritionist from reading or writing appointments", async () => {
+      const otherNutriDb = testEnv.authenticatedContext(NUTRI_B).firestore();
+
+      await assertFails(
+        getDoc(doc(otherNutriDb, `users/${NUTRI_A}/appointments/apt_p1`)),
+      );
+      await assertFails(
+        setDoc(doc(otherNutriDb, `users/${NUTRI_A}/appointments/apt_hack`), {
+          patientId: "p1",
+          status: "cancelled",
+        }),
+      );
+    });
+
+    it("ALLOWS linked patient to read ONLY their own appointments", async () => {
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+      // Read own appointment (patientId == p1)
+      await assertSucceeds(
+        getDoc(doc(patientDb, `users/${NUTRI_A}/appointments/apt_p1`)),
+      );
+
+      // FORBID reading another patient's appointment (patientId == p2)
+      await assertFails(
+        getDoc(doc(patientDb, `users/${NUTRI_A}/appointments/apt_p2`)),
+      );
+    });
+
+    it("FORBIDS linked patient from creating, updating, or deleting appointments", async () => {
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      const { deleteDoc } = await import("firebase/firestore");
+
+      await assertFails(
+        setDoc(doc(patientDb, `users/${NUTRI_A}/appointments/apt_new`), {
+          patientId: "p1",
+          date: "2026-10-20",
+          time: "09:00",
+        }),
+      );
+
+      await assertFails(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/appointments/apt_p1`), {
+          status: "cancelled",
+        }),
+      );
+
+      await assertFails(
+        deleteDoc(doc(patientDb, `users/${NUTRI_A}/appointments/apt_p1`)),
+      );
+    });
+
+    it("FORBIDS unauthenticated users from accessing appointments", async () => {
+      const unauthDb = testEnv.unauthenticatedContext().firestore();
+
+      await assertFails(
+        getDoc(doc(unauthDb, `users/${NUTRI_A}/appointments/apt_p1`)),
+      );
+      await assertFails(
+        setDoc(doc(unauthDb, `users/${NUTRI_A}/appointments/apt_unauth`), {
+          patientId: "p1",
+        }),
+      );
+    });
+  });
 });

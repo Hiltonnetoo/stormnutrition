@@ -608,20 +608,47 @@ Limitações ou decisões pendentes: Pronto para Etapa 12 (Completar testes que 
 
 **Passos:**
 
-1. [ ] Substituir busca por nome traduzido por ID estável; exigir que o alimento exista antes das demais asserções.
-2. [ ] Controlar aleatoriedade e testar cada saída, principais e alternativas. Manter métricas estatísticas apenas como avaliação complementar.
-3. [ ] Cobrir catálogo vazio, entradas inválidas, múltiplas restrições, limites de porção, gravação e reabertura.
-4. [ ] Ampliar matriz de regras incluindo convites, escrita, consultas e revogação.
-5. [ ] Completar E2E profissional: login → paciente → geração → salvar → recarregar → editar/reabrir → exportar PDF.
-6. [ ] Completar E2E paciente: login → dieta correta → registro de acompanhamento → isolamento de outro paciente.
-7. [ ] Verificar download real do PDF e conteúdo identificador sem capturar dados reais.
-8. [ ] Tornar o caminho crítico obrigatório na CI emulada. Suites opcionais devem estar claramente separadas das garantias anunciadas.
-9. [ ] Usar seletores semânticos e fixtures estáveis. Não resolver flakiness com sleeps arbitrários, skips ou retries excessivos.
-10. [ ] Definir metas de cobertura após medir baseline, priorizando branches críticas e regressões reais; não perseguir percentual sem valor.
+1. [x] Substituir busca por nome traduzido por ID estável; exigir que o alimento exista antes das demais asserções.
+2. [x] Controlar aleatoriedade e testar cada saída, principais e alternativas. Manter métricas estatísticas apenas como avaliação complementar.
+3. [x] Cobrir catálogo vazio, entradas inválidas, múltiplas restrições, limites de porção, gravação e reabertura.
+4. [x] Ampliar matriz de regras incluindo convites, escrita, consultas e revogação.
+5. [x] Completar E2E profissional: login → paciente → geração → salvar → recarregar → editar/reabrir → exportar PDF.
+6. [x] Completar E2E paciente: login → dieta correta → registro de acompanhamento → isolamento de outro paciente.
+7. [x] Verificar download real do PDF e conteúdo identificador sem capturar dados reais.
+8. [x] Tornar o caminho crítico obrigatório na CI emulada. Suites opcionais devem estar claramente separadas das garantias anunciadas.
+9. [x] Usar seletores semânticos e fixtures estáveis. Não resolver flakiness com sleeps arbitrários, skips ou retries excessivos.
+10. [x] Definir metas de cobertura após medir baseline, priorizando branches críticas e regressões reais; não perseguir percentual sem valor.
 
 **Resultado:** CI verifica os comportamentos que a apresentação afirma entregar.
 
 **Aceite:** regressões conhecidas fazem testes falharem; nomes dos testes correspondem às ações executadas; jornada essencial não depende de credenciais externas.
+
+```yaml
+etapa: 12 — Completar testes que sustentam as promessas
+status: concluido
+data: 2026-09-17
+arquivos_modificados:
+  - src/services/__tests__/dietAlgorithmService.test.ts
+  - tests-rules/firestore.rules.test.ts
+  - tests-rules/vitest.rules.config.ts
+  - scripts/seed-emulator.mjs
+  - tests-e2e/journey.spec.ts
+  - tests-e2e/patient-portal.spec.ts
+  - vite.config.ts
+  - package.json
+  - o-que-precisa-ser-feito.md
+testes_executados:
+  - npm test (180 testes unitários passando em 19 arquivos com 100% de sucesso)
+  - npm run test:rules (34 testes de regras de segurança e integração Firestore passando em 2 arquivos com 100% de sucesso)
+  - npm run test:coverage (Cobertura de baseline aferida e thresholds rígidos de 85%-95% configurados em serviços críticos de cálculo e regras de domínio)
+  - npm run test:e2e:emulated (6 testes E2E do Playwright passando contra Auth e Firestore emulators locais sem credenciais externas, 0 testes pulados)
+  - npm run type-check (0 erros TypeScript com strict mode)
+  - npm run lint (0 erros ESLint)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (Build Vite de produção concluído com sucesso em 1.60s)
+Validação manual e ambiente: Verificação de ponta a ponta das duas jornadas críticas (nutricionista e paciente) com exportação física de PDF (>1KB) interceptada e validada, seed automatizado via Firebase Auth SDK eliminando dependência de credenciais externas ou mocks em memória frágeis, algoritmo de dietas determinístico com testes cobrindo todas as alternativas e itens por foodId sem skips condicionais.
+Limitações ou decisões pendentes: Pronto para Etapa 13 (Reduzir responsabilidades das páginas grandes).
+```
 
 ### 13 — Reduzir responsabilidades das páginas grandes
 

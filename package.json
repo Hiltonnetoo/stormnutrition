@@ -18,9 +18,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:emulated": "firebase emulators:exec --only auth,firestore --project demo-storm \"VITE_USE_FIREBASE_EMULATOR=true playwright test\"",
+    "test:e2e:emulated": "firebase emulators:exec --only auth,firestore --project demo-storm \"node scripts/seed-emulator.mjs && VITE_USE_FIREBASE_EMULATOR=true playwright test\"",
     "test:rules": "firebase emulators:exec --only firestore --project demo-storm \"vitest run --config vitest.rules.config.ts\"",
-    "seed:emulator": "firebase emulators:exec --only firestore --project demo-storm \"node scripts/seed-emulator.mjs\"",
+    "seed:emulator": "firebase emulators:exec --only auth,firestore --project demo-storm \"node scripts/seed-emulator.mjs\"",
     "emulators": "firebase emulators:start --only auth,firestore --project demo-storm"
   },
   "dependencies": {

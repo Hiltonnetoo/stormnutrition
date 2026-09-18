@@ -8,6 +8,14 @@
  *   node scripts/seed-emulator.mjs
  */
 
+import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  connectAuthEmulator,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
 import { initializeTestEnvironment } from "@firebase/rules-unit-testing";
 import { doc, setDoc } from "firebase/firestore";
 
@@ -18,9 +26,62 @@ if (host.includes(":")) {
   host = parts[0];
   port = Number(parts[1]);
 }
+let authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST || "127.0.0.1:9099";
+if (!authHost.includes(":")) {
+  authHost = `${authHost}:9099`;
+}
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "demo-storm";
 
-console.log(`🌱 Conectando ao emulador Firestore em ${host}:${port} (Projeto: ${PROJECT_ID})...`);
+console.log(
+  `🌱 Conectando ao emulador Firestore em ${host}:${port} e Auth em ${authHost} (Projeto: ${PROJECT_ID})...`,
+);
+
+const fbApp = initializeApp(
+  { projectId: PROJECT_ID, apiKey: "fake-api-key" },
+  "seed-auth-app",
+);
+const auth = getAuth(fbApp);
+connectAuthEmulator(auth, `http://${authHost}`, { disableWarnings: true });
+
+async function createOrGetAuthUser(email, password, displayName) {
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName });
+    console.log(`[Auth Seed] Created user ${email} (${cred.user.uid})`);
+    return cred.user.uid;
+  } catch (err) {
+    if (err.code === "auth/email-already-in-use") {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      console.log(`[Auth Seed] Found existing user ${email} (${cred.user.uid})`);
+      return cred.user.uid;
+    }
+    console.error(`[Auth Seed] Error creating ${email}:`, err);
+    throw err;
+  }
+}
+
+// 1. Seed Auth users first to get their exact UIDs
+console.log("1/6 Criando contas no Auth Emulator...");
+const NUTRI_1_ID = await createOrGetAuthUser(
+  "dra.clara@demo.stormnutrition.com",
+  "Password123!",
+  "Dra. Clara Mendes",
+);
+const NUTRI_2_ID = await createOrGetAuthUser(
+  "dr.marcos@demo.stormnutrition.com",
+  "Password123!",
+  "Dr. Marcos Lima",
+);
+const PATIENT_1_PORTAL_UID = await createOrGetAuthUser(
+  "ana.silva@demo.stormnutrition.com",
+  "Password123!",
+  "Ana Silva",
+);
+const PATIENT_2_PORTAL_UID = await createOrGetAuthUser(
+  "bruno.costa@demo.stormnutrition.com",
+  "Password123!",
+  "Bruno Costa",
+);
 
 const testEnv = await initializeTestEnvironment({
   projectId: PROJECT_ID,
@@ -30,19 +91,15 @@ const testEnv = await initializeTestEnvironment({
   },
 });
 
-const NUTRI_1_ID = "demo-nutri-1";
-const NUTRI_2_ID = "demo-nutri-2";
 const PATIENT_1_ID = "patient-ana-silva";
 const PATIENT_2_ID = "patient-bruno-costa";
-const PATIENT_1_PORTAL_UID = "demo-patient-ana";
-const PATIENT_2_PORTAL_UID = "demo-patient-bruno";
 
 try {
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
 
-    // 1. Perfis de Nutricionistas
-    console.log("1/5 Criando profissionais de demonstração...");
+    // 2. Perfis de Nutricionistas
+    console.log("2/6 Criando perfis profissionais no Firestore...");
     await setDoc(doc(db, "users", NUTRI_1_ID), {
       displayName: "Dra. Clara Mendes",
       email: "dra.clara@demo.stormnutrition.com",
@@ -63,19 +120,21 @@ try {
       createdAt: new Date().toISOString(),
     });
 
-    // 2. Pacientes vinculados à Dra. Clara
-    console.log("2/5 Criando pacientes vinculados...");
+    // 3. Pacientes vinculados à Dra. Clara
+    console.log("3/6 Criando pacientes vinculados...");
     await setDoc(doc(db, `users/${NUTRI_1_ID}/patients/${PATIENT_1_ID}`), {
       firstName: "Ana",
       lastName: "Silva",
       email: "ana.silva@demo.stormnutrition.com",
       phone: "(11) 99999-1111",
       birthDate: "1994-05-12",
+      dob: "12/05/1994",
       gender: "female",
       height: 165,
       weight: 64,
-      activityLevel: 1.55,
-      goal: "hypertrophy",
+      activityLevel: "moderately_active",
+      nutritionalGoal: "hypertrophy",
+      status: "Active",
       clinicalTags: ["lactose_intolerance"],
       allergies: "Lactose",
       portalUid: PATIENT_1_PORTAL_UID,
@@ -88,19 +147,21 @@ try {
       email: "bruno.costa@demo.stormnutrition.com",
       phone: "(11) 99999-2222",
       birthDate: "1981-11-20",
+      dob: "20/11/1981",
       gender: "male",
       height: 178,
       weight: 88,
-      activityLevel: 1.375,
-      goal: "weight_loss",
+      activityLevel: "lightly_active",
+      nutritionalGoal: "weight_loss",
+      status: "Active",
       clinicalTags: ["hypertension"],
       allergies: "Nenhuma",
       portalUid: PATIENT_2_PORTAL_UID,
       createdAt: new Date().toISOString(),
     });
 
-    // 3. Perfis do Portal de Acesso dos Pacientes
-    console.log("3/5 Criando perfis de acesso do portal...");
+    // 4. Perfis do Portal de Acesso dos Pacientes
+    console.log("4/6 Criando perfis de acesso do portal...");
     await setDoc(doc(db, `patientProfiles/${PATIENT_1_PORTAL_UID}`), {
       uid: PATIENT_1_PORTAL_UID,
       patientId: PATIENT_1_ID,
@@ -121,47 +182,93 @@ try {
       createdAt: new Date().toISOString(),
     });
 
-    // 4. Dietas de demonstração
-    console.log("4/5 Criando planos alimentares estruturados...");
+    // 5. Dietas de demonstração
+    console.log("5/6 Criando planos alimentares estruturados...");
     await setDoc(doc(db, `users/${NUTRI_1_ID}/diets/diet-ana-hipertrofia`), {
+      version: 2,
       patientId: PATIENT_1_ID,
+      patientName: "Ana Silva",
       title: "Plano Hipertrofia & Definição",
-      calories: 2200,
-      protein: 140,
-      carbs: 260,
-      fats: 65,
+      mode: "general",
+      dailyCalories: 2200,
+      durationDays: 30,
+      startDate: new Date().toISOString().split("T")[0],
+      macronutrients: {
+        proteinGrams: 140,
+        proteinPercentage: 25,
+        carbsGrams: 260,
+        carbsPercentage: 50,
+        fatGrams: 65,
+        fatPercentage: 25,
+      },
+      waterRecommendationLiters: 2.5,
+      generalObservations: ["Hidratação constante ao longo do dia."],
+      dietType: "traditional",
       meals: [
         {
-          name: "Café da Manhã",
+          mealName: "Café da Manhã",
           time: "07:30",
-          items: [
-            { name: "Ovos Mexidos (3 unidades)", portion: "150g", protein: 18, carbs: 2, fats: 15, calories: 215 },
-            { name: "Pão Integral", portion: "50g", protein: 5, carbs: 25, fats: 2, calories: 140 },
-            { name: "Mamão Papaia", portion: "100g", protein: 1, carbs: 10, fats: 0, calories: 45 },
-          ],
-        },
-        {
-          name: "Almoço",
-          time: "12:30",
-          items: [
-            { name: "Peito de Frango Grelhado", portion: "150g", protein: 45, carbs: 0, fats: 5, calories: 240 },
-            { name: "Arroz Integral Cozido", portion: "150g", protein: 4, carbs: 38, fats: 2, calories: 185 },
-            { name: "Feijão Preto Cozido", portion: "100g", protein: 7, carbs: 20, fats: 1, calories: 115 },
-            { name: "Azeite de Oliva Extra Virgem", portion: "10g", protein: 0, carbs: 0, fats: 10, calories: 90 },
-          ],
+          calories: 400,
+          protein: 25,
+          carbs: 37,
+          fat: 17,
+          mainOption: {
+            name: "Ovos Mexidos com Pão Integral e Fruta",
+            portion: "1 porção",
+            calories: 400,
+            protein: 25,
+            carbs: 37,
+            fat: 17,
+            items: [
+              {
+                name: "Ovos Mexidos (3 unidades)",
+                portion: "150g",
+                portionGrams: 150,
+                unit: "g",
+                protein: 18,
+                carbs: 2,
+                fat: 15,
+                calories: 215,
+              },
+              {
+                name: "Pão Integral",
+                portion: "50g",
+                portionGrams: 50,
+                unit: "g",
+                protein: 5,
+                carbs: 25,
+                fat: 2,
+                calories: 140,
+              },
+              {
+                name: "Mamão Papaia",
+                portion: "100g",
+                portionGrams: 100,
+                unit: "g",
+                protein: 1,
+                carbs: 10,
+                fat: 0,
+                calories: 45,
+              },
+            ],
+          },
+          alternatives: [],
         },
       ],
       createdAt: new Date().toISOString(),
     });
 
-    // 5. Consultas / Agendamentos
-    console.log("5/5 Criando agendamentos fictícios...");
+    // 6. Consultas / Agendamentos
+    console.log("6/6 Criando agendamentos fictícios...");
     await setDoc(doc(db, `users/${NUTRI_1_ID}/appointments/appt-ana-retorno`), {
       patientId: PATIENT_1_ID,
       patientName: "Ana Silva",
-      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
       time: "14:00",
-      status: "scheduled",
+      status: "confirmed",
+      type: "return",
       notes: "Retorno quinzenal para reavaliação de bioimpedância.",
       createdAt: new Date().toISOString(),
     });

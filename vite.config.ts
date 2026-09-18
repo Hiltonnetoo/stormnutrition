@@ -49,6 +49,38 @@ export default defineConfig(({ mode }) => {
             'src/index.tsx',
             'src/vite-env.d.ts',
           ],
+          thresholds: {
+            'src/services/metabolicCalculations.ts': {
+              lines: 95,
+              functions: 95,
+              branches: 95,
+              statements: 95,
+            },
+            'src/services/dietAlgorithmService.ts': {
+              lines: 85,
+              functions: 85,
+              branches: 70,
+              statements: 85,
+            },
+            'src/services/billingService.ts': {
+              lines: 95,
+              functions: 95,
+              branches: 85,
+              statements: 95,
+            },
+            'src/utils/validation.ts': {
+              lines: 85,
+              functions: 95,
+              branches: 70,
+              statements: 85,
+            },
+            'src/utils/dateTime.ts': {
+              lines: 90,
+              functions: 95,
+              branches: 75,
+              statements: 85,
+            },
+          },
         },
       }
     };
