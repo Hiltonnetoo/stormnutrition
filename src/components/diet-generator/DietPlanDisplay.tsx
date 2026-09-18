@@ -1,6 +1,5 @@
 import React, { useState, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 import type { DietPlan, DecisionEntry } from "../../types";
 import {
   ClipboardListIcon,
@@ -15,20 +14,7 @@ import MealOptionTable from "../MealOptionTable";
 import { Button } from "../ui";
 import { useAuth } from "../../contexts/AuthContext";
 import { loadUserState, saveUserState } from "../../utils/localStorage";
-
-const translateMealName = (name: string, t: TFunction) => {
-  const normalized = name.toLowerCase().trim();
-  const keys: Record<string, string> = {
-    "café da manhã": "meal_table.breakfast",
-    "lanche da manhã": "meal_table.morning_snack",
-    almoço: "meal_table.lunch",
-    "lanche da tarde": "meal_table.afternoon_snack",
-    jantar: "meal_table.dinner",
-    ceia: "meal_table.supper",
-  };
-  const key = keys[normalized];
-  return key ? t(key) : name;
-};
+import { translateMealName } from "../../utils/locale";
 
 /* ---------------------------------------------------------------- Log item */
 const DecisionLogItem: React.FC<{ log: DecisionEntry }> = ({ log }) => {

@@ -13,9 +13,6 @@ export default defineConfig(({ mode }) => {
         allowedHosts: true,
       },
       plugins: [tailwindcss(), react()],
-      build: {
-        cssMinify: false,
-      },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
@@ -30,7 +27,7 @@ export default defineConfig(({ mode }) => {
         globals: true,
         environment: 'jsdom',
         setupFiles: './src/test/setup.ts',
-        exclude: ['**/node_modules/**', '**/dist/**', '**/tests-e2e/**', '**/tests-rules/**'],
+        exclude: ['**/node_modules/**', '**/dist/**', '**/tests-e2e/**', '**/tests-rules/**', '**/tests-perf/**'],
         coverage: {
           provider: 'v8',
           reporter: ['text', 'text-summary', 'html', 'lcov'],

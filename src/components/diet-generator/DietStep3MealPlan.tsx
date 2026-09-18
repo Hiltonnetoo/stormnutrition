@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 import type { DietFormData, DietCalculations } from "./dietForm.types";
+import { translateMealName } from "../../utils/locale";
 
 interface Step3Props {
   formData: DietFormData;
@@ -41,20 +41,6 @@ const mealCalorieDistribution = {
 
 const fieldClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-sage-500/60 focus:border-sage-400 focus:outline-none transition-all";
-
-const translateMealName = (name: string, t: TFunction) => {
-  const normalized = name.toLowerCase().trim();
-  const keys: Record<string, string> = {
-    "café da manhã": "meal_table.breakfast",
-    "lanche da manhã": "meal_table.morning_snack",
-    almoço: "meal_table.lunch",
-    "lanche da tarde": "meal_table.afternoon_snack",
-    jantar: "meal_table.dinner",
-    ceia: "meal_table.supper",
-  };
-  const key = keys[normalized];
-  return key ? t(key) : name;
-};
 
 const Step3MealPlan: React.FC<Step3Props> = ({
   formData,
@@ -136,10 +122,14 @@ const Step3MealPlan: React.FC<Step3Props> = ({
       </div>
 
       <div>
-        <label className="input-label">
+        <label htmlFor="numberOfMeals" className="input-label">
           {t("diet_generator.meal_plan.num_meals")}
         </label>
         <input
+          id="numberOfMeals"
+          aria-valuetext={t("diet_generator.meal_plan.meals_count", {
+            count: formData.numberOfMeals,
+          })}
           type="range"
           min="3"
           max="6"
@@ -156,9 +146,9 @@ const Step3MealPlan: React.FC<Step3Props> = ({
       </div>
 
       <div>
-        <label className="input-label">
+        <p className="input-label">
           {t("diet_generator.meal_plan.meals_targets")}
-        </label>
+        </p>
         <div className="space-y-2.5">
           {meals.map((meal, index) => {
             const factor = meal.percentage / 100;
@@ -177,6 +167,9 @@ const Step3MealPlan: React.FC<Step3Props> = ({
                   </span>
                   <input
                     type="time"
+                    aria-label={t("a11y.meal_time", {
+                      meal: translateMealName(meal.name, t),
+                    })}
                     value={formData.meals?.[index]?.time || meal.time}
                     onChange={(e) =>
                       handleMealTimeChange(index, e.target.value)

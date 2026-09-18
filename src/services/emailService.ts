@@ -1,5 +1,6 @@
 import emailjs from "@emailjs/browser";
 import i18n from "../i18n";
+import { getNormalizedLanguage, type SupportedLanguage } from "../utils/locale";
 
 /**
  * Real sending of emails via EmailJS (client).
@@ -15,18 +16,16 @@ import i18n from "../i18n";
  * signature `sendDietEmail` here.
  */
 
-const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID as
-  | string
-  | undefined;
-const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as
-  | string
-  | undefined;
-const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as
-  | string
-  | undefined;
+const getEmailConfig = () => ({
+  serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined,
+  templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined,
+  publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined,
+});
 
-export const isEmailConfigured = (): boolean =>
-  Boolean(SERVICE_ID && TEMPLATE_ID && PUBLIC_KEY);
+export const isEmailConfigured = (): boolean => {
+  const { serviceId, templateId, publicKey } = getEmailConfig();
+  return Boolean(serviceId && templateId && publicKey);
+};
 
 export interface DietEmailParams {
   toEmail: string;
@@ -35,15 +34,18 @@ export interface DietEmailParams {
   dietDate: string;
   portalUrl?: string;
   message?: string;
+  locale?: SupportedLanguage | string;
 }
 
 export const sendDietEmail = async (params: DietEmailParams): Promise<void> => {
-  if (!isEmailConfigured()) {
+  const { serviceId, templateId, publicKey } = getEmailConfig();
+  if (!serviceId || !templateId || !publicKey) {
     throw new Error("EMAIL_NOT_CONFIGURED");
   }
+  const targetLng = getNormalizedLanguage(params.locale);
   await emailjs.send(
-    SERVICE_ID!,
-    TEMPLATE_ID!,
+    serviceId,
+    templateId,
     {
       to_email: params.toEmail,
       to_name: params.toName,
@@ -53,11 +55,12 @@ export const sendDietEmail = async (params: DietEmailParams): Promise<void> => {
       message:
         params.message ||
         i18n.t("email.diet_message", {
+          lng: targetLng,
           toName: params.toName,
           dietDate: params.dietDate,
         }),
     },
-    { publicKey: PUBLIC_KEY! },
+    { publicKey },
   );
 };
 
@@ -69,30 +72,34 @@ export interface PortalAccessEmailParams {
   inviteUrl?: string;
   /** @deprecated Plaintext passwords removed for security */
   passwordText?: string;
+  locale?: SupportedLanguage | string;
 }
 
 export const sendPortalAccessEmail = async (
   params: PortalAccessEmailParams,
 ): Promise<void> => {
-  if (!isEmailConfigured()) {
+  const { serviceId, templateId, publicKey } = getEmailConfig();
+  if (!serviceId || !templateId || !publicKey) {
     throw new Error("EMAIL_NOT_CONFIGURED");
   }
+  const targetLng = getNormalizedLanguage(params.locale);
   const actionUrl = params.inviteUrl || params.portalUrl;
   await emailjs.send(
-    SERVICE_ID!,
-    TEMPLATE_ID!,
+    serviceId,
+    templateId,
     {
       to_email: params.toEmail,
       to_name: params.toName,
       from_name: params.fromName,
       portal_url: actionUrl,
       message: i18n.t("email.portal_message", {
+        lng: targetLng,
         toName: params.toName,
         fromName: params.fromName,
         toEmail: params.toEmail,
         portalUrl: actionUrl,
       }),
     },
-    { publicKey: PUBLIC_KEY! },
+    { publicKey },
   );
 };

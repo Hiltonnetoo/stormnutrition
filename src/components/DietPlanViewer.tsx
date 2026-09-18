@@ -1,6 +1,5 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 import type { Patient, DietPlan, AnyDietPlan } from "../types";
 import { ClipboardListIcon, UsersIcon } from "./icons";
 import {
@@ -8,6 +7,7 @@ import {
   getBMICategory,
 } from "../services/metabolicCalculations";
 import MealOptionTable from "./MealOptionTable";
+import { translateMealName } from "../utils/locale";
 
 interface DietPlanViewerProps {
   plan: DietPlan | AnyDietPlan;
@@ -17,20 +17,6 @@ interface DietPlanViewerProps {
 function isV2Plan(plan: AnyDietPlan): plan is DietPlan {
   return (plan as DietPlan).version === 2;
 }
-
-const translateMealName = (name: string, t: TFunction) => {
-  const normalized = name.toLowerCase().trim();
-  const keys: Record<string, string> = {
-    "café da manhã": "meal_table.breakfast",
-    "lanche da manhã": "meal_table.morning_snack",
-    almoço: "meal_table.lunch",
-    "lanche da tarde": "meal_table.afternoon_snack",
-    jantar: "meal_table.dinner",
-    ceia: "meal_table.supper",
-  };
-  const key = keys[normalized];
-  return key ? t(key) : name;
-};
 
 const DietPlanViewer: React.FC<DietPlanViewerProps> = ({ plan, patient }) => {
   const { t, i18n } = useTranslation();

@@ -1,25 +1,9 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { TFunction } from "i18next";
 import type { AnyDietPlan, DietPlan, Meal } from "../../types";
+import { translateMealName } from "../../utils/locale";
 
 const r = (n: number) => Math.round(n);
-
-const translateMealName = (name: string, t: TFunction) => {
-  const normalized = name.toLowerCase().trim();
-  const keys: Record<string, string> = {
-    "café da manhã": "breakfast",
-    "lanche da manhã": "morning_snack",
-    almoço: "lunch",
-    "lanche da tarde": "afternoon_snack",
-    jantar: "dinner",
-    ceia: "supper",
-  };
-  const key = keys[normalized];
-  return key
-    ? t(`diet_generator.meal_plan.${key}`, { defaultValue: name })
-    : name;
-};
 
 export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
   diets,
@@ -62,23 +46,26 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
 
       <div className="divide-y divide-slate-50">
         {diets.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-8">
+          <p className="text-sm text-slate-500 text-center py-8">
             {t("patient_portal.no_diet_plans")}
           </p>
         ) : (
           diets.map((diet, idx) => {
             const isV2 = (diet as DietPlan).version === 2;
             const d2 = isV2 ? (diet as DietPlan) : null;
-            const isExpanded = expandedDiet === (diet.id || String(idx));
+            const key = diet.id || String(idx);
+            const isExpanded = expandedDiet === key;
+            const panelId = `portal-diet-panel-${key}`;
             const mac = d2?.macronutrients;
 
             return (
               <div key={diet.id || idx}>
                 <button
-                  onClick={() =>
-                    setExpandedDiet(isExpanded ? null : diet.id || String(idx))
-                  }
-                  className="w-full text-left px-5 py-4 hover:bg-slate-50 transition-colors"
+                  type="button"
+                  onClick={() => setExpandedDiet(isExpanded ? null : key)}
+                  aria-expanded={isExpanded}
+                  aria-controls={isV2 ? panelId : undefined}
+                  className="w-full text-left px-5 py-4 hover:bg-slate-50 transition-colors focus-ring"
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -104,7 +91,8 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
                       </p>
                     </div>
                     <svg
-                      className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                      aria-hidden="true"
+                      className={`w-4 h-4 text-slate-500 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -120,7 +108,7 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
                 </button>
 
                 {isExpanded && d2 && (
-                  <div className="px-5 pb-5 space-y-4">
+                  <div id={panelId} className="px-5 pb-5 space-y-4">
                     {mac && (
                       <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-soft">
                         <div className="flex items-center justify-between mb-5">
@@ -175,7 +163,7 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
                                 >
                                   {stat.value}
                                 </span>
-                                <span className="text-[11px] font-bold text-slate-400">
+                                <span className="text-[11px] font-bold text-slate-500">
                                   {stat.unit}
                                 </span>
                               </div>
@@ -218,7 +206,7 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
                               <p className="text-sm font-extrabold text-slate-800">
                                 {r(meal.calories)} kcal
                               </p>
-                              <p className="text-[11px] font-bold text-slate-400">
+                              <p className="text-[11px] font-bold text-slate-500">
                                 P:{r(meal.protein)}g C:{r(meal.carbs)}g G:
                                 {r(meal.fat)}g
                               </p>

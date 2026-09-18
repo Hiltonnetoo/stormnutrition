@@ -3,24 +3,14 @@ import { useLocation, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { HomeIcon, ChevronRightIcon } from "./icons";
 import LanguageSelector from "./LanguageSelector";
-
-const routeNameMap: Record<string, string> = {
-  "/dashboard": "nav.overview",
-  "/patients": "nav.patients",
-  "/calendar": "nav.calendar",
-  "/diet-generator": "nav.diet_generator",
-  "/metabolic-calculator": "nav.metabolic_calculator",
-  "/food-database": "nav.food_database",
-  "/reports": "nav.reports",
-  "/email-admin": "nav.send_plans",
-  "/settings": "nav.settings",
-};
+import { routeNameMap } from "../utils/routes";
 
 interface BreadcrumbsProps {
   onMenu?: () => void;
+  menuOpen?: boolean;
 }
 
-const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ onMenu }) => {
+const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ onMenu, menuOpen }) => {
   const location = useLocation();
   const { t } = useTranslation();
   const pathnames = location.pathname.split("/").filter(Boolean);
@@ -45,11 +35,15 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ onMenu }) => {
       <div className="flex items-center gap-3 min-w-0">
         {onMenu && (
           <button
+            type="button"
             onClick={onMenu}
-            className="lg:hidden -ml-1 p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            aria-label="Abrir menu"
+            className="lg:hidden -ml-1 p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-ring"
+            aria-label={t("a11y.open_menu")}
+            aria-haspopup="dialog"
+            aria-expanded={menuOpen ?? false}
           >
             <svg
+              aria-hidden="true"
               className="w-5 h-5"
               fill="none"
               viewBox="0 0 24 24"
@@ -65,17 +59,17 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ onMenu }) => {
           </button>
         )}
 
-        <nav aria-label="Breadcrumb" className="min-w-0">
+        <nav aria-label={t("a11y.breadcrumb")} className="min-w-0">
           <ol className="flex items-center gap-1.5">
             <li>
               <Link
                 to="/dashboard"
-                className="flex items-center gap-2 text-slate-400 hover:text-sage-600 transition-colors group"
+                className="flex items-center gap-2 text-slate-500 hover:text-sage-600 transition-colors group rounded-lg focus-ring"
               >
                 <span className="p-1.5 rounded-lg bg-slate-100 group-hover:bg-sage-50 transition-colors dark:bg-slate-800">
                   <HomeIcon className="h-4 w-4" />
                 </span>
-                <span className="text-sm font-semibold hidden sm:inline">
+                <span className="text-sm font-semibold sr-only sm:not-sr-only">
                   {t("nav.home", "Início")}
                 </span>
               </Link>
@@ -84,7 +78,7 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ onMenu }) => {
               const isLast = i === crumbs.length - 1;
               return (
                 <li key={c.to} className="flex items-center gap-1.5 min-w-0">
-                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-300" />
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-slate-400" />
                   <Link
                     to={c.to}
                     aria-current={isLast ? "page" : undefined}

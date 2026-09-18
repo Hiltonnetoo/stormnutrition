@@ -1,4 +1,7 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
+import ChartDataTable from "../ChartDataTable";
+import { formatDateWithLocale } from "../../utils/locale";
 
 interface BiomarkerData {
   date: string;
@@ -18,11 +21,12 @@ const BiomarkerEvolutionChart: React.FC<BiomarkerEvolutionChartProps> = ({
   unit,
   color = "#10b981",
 }) => {
+  const { t, i18n } = useTranslation();
   if (!data || data.length < 2) {
     return (
       <div className="h-48 flex items-center justify-center bg-gray-50 dark:bg-gray-900/20 rounded-2xl border-2 border-dashed border-gray-100 dark:border-gray-800">
         <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-          Dados insuficientes para gráfico de evolução
+          {t("profile.biomarkers.insufficient_chart_data")}
         </p>
       </div>
     );
@@ -63,18 +67,27 @@ const BiomarkerEvolutionChart: React.FC<BiomarkerEvolutionChartProps> = ({
         </div>
         <div className="text-right">
           <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
-            Tendência
+            {t("profile.biomarkers.trend")}
           </p>
           <p
-            className={`text-sm font-bold ${sortedData[sortedData.length - 1].value > sortedData[0].value ? "text-amber-500" : "text-green-500"}`}
+            className={`text-sm font-bold ${
+              sortedData[sortedData.length - 1].value > sortedData[0].value
+                ? "text-amber-700"
+                : sortedData[sortedData.length - 1].value < sortedData[0].value
+                  ? "text-green-700"
+                  : "text-slate-600 dark:text-slate-400"
+            }`}
           >
             {sortedData[sortedData.length - 1].value > sortedData[0].value
-              ? "↑ Aumento"
-              : "↓ Redução"}
+              ? t("profile.biomarkers.trend_up")
+              : sortedData[sortedData.length - 1].value < sortedData[0].value
+                ? t("profile.biomarkers.trend_down")
+                : t("profile.biomarkers.trend_stable")}
           </p>
         </div>
       </div>
       <svg
+        aria-hidden="true"
         viewBox={`0 0 ${width} ${height}`}
         className="w-full h-32 overflow-visible"
       >
@@ -112,19 +125,31 @@ const BiomarkerEvolutionChart: React.FC<BiomarkerEvolutionChartProps> = ({
                 stroke={color}
                 strokeWidth="2"
               />
-              <title>{`${new Date(d.date).toLocaleDateString("pt-BR")}: ${d.value} ${unit}`}</title>
+              <title>{`${formatDateWithLocale(d.date, i18n.language)}: ${d.value} ${unit}`}</title>
             </g>
           );
         })}
       </svg>
-      <div className="flex justify-between text-[8px] font-black text-gray-400 uppercase">
-        <span>{new Date(sortedData[0].date).toLocaleDateString("pt-BR")}</span>
+      <div
+        aria-hidden="true"
+        className="flex justify-between text-[10px] font-black text-gray-500 uppercase"
+      >
+        <span>{formatDateWithLocale(sortedData[0].date, i18n.language)}</span>
         <span>
-          {new Date(sortedData[sortedData.length - 1].date).toLocaleDateString(
-            "pt-BR",
+          {formatDateWithLocale(
+            sortedData[sortedData.length - 1].date,
+            i18n.language,
           )}
         </span>
       </div>
+      <ChartDataTable
+        caption={label}
+        columns={[t("a11y.col_date"), `${t("a11y.col_value")} (${unit})`]}
+        rows={sortedData.map((d) => [
+          formatDateWithLocale(d.date, i18n.language),
+          d.value,
+        ])}
+      />
     </div>
   );
 };

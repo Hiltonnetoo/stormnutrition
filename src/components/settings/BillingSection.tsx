@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
-import { getPatientsCount } from "../../services/firebaseService";
+import { countPatients } from "../../services/firebaseService";
 import {
   PLANS,
   PLAN_ORDER,
@@ -33,11 +33,25 @@ const BillingSection: React.FC = () => {
     setBilling(getBillingState(currentUser?.uid));
   }, [currentUser?.uid]);
 
+  // Aggregation query (one read) instead of downloading every patient; the
+  // usage meter reflects the count when the settings screen opens.
+  const uid = currentUser?.uid;
   useEffect(() => {
-    if (!currentUser) return;
-    const unsub = getPatientsCount(currentUser.uid, (c) => setPatientCount(c));
-    return () => unsub?.();
-  }, [currentUser]);
+    if (!uid) return;
+    let cancelled = false;
+    countPatients(uid)
+      .then((c) => {
+        if (!cancelled) setPatientCount(c);
+      })
+      .catch((error) => {
+        console.error("[Billing] Falha ao contar pacientes:", {
+          code: (error as { code?: string })?.code ?? "unknown",
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
 
   const flash = (msg: string) => {
     setNotice(msg);

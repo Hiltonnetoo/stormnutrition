@@ -55,8 +55,16 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install chromium --with-deps
 
-      - name: Run End-to-End Tests (Playwright)
-        run: npm run test:e2e
+      # The journeys, the patient portal and the accessibility checks sign in:
+      # they need the Auth/Firestore emulators (JVM) and the synthetic seed.
+      - name: Set up Java (Firebase emulators)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Run End-to-End & Accessibility Tests (Playwright + emulators)
+        run: npm run test:e2e:emulated
 
       - name: Upload Playwright Report on Failure
         uses: actions/upload-artifact@v4
@@ -92,6 +100,11 @@ jobs:
 
       - name: Run Firestore Security Rules Tests (emulator)
         run: npm run test:rules
+
+      # Seeds a synthetic workspace and fails if a screen reads more documents
+      # than it shows or if a composite query lacks a versioned index.
+      - name: Query Cost Budgets & Index Coverage (emulator)
+        run: npm run test:perf:queries
 
       - name: Verify Emulator Seed Script
         run: npm run seed:emulator

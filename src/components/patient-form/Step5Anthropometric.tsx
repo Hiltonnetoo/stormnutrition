@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { errorIdFor, fieldErrorProps } from "../../utils/a11y";
 import type { Patient } from "../../types";
 
 interface Step5Props {
@@ -135,10 +136,14 @@ const Step5Anthropometric: React.FC<Step5Props> = ({
               value={data.weight || ""}
               onChange={handleNumberChange}
               step="0.1"
-              className={`input-field ${errors.weight ? "border-rose-400 focus:ring-rose-500/60" : ""}`}
+              className={`input-field ${errors.weight ? "!border-rose-400 focus:!ring-rose-500/60" : ""}`}
+              {...fieldErrorProps("weight", errors.weight)}
             />
             {errors.weight && (
-              <p className="mt-1.5 text-xs font-medium text-rose-600">
+              <p
+                id={errorIdFor("weight")}
+                className="mt-1.5 text-xs font-medium text-rose-600"
+              >
                 {errors.weight}
               </p>
             )}
@@ -161,10 +166,14 @@ const Step5Anthropometric: React.FC<Step5Props> = ({
               value={displayHeight}
               onChange={handleHeightChange}
               placeholder={t("patient_form.anthropometric.height_placeholder")}
-              className={`input-field ${errors.height ? "border-rose-400 focus:ring-rose-500/60" : ""}`}
+              className={`input-field ${errors.height ? "!border-rose-400 focus:!ring-rose-500/60" : ""}`}
+              {...fieldErrorProps("height", errors.height)}
             />
             {errors.height && (
-              <p className="mt-1.5 text-xs font-medium text-rose-600">
+              <p
+                id={errorIdFor("height")}
+                className="mt-1.5 text-xs font-medium text-rose-600"
+              >
                 {errors.height}
               </p>
             )}
@@ -273,6 +282,13 @@ const Step5Anthropometric: React.FC<Step5Props> = ({
           checked={data.termsAccepted || false}
           onChange={(e) => onDataChange({ termsAccepted: e.target.checked })}
           className="mt-0.5 h-4 w-4 rounded border-slate-300 text-sage-600 focus:ring-sage-500 accent-sage-600"
+          aria-describedby={[
+            "termsAccepted-desc",
+            errors.termsAccepted ? errorIdFor("termsAccepted") : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          aria-invalid={errors.termsAccepted ? true : undefined}
         />
         <div className="text-sm leading-6">
           <label
@@ -281,11 +297,14 @@ const Step5Anthropometric: React.FC<Step5Props> = ({
           >
             {t("patient_form.anthropometric.terms_title")}
           </label>
-          <p className="text-slate-500 text-xs">
+          <p id="termsAccepted-desc" className="text-slate-500 text-xs">
             {t("patient_form.anthropometric.terms_desc")}
           </p>
           {errors.termsAccepted && (
-            <p className="mt-1 text-xs text-rose-600 font-medium">
+            <p
+              id={errorIdFor("termsAccepted")}
+              className="mt-1 text-xs text-rose-600 font-medium"
+            >
               {errors.termsAccepted}
             </p>
           )}

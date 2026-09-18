@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   UsersIcon,
@@ -8,16 +8,18 @@ import {
 } from "../components/icons";
 import { useAuth } from "../contexts/AuthContext";
 import {
-  getPatientsCount,
-  getActivePatientsCount,
-  getNewPatientsThisMonthCount,
-  getDietsCount,
-  getDietsThisMonthCount,
-  getPatients,
+  getDietCountSummary,
+  type DietCountSummary,
 } from "../services/firebaseService";
 import { isEmailConfigured } from "../services/emailService";
+import { usePatientDirectory } from "../hooks/usePatientDirectory";
+import { getRecentMonthRanges } from "../utils/dateTime";
+import {
+  countCreatedPerMonth,
+  summarizePatients,
+} from "../utils/practiceStats";
 import { PageHeader, Card, Skeleton } from "../components/ui";
-import type { Patient } from "../types";
+import ChartDataTable from "../components/ChartDataTable";
 
 const StatCard: React.FC<{
   title: string;
@@ -89,15 +91,13 @@ const StatusWidget: React.FC<{
 const Reports: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { currentUser } = useAuth();
-  const [stats, setStats] = useState({
-    totalPatients: 0,
-    activePatients: 0,
-    newPatientsThisMonth: 0,
-    totalDiets: 0,
-    newDietsThisMonth: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [patientsList, setPatientsList] = useState<Patient[]>([]);
+  // Patient figures come from the shared roster (no extra read); diet figures
+  // from aggregation queries fetched when the screen opens.
+  const { patients: patientsList, loading: patientsLoading } =
+    usePatientDirectory();
+  const [dietCounts, setDietCounts] = useState<DietCountSummary | null>(null);
+  const months = useMemo(() => getRecentMonthRanges(6), []);
+  const currentMonth = months[months.length - 1];
 
   // Performance status states
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -127,32 +127,37 @@ const Reports: React.FC = () => {
     };
   }, [t]);
 
+  const uid = currentUser?.uid;
   useEffect(() => {
-    if (!currentUser) return;
-    const unsubscribers = [
-      getPatientsCount(currentUser.uid, (count) =>
-        setStats((s) => ({ ...s, totalPatients: count })),
-      ),
-      getActivePatientsCount(currentUser.uid, (count) =>
-        setStats((s) => ({ ...s, activePatients: count })),
-      ),
-      getNewPatientsThisMonthCount(currentUser.uid, (count) =>
-        setStats((s) => ({ ...s, newPatientsThisMonth: count })),
-      ),
-      getDietsCount(currentUser.uid, (count) =>
-        setStats((s) => ({ ...s, totalDiets: count })),
-      ),
-      getDietsThisMonthCount(currentUser.uid, (count) =>
-        setStats((s) => ({ ...s, newDietsThisMonth: count })),
-      ),
-      getPatients(currentUser.uid, (list) => setPatientsList(list)),
-    ];
-    const timer = setTimeout(() => setLoading(false), 750);
+    if (!uid) return;
+    let cancelled = false;
+    getDietCountSummary(uid, [currentMonth])
+      .then((summary) => {
+        if (!cancelled) setDietCounts(summary);
+      })
+      .catch((error) => {
+        console.error("[Reports] Falha ao contar planos alimentares:", {
+          code: (error as { code?: string })?.code ?? "unknown",
+        });
+        if (!cancelled) setDietCounts({ total: 0, perMonth: [0] });
+      });
     return () => {
-      clearTimeout(timer);
-      unsubscribers.forEach((unsub) => unsub());
+      cancelled = true;
     };
-  }, [currentUser]);
+  }, [uid, currentMonth]);
+
+  const patientSummary = useMemo(
+    () => summarizePatients(patientsList, currentMonth),
+    [patientsList, currentMonth],
+  );
+  const stats = {
+    totalPatients: patientSummary.total,
+    activePatients: patientSummary.active,
+    newPatientsThisMonth: patientSummary.newThisMonth,
+    totalDiets: dietCounts?.total ?? 0,
+    newDietsThisMonth: dietCounts?.perMonth[0] ?? 0,
+  };
+  const loading = patientsLoading || dietCounts === null;
 
   const successRate =
     stats.totalPatients > 0
@@ -160,37 +165,18 @@ const Reports: React.FC = () => {
       : "0.0";
 
   const getLast6MonthsData = () => {
-    const monthsData: { key: string; label: string; count: number }[] = [];
-    const now = new Date();
-
-    // Initialize last 6 months
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthName = d.toLocaleDateString(
+    const counts = countCreatedPerMonth(patientsList, months);
+    return months.map((m, i) => {
+      const monthName = new Date(m.year, m.monthIndex, 1).toLocaleDateString(
         i18n.language === "pt" ? "pt-BR" : "en-US",
         { month: "short" },
       );
-      monthsData.push({
-        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      return {
+        key: `${m.year}-${String(m.monthIndex + 1).padStart(2, "0")}`,
         label: monthName.charAt(0).toUpperCase() + monthName.slice(1),
-        count: 0,
-      });
-    }
-
-    // Aggregate real patients registered by month
-    patientsList.forEach((patient) => {
-      if (!patient.createdAt) return;
-      const pDate = new Date(patient.createdAt);
-      if (isNaN(pDate.getTime())) return;
-      const yearMonth = `${pDate.getFullYear()}-${String(pDate.getMonth() + 1).padStart(2, "0")}`;
-
-      const match = monthsData.find((m) => m.key === yearMonth);
-      if (match) {
-        match.count += 1;
-      }
+        count: counts[i],
+      };
     });
-
-    return monthsData;
   };
 
   const renderMonthlyStats = () => {
@@ -219,92 +205,101 @@ const Reports: React.FC = () => {
         {patientsList.length === 0 && !loading ? (
           <div className="h-48 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800">
             <BarChart3Icon className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2" />
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-500">
               {t("reports.no_patients_data")}
             </p>
           </div>
         ) : (
-          <div className="relative w-full overflow-x-auto">
-            <svg
-              viewBox={`0 0 ${width} ${height}`}
-              className="w-full min-w-[400px] h-full overflow-visible"
-            >
-              {/* Gridlines & Y axis labels */}
-              {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
-                const yVal = chartHeight - ratio * (chartHeight - 10);
-                const labelVal = Math.round(ratio * maxCount);
-                return (
-                  <g key={index}>
-                    <line
-                      x1={paddingLeft}
-                      y1={yVal}
-                      x2={width}
-                      y2={yVal}
-                      stroke="currentColor"
-                      className="text-slate-100 dark:text-slate-800/60"
-                      strokeWidth="1"
-                      strokeDasharray="4"
-                    />
-                    <text
-                      x={paddingLeft - 8}
-                      y={yVal + 3}
-                      textAnchor="end"
-                      className="text-[10px] font-bold fill-slate-400"
-                    >
-                      {labelVal}
-                    </text>
-                  </g>
-                );
-              })}
+          <>
+            {/* The SVG scales with its viewBox (no horizontal scroll region);
+              the data table below is the text alternative. */}
+            <div aria-hidden="true" className="relative w-full">
+              <svg
+                viewBox={`0 0 ${width} ${height}`}
+                className="w-full h-full overflow-visible"
+              >
+                {/* Gridlines & Y axis labels */}
+                {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
+                  const yVal = chartHeight - ratio * (chartHeight - 10);
+                  const labelVal = Math.round(ratio * maxCount);
+                  return (
+                    <g key={index}>
+                      <line
+                        x1={paddingLeft}
+                        y1={yVal}
+                        x2={width}
+                        y2={yVal}
+                        stroke="currentColor"
+                        className="text-slate-100 dark:text-slate-800/60"
+                        strokeWidth="1"
+                        strokeDasharray="4"
+                      />
+                      <text
+                        x={paddingLeft - 8}
+                        y={yVal + 3}
+                        textAnchor="end"
+                        className="text-[10px] font-bold fill-slate-400"
+                      >
+                        {labelVal}
+                      </text>
+                    </g>
+                  );
+                })}
 
-              {/* Bars */}
-              {chartData.map((d, i) => {
-                const barHeight =
-                  d.count > 0 ? (d.count / maxCount) * (chartHeight - 10) : 0;
-                const x = paddingLeft + gap + i * (barWidth + gap);
-                const y = chartHeight - barHeight;
+                {/* Bars */}
+                {chartData.map((d, i) => {
+                  const barHeight =
+                    d.count > 0 ? (d.count / maxCount) * (chartHeight - 10) : 0;
+                  const x = paddingLeft + gap + i * (barWidth + gap);
+                  const y = chartHeight - barHeight;
 
-                return (
-                  <g key={d.key} className="group">
-                    <rect
-                      x={x}
-                      y={y}
-                      width={barWidth}
-                      height={Math.max(barHeight, 0)}
-                      rx="4"
-                      fill="url(#barGradient)"
-                      className="transition-all duration-300 hover:brightness-105 cursor-pointer"
-                    />
+                  return (
+                    <g key={d.key} className="group">
+                      <rect
+                        x={x}
+                        y={y}
+                        width={barWidth}
+                        height={Math.max(barHeight, 0)}
+                        rx="4"
+                        fill="url(#barGradient)"
+                        className="transition-all duration-300 hover:brightness-105 cursor-pointer"
+                      />
 
-                    <text
-                      x={x + barWidth / 2}
-                      y={y - 6}
-                      textAnchor="middle"
-                      className="text-[10px] font-black fill-sage-600 dark:fill-sage-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    >
-                      {d.count}
-                    </text>
+                      <text
+                        x={x + barWidth / 2}
+                        y={y - 6}
+                        textAnchor="middle"
+                        className="text-[10px] font-black fill-sage-600 dark:fill-sage-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      >
+                        {d.count}
+                      </text>
 
-                    <text
-                      x={x + barWidth / 2}
-                      y={chartHeight + 16}
-                      textAnchor="middle"
-                      className="text-[10px] font-bold fill-slate-400 dark:fill-slate-500 uppercase"
-                    >
-                      {d.label}
-                    </text>
-                  </g>
-                );
-              })}
+                      <text
+                        x={x + barWidth / 2}
+                        y={chartHeight + 16}
+                        textAnchor="middle"
+                        className="text-[10px] font-bold fill-slate-400 dark:fill-slate-500 uppercase"
+                      >
+                        {d.label}
+                      </text>
+                    </g>
+                  );
+                })}
 
-              <defs>
-                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0d9488" />
-                  <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0.8" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
+                <defs>
+                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0d9488" />
+                    <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0.8" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <ChartDataTable
+              caption={t("reports.monthly_stats")}
+              columns={[t("a11y.col_month"), t("a11y.col_patients")]}
+              rows={chartData.map((d) => [d.label, d.count])}
+            />
+          </>
         )}
       </Card>
     );

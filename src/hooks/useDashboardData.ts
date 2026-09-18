@@ -2,18 +2,18 @@ import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import {
-  getPatientsCount,
-  getActivePatientsCount,
-  getNewPatientsThisMonthCount,
-  getDietsCount,
-  getDietsThisMonthCount,
-  getAllDiets,
-  getPatients,
+  getDietCountSummary,
+  subscribeRecentDiets,
+  type DietCountSummary,
 } from "../services/firebaseService";
-import type { AnyDietPlan, Patient } from "../types";
+import { usePatientDirectory } from "./usePatientDirectory";
+import type { AnyDietPlan } from "../types";
+import { getRecentMonthRanges } from "../utils/dateTime";
+import { summarizePatients } from "../utils/practiceStats";
 import {
   buildMonthlyDietBuckets,
   buildRecentActivity,
+  RECENT_ACTIVITY_LIMIT,
   type MonthBucket,
   type ActivityItem,
 } from "../components/dashboard/dashboardUtils";
@@ -28,8 +28,6 @@ export interface DashboardStats {
 
 export interface UseDashboardDataReturn {
   stats: DashboardStats;
-  diets: AnyDietPlan[];
-  patients: Patient[];
   loading: boolean;
   successRate: string;
   dietBuckets: MonthBucket[];
@@ -38,53 +36,69 @@ export interface UseDashboardDataReturn {
   isEn: boolean;
 }
 
+const CHART_MONTHS = 6;
+
+/**
+ * Dashboard data with reads proportional to what is shown:
+ * - patient counters and activity come from the shared roster (no extra read);
+ * - diet counters and the 6-month chart use aggregation queries, fetched when
+ *   the screen opens (they do not update in real time while it stays open);
+ * - the activity feed reads only the latest RECENT_ACTIVITY_LIMIT diets.
+ */
 export function useDashboardData(): UseDashboardDataReturn {
   const { currentUser } = useAuth();
+  const uid = currentUser?.uid;
   const { t, i18n } = useTranslation();
   const isEn = i18n.language.startsWith("en");
 
-  const [stats, setStats] = useState<DashboardStats>({
-    totalPatients: 0,
-    activePatients: 0,
-    newPatientsThisMonth: 0,
-    totalDiets: 0,
-    newDietsThisMonth: 0,
-  });
-  const [diets, setDiets] = useState<AnyDietPlan[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { patients, loading: patientsLoading } = usePatientDirectory();
+  const [dietCounts, setDietCounts] = useState<DietCountSummary | null>(null);
+  const [recentDiets, setRecentDiets] = useState<AnyDietPlan[]>([]);
+  // Month boundaries are fixed when the screen opens.
+  const months = useMemo(() => getRecentMonthRanges(CHART_MONTHS), []);
 
   useEffect(() => {
-    if (!currentUser) return;
-    const unsubscribers = [
-      getPatientsCount(currentUser.uid, (count) =>
-        setStats((s) => ({ ...s, totalPatients: count })),
-      ),
-      getActivePatientsCount(currentUser.uid, (count) =>
-        setStats((s) => ({ ...s, activePatients: count })),
-      ),
-      getNewPatientsThisMonthCount(currentUser.uid, (count) =>
-        setStats((s) => ({ ...s, newPatientsThisMonth: count })),
-      ),
-      getDietsCount(currentUser.uid, (count) =>
-        setStats((s) => ({ ...s, totalDiets: count })),
-      ),
-      getDietsThisMonthCount(currentUser.uid, (count) =>
-        setStats((s) => ({ ...s, newDietsThisMonth: count })),
-      ),
-      getAllDiets(currentUser.uid, (fetched) => setDiets(fetched)),
-      getPatients(currentUser.uid, (fetched) => setPatients(fetched)),
-    ];
-    const timer = setTimeout(() => setLoading(false), 600);
+    if (!uid) return;
+    let cancelled = false;
+    setDietCounts(null);
+    getDietCountSummary(uid, months)
+      .then((summary) => {
+        if (!cancelled) setDietCounts(summary);
+      })
+      .catch((error) => {
+        console.error("[Dashboard] Falha ao contar planos alimentares:", {
+          code: (error as { code?: string })?.code ?? "unknown",
+        });
+        if (!cancelled)
+          setDietCounts({ total: 0, perMonth: months.map(() => 0) });
+      });
+    const unsubscribe = subscribeRecentDiets(
+      uid,
+      RECENT_ACTIVITY_LIMIT,
+      setRecentDiets,
+    );
     return () => {
-      clearTimeout(timer);
-      unsubscribers.forEach((unsub) => unsub && unsub());
+      cancelled = true;
+      unsubscribe();
     };
-  }, [currentUser]);
+  }, [uid, months]);
+
+  const patientSummary = useMemo(
+    () => summarizePatients(patients, months[months.length - 1]),
+    [patients, months],
+  );
+
+  const stats: DashboardStats = {
+    totalPatients: patientSummary.total,
+    activePatients: patientSummary.active,
+    newPatientsThisMonth: patientSummary.newThisMonth,
+    totalDiets: dietCounts?.total ?? 0,
+    newDietsThisMonth: dietCounts?.perMonth[months.length - 1] ?? 0,
+  };
 
   const dietBuckets = useMemo(
-    () => buildMonthlyDietBuckets(diets, isEn),
-    [diets, isEn],
+    () => buildMonthlyDietBuckets(months, dietCounts?.perMonth ?? [], isEn),
+    [months, dietCounts, isEn],
   );
 
   const hasDietData = useMemo(
@@ -93,8 +107,8 @@ export function useDashboardData(): UseDashboardDataReturn {
   );
 
   const recentActivity = useMemo(
-    () => buildRecentActivity(patients, diets, t, isEn),
-    [patients, diets, t, isEn],
+    () => buildRecentActivity(patients, recentDiets, t, isEn),
+    [patients, recentDiets, t, isEn],
   );
 
   const successRate =
@@ -104,9 +118,7 @@ export function useDashboardData(): UseDashboardDataReturn {
 
   return {
     stats,
-    diets,
-    patients,
-    loading,
+    loading: patientsLoading || dietCounts === null,
     successRate,
     dietBuckets,
     hasDietData,

@@ -243,21 +243,21 @@ Limitações ou decisões pendentes: Nenhuma limitação técnica na etapa 03; p
 Etapa concluída: 04 — Tratar autenticação como fluxo com estados explícitos
 Data de conclusão: 2026-09-17
 Arquivos alterados:
-- src/types/auth.ts
-- src/types/index.ts
-- src/services/authService.ts
-- src/services/firebaseService.ts
-- src/pages/Register.tsx
-- src/contexts/AuthContext.tsx
-- src/App.tsx
-- src/contexts/__tests__/AuthContext.test.tsx
+  - src/types/auth.ts
+  - src/types/index.ts
+  - src/services/authService.ts
+  - src/services/firebaseService.ts
+  - src/pages/Register.tsx
+  - src/contexts/AuthContext.tsx
+  - src/App.tsx
+  - src/contexts/__tests__/AuthContext.test.tsx
 Comandos executados para validação:
-- npm run lint (0 erros, 4 avisos pré-existentes de react-refresh/deps)
-- npm run type-check (0 erros)
-- npm test (77 de 77 testes unitários passando em vitest, incluindo 9 testes de máquina de estados de autenticação)
-- npm run test:rules (10 de 10 testes de regras e integração passando no emulador Firestore)
-- npm run format:check (formatação verificada via Prettier com sucesso)
-- npm run build (build de produção Vite concluído com sucesso em 1.49s)
+  - npm run lint (0 erros, 4 avisos pré-existentes de react-refresh/deps)
+  - npm run type-check (0 erros)
+  - npm test (77 de 77 testes unitários passando em vitest, incluindo 9 testes de máquina de estados de autenticação)
+  - npm run test:rules (10 de 10 testes de regras e integração passando no emulador Firestore)
+  - npm run format:check (formatação verificada via Prettier com sucesso)
+  - npm run build (build de produção Vite concluído com sucesso em 1.49s)
 Validação manual e ambiente: Emulador Firestore e suite automatizada Vitest simulando timeouts de rede, logout prematuro durante consulta assíncrona e rejeição com PERMISSION_DENIED.
 Limitações ou decisões pendentes: Nenhuma limitação técnica; papel e perfil agora modelados como máquina de estados finitos segura (loading, unauthenticated, authenticated, incomplete_profile, error) sem promoção acidental. Pronto para Etapa 05 (isolar rascunhos e configurações por conta).
 ```
@@ -286,29 +286,29 @@ Limitações ou decisões pendentes: Nenhuma limitação técnica; papel e perfi
 Etapa concluída: 05 — Isolar rascunhos e configurações por conta
 Data de conclusão: 2026-09-17
 Arquivos alterados:
-- src/utils/localStorage.ts
-- src/hooks/usePersistentState.ts
-- src/contexts/AuthContext.tsx
-- src/components/modals/NewPatientModal.tsx
-- src/pages/DietGenerator.tsx
-- src/components/diet-generator/DietPlanDisplay.tsx
-- src/pages/Settings.tsx
-- src/pages/FoodDatabase.tsx
-- src/services/billingService.ts
-- src/components/settings/BillingSection.tsx
-- src/pages/EmailAdmin.tsx
-- src/utils/pdfExporter.ts
-- src/components/modals/ExportDietModal.tsx
-- src/utils/__tests__/localStorage.test.ts
-- src/hooks/__tests__/usePersistentState.test.ts
-- src/services/__tests__/billingService.test.ts
+  - src/utils/localStorage.ts
+  - src/hooks/usePersistentState.ts
+  - src/contexts/AuthContext.tsx
+  - src/components/modals/NewPatientModal.tsx
+  - src/pages/DietGenerator.tsx
+  - src/components/diet-generator/DietPlanDisplay.tsx
+  - src/pages/Settings.tsx
+  - src/pages/FoodDatabase.tsx
+  - src/services/billingService.ts
+  - src/components/settings/BillingSection.tsx
+  - src/pages/EmailAdmin.tsx
+  - src/utils/pdfExporter.ts
+  - src/components/modals/ExportDietModal.tsx
+  - src/utils/__tests__/localStorage.test.ts
+  - src/hooks/__tests__/usePersistentState.test.ts
+  - src/services/__tests__/billingService.test.ts
 Comandos executados para validação:
-- npm run lint (0 erros, 4 avisos pré-existentes de react-refresh/deps)
-- npm run type-check (0 erros)
-- npm test (99 de 99 testes unitários passando em vitest, incluindo 22 novos testes cobrindo isolamento, atualizações funcionais atômicas, limpeza de rascunhos e billing)
-- npm run test:rules (10 de 10 testes de regras Firestore passando no emulador)
-- npm run format:check (formatação verificada via Prettier com sucesso)
-- npm run build (build de produção Vite concluído com sucesso em 1.51s)
+  - npm run lint (0 erros, 4 avisos pré-existentes de react-refresh/deps)
+  - npm run type-check (0 erros)
+  - npm test (99 de 99 testes unitários passando em vitest, incluindo 22 novos testes cobrindo isolamento, atualizações funcionais atômicas, limpeza de rascunhos e billing)
+  - npm run test:rules (10 de 10 testes de regras Firestore passando no emulador)
+  - npm run format:check (formatação verificada via Prettier com sucesso)
+  - npm run build (build de produção Vite concluído com sucesso em 1.51s)
 Validação manual e ambiente: Emulador Firestore e Vitest simulando alternância de contas User A -> logout -> User B, QuotaExceededError, corrupção de JSON e eventos de sincronização cross-tab via StorageEvent.
 Limitações ou decisões pendentes: Nenhuma limitação técnica; isolamento de rascunhos de pacientes (LGPD), configurações de clínica, templates e faturamento implementado e validado. Pronto para Etapa 06 (fortalecer autorização e validação de dados).
 ```
@@ -339,22 +339,22 @@ Limitações ou decisões pendentes: Nenhuma limitação técnica; isolamento de
 Etapa concluída: 06 — Fortalecer autorização e validação de dados
 Data de conclusão: 2026-09-17
 Arquivos alterados:
-- firestore.rules
-- storage.rules
-- firebase.json
-- src/utils/validation.ts
-- src/utils/__tests__/validation.test.ts
-- src/services/authService.ts
-- src/services/patientService.ts
-- src/services/evaluationService.ts
-- tests-rules/firestore.rules.test.ts
+  - firestore.rules
+  - storage.rules
+  - firebase.json
+  - src/utils/validation.ts
+  - src/utils/__tests__/validation.test.ts
+  - src/services/authService.ts
+  - src/services/patientService.ts
+  - src/services/evaluationService.ts
+  - tests-rules/firestore.rules.test.ts
 Comandos executados para validação:
-- npm run lint (0 erros, 4 avisos pré-existentes de react-refresh/deps)
-- npm run type-check (0 erros)
-- npm test (107 de 107 testes unitários passando em vitest, incluindo 8 novos testes de validação de runtime em fronteiras)
-- npm run test:rules (20 de 20 testes de regras passando no emulador Firestore: 16 cobrindo a matriz positiva/negativa de 5 papéis, autoelevação, integridade de vínculos, imutabilidade de IDs e proteção de históricos clínicos + 4 testes de persistência)
-- npm run format:check (100% dos arquivos formatados conforme Prettier)
-- npm run build (build de produção Vite concluído com sucesso em 1.48s)
+  - npm run lint (0 erros, 4 avisos pré-existentes de react-refresh/deps)
+  - npm run type-check (0 erros)
+  - npm test (107 de 107 testes unitários passando em vitest, incluindo 8 novos testes de validação de runtime em fronteiras)
+  - npm run test:rules (20 de 20 testes de regras passando no emulador Firestore: 16 cobrindo a matriz positiva/negativa de 5 papéis, autoelevação, integridade de vínculos, imutabilidade de IDs e proteção de históricos clínicos + 4 testes de persistência)
+  - npm run format:check (100% dos arquivos formatados conforme Prettier)
+  - npm run build (build de produção Vite concluído com sucesso em 1.48s)
 Validação manual e ambiente: Emulador Firestore e Vitest simulando a matriz completa de autorização (nutri_owner, nutri_other, patient_linked, patient_other, anonymous), tentativas de adulteração de histórico/payloads clínicos por pacientes, autoelevação em users/{userId}, verificação de vínculos existentes em patientProfiles, e regras de storage para imagens <= 5MB.
 Limitações ou decisões pendentes: Nenhuma limitação técnica; regras de Firestore e Storage protegidas no servidor, camada de validação ativa em runtime eliminando unsafe casts. Pronto para Etapa 07 (substituir envio de senha por convite seguro).
 ```
@@ -435,22 +435,22 @@ Limitações ou decisões pendentes: Decisão documentada conforme Passo 7.8: o 
 Etapa concluída: 08 — Tornar restrições e dados alimentares explícitos
 Data de conclusão: 2026-09-17
 Arquivos alterados:
-- src/types/food.ts
-- src/services/foodService.ts
-- src/services/dietAlgorithmService.ts
-- src/components/patient-form/Step4Nutritional.tsx
-- src/data/foods.ts
-- src/locales/pt/common.json
-- src/locales/en/common.json
-- src/services/__tests__/foodService.test.ts
-- src/services/__tests__/dietAlgorithmService.test.ts
+  - src/types/food.ts
+  - src/services/foodService.ts
+  - src/services/dietAlgorithmService.ts
+  - src/components/patient-form/Step4Nutritional.tsx
+  - src/data/foods.ts
+  - src/locales/pt/common.json
+  - src/locales/en/common.json
+  - src/services/__tests__/foodService.test.ts
+  - src/services/__tests__/dietAlgorithmService.test.ts
 Comandos executados para validação:
-- npm test (132 de 132 testes unitários passando em Vitest, incluindo novos testes para NOVA explícito vs inferido, glúten, lactose, laticínios/APLV, vegetariano, vegano, política de metadados ausentes e micronutrientes reais)
-- npm run test:rules (24 de 24 testes no emulador Firestore passando com sucesso)
-- npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
-- npm run type-check (0 erros TypeScript com strict mode)
-- npm run format:check (100% dos arquivos validados pelo Prettier)
-- npm run build (Build Vite concluído com sucesso em 1.53s)
+  - npm test (132 de 132 testes unitários passando em Vitest, incluindo novos testes para NOVA explícito vs inferido, glúten, lactose, laticínios/APLV, vegetariano, vegano, política de metadados ausentes e micronutrientes reais)
+  - npm run test:rules (24 de 24 testes no emulador Firestore passando com sucesso)
+  - npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
+  - npm run type-check (0 erros TypeScript com strict mode)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (Build Vite concluído com sucesso em 1.53s)
 Validação manual e ambiente: Verificação da geração de dietas com exclusão estrita de glúten, desacoplamento de lactose e laticínios (APLV), rastreabilidade de procedência (TACO 4ª edição e versão 2026.1), origem NOVA (explícita vs inferida) e eliminação de estimativas arbitrárias de micronutrientes.
 Limitações ou decisões pendentes: Alimentos não testados laboratorialmente para micronutrientes específicos mantêm os valores como undefined (sem falsos zeros medidos). Pronto para Etapa 09 (Validar o resultado final do gerador).
 ```
@@ -484,23 +484,23 @@ Limitações ou decisões pendentes: Alimentos não testados laboratorialmente p
 Etapa concluída: 09 — Validar o resultado final do gerador
 Data de conclusão: 2026-09-17
 Arquivos alterados:
-- src/types/diet.ts
-- src/services/dietAlgorithmService.ts
-- src/services/dietService.ts
-- src/pages/DietGenerator.tsx
-- src/components/diet-generator/DietPlanDisplay.tsx
-- src/components/modals/ClinicalReviewModal.tsx
-- src/utils/pdfExporter.ts
-- src/locales/pt/common.json
-- src/locales/en/common.json
-- src/services/__tests__/dietAlgorithmService.test.ts
+  - src/types/diet.ts
+  - src/services/dietAlgorithmService.ts
+  - src/services/dietService.ts
+  - src/pages/DietGenerator.tsx
+  - src/components/diet-generator/DietPlanDisplay.tsx
+  - src/components/modals/ClinicalReviewModal.tsx
+  - src/utils/pdfExporter.ts
+  - src/locales/pt/common.json
+  - src/locales/en/common.json
+  - src/services/__tests__/dietAlgorithmService.test.ts
 Comandos executados para validação:
-- npm test (140 de 140 testes unitários passando em Vitest, incluindo novos testes para PRNG Mulberry32 determinístico, tolerâncias de porções 5g-450g, erro de catálogo exaurido InfeasiblePlanError, campos estruturados foodId/portionGrams/unit, cálculo de totais efetivos e teto de sódio no pior cenário de alternativas)
-- npm run test:rules (24 de 24 testes no emulador Firestore passando com persistência de planos gerados e integridade de DTOs sem valores undefined)
-- npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
-- npm run type-check (0 erros TypeScript com strict mode)
-- npm run format:check (100% dos arquivos validados pelo Prettier)
-- npm run build (Build Vite de produção concluído com sucesso em 1.52s)
+  - npm test (140 de 140 testes unitários passando em Vitest, incluindo novos testes para PRNG Mulberry32 determinístico, tolerâncias de porções 5g-450g, erro de catálogo exaurido InfeasiblePlanError, campos estruturados foodId/portionGrams/unit, cálculo de totais efetivos e teto de sódio no pior cenário de alternativas)
+  - npm run test:rules (24 de 24 testes no emulador Firestore passando com persistência de planos gerados e integridade de DTOs sem valores undefined)
+  - npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
+  - npm run type-check (0 erros TypeScript com strict mode)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (Build Vite de produção concluído com sucesso em 1.52s)
 Validação manual e ambiente: Verificação da exibição separada de metas prescritas vs totais efetivos calculados na UI e no PDF exportado, validação combinatória conservadora de tetos de sódio entre alternativas, e bloqueio de salvamento de planos inviáveis.
 Limitações ou decisões pendentes: Pronto para Etapa 10 (Corrigir concorrência, históricos e calendário).
 ```
@@ -529,26 +529,26 @@ Limitações ou decisões pendentes: Pronto para Etapa 10 (Corrigir concorrênci
 Etapa concluída: 10 — Corrigir concorrência, históricos e calendário
 Data de conclusão: 2026-09-17
 Arquivos alterados:
-- src/types/patient.ts
-- src/utils/dateTime.ts
-- src/services/evaluationService.ts
-- src/services/appointmentService.ts
-- src/services/patientMigrationService.ts
-- src/services/firebaseService.ts
-- src/components/patient-profile/WeightEvolutionChart.tsx
-- src/pages/PatientPortal.tsx
-- src/utils/validation.ts
-- src/utils/__tests__/dateTime.test.ts
-- src/services/__tests__/patientMigrationService.test.ts
-- src/services/__tests__/appointmentService.test.ts
-- src/services/__tests__/evaluationService.test.ts
+  - src/types/patient.ts
+  - src/utils/dateTime.ts
+  - src/services/evaluationService.ts
+  - src/services/appointmentService.ts
+  - src/services/patientMigrationService.ts
+  - src/services/firebaseService.ts
+  - src/components/patient-profile/WeightEvolutionChart.tsx
+  - src/pages/PatientPortal.tsx
+  - src/utils/validation.ts
+  - src/utils/__tests__/dateTime.test.ts
+  - src/services/__tests__/patientMigrationService.test.ts
+  - src/services/__tests__/appointmentService.test.ts
+  - src/services/__tests__/evaluationService.test.ts
 Comandos executados para validação:
-- npm test (169 de 169 testes unitários passando em 18 suítes Vitest, incluindo novos testes para conversão de fuso horário America/Sao_Paulo sem rollover prematuro de UTC, idempotência de migração de pacientes, detecção de sobreposição de consultas e transações atômicas de peso/adesão com deduplicação clientEventId)
-- npm run test:rules (24 de 24 testes no emulador Firestore passando com validação estrita de segurança e compatibilidade)
-- npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
-- npm run type-check (0 erros TypeScript com strict mode)
-- npm run format:check (100% dos arquivos validados pelo Prettier)
-- npm run build (Build Vite de produção concluído com sucesso em 1.62s)
+  - npm test (169 de 169 testes unitários passando em 18 suítes Vitest, incluindo novos testes para conversão de fuso horário America/Sao_Paulo sem rollover prematuro de UTC, idempotência de migração de pacientes, detecção de sobreposição de consultas e transações atômicas de peso/adesão com deduplicação clientEventId)
+  - npm run test:rules (24 de 24 testes no emulador Firestore passando com validação estrita de segurança e compatibilidade)
+  - npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
+  - npm run type-check (0 erros TypeScript com strict mode)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (Build Vite de produção concluído com sucesso em 1.62s)
 Validação manual e ambiente: Validação da proteção contra condições de corrida via runTransaction do Firestore, deduplicação em retries via clientEventId, timezone clínica padronizada America/Sao_Paulo protegendo check-in noturno contra atribuição ao dia civil seguinte, sanitização de histórico de pesos (20-350 kg) e paginação temporal e estados vazios no gráfico de evolução de peso.
 Limitações ou decisões pendentes: Pronto para Etapa 11 (Definir arquivamento, exclusão e revogação).
 ```
@@ -575,27 +575,27 @@ Limitações ou decisões pendentes: Pronto para Etapa 11 (Definir arquivamento,
 ```yaml
 Data de conclusão: 2026-09-17
 Arquivos modificados ou criados:
-- firestore.rules
-- src/types/patient.ts
-- src/services/patientService.ts
-- src/services/appointmentService.ts
-- src/services/dietService.ts
-- src/services/firebaseService.ts
-- src/utils/validation.ts
-- src/components/modals/PatientAccessModal.tsx
-- src/pages/Patients.tsx
-- src/locales/pt/common.json
-- src/locales/en/common.json
-- tests-rules/firestore.rules.test.ts
-- src/services/__tests__/patientLifecycle.test.ts
-- src/services/__tests__/evaluationService.test.ts
+  - firestore.rules
+  - src/types/patient.ts
+  - src/services/patientService.ts
+  - src/services/appointmentService.ts
+  - src/services/dietService.ts
+  - src/services/firebaseService.ts
+  - src/utils/validation.ts
+  - src/components/modals/PatientAccessModal.tsx
+  - src/pages/Patients.tsx
+  - src/locales/pt/common.json
+  - src/locales/en/common.json
+  - tests-rules/firestore.rules.test.ts
+  - src/services/__tests__/patientLifecycle.test.ts
+  - src/services/__tests__/evaluationService.test.ts
 Comandos executados para validação:
-- npm test (178 de 178 testes unitários passando em 19 suítes Vitest, cobrindo ciclo de vida de arquivamento, desarquivamento, revogação do portal, exclusão em cascata com chunking de lotes >400 docs, idempotência e bloqueio por deletionPending)
-- npm run test:rules (29 de 29 testes no emulador Firestore passando com validação em nível de regras para revogação imediata de leitura SDK, bloqueio de escritas concorrentes por deletionPending e desvinculação de portalUid)
-- npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
-- npm run type-check (0 erros TypeScript com strict mode)
-- npm run format:check (100% dos arquivos validados pelo Prettier)
-- npm run build (Build Vite de produção concluído com sucesso em 1.64s)
+  - npm test (178 de 178 testes unitários passando em 19 suítes Vitest, cobrindo ciclo de vida de arquivamento, desarquivamento, revogação do portal, exclusão em cascata com chunking de lotes >400 docs, idempotência e bloqueio por deletionPending)
+  - npm run test:rules (29 de 29 testes no emulador Firestore passando com validação em nível de regras para revogação imediata de leitura SDK, bloqueio de escritas concorrentes por deletionPending e desvinculação de portalUid)
+  - npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
+  - npm run type-check (0 erros TypeScript com strict mode)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (Build Vite de produção concluído com sucesso em 1.64s)
 Validação manual e ambiente: Diferenciação clara entre Arquivar (preserva dados clínicos e retira da listagem ativa), Revogar Portal (corta acesso do paciente ao app instantaneamente via regras de segurança sem apagar prontuário do nutricionista) e Excluir em Cascata (limpeza de dietas, agendamentos, convites e perfis com chunks de 400 docs prevenindo estouro do limite de 500 do Firestore, com preservação da identidade de autenticação Firebase Auth e trava de concorrência deletionPending).
 Limitações ou decisões pendentes: Pronto para Etapa 12 (Completar testes que sustentam as promessas).
 ```
@@ -729,17 +729,94 @@ Limitações ou decisões pendentes: Pronto para Etapa 14 (Medir e reduzir custo
 
 **Passos:**
 
-1. [ ] Medir bundle de produção, carregamento de rotas e volume de documentos consultados em cenários sintéticos definidos.
-2. [ ] Remover assinaturas redundantes e centralizar dados compartilhados quando fizer sentido.
-3. [ ] Paginar listagens e filtrar consultas por período/necessidade; versionar índices necessários.
-4. [ ] Escolher agregações ou resumos para contagens, explicitando eventual perda de atualização em tempo real.
-5. [ ] Preservar lazy loading do PDF e conferir dependências que entram no bundle inicial.
-6. [ ] Revisar `cssMinify: false` e dependências sem uso com medição e compatibilidade, evitando mudanças apenas cosméticas.
-7. [ ] Registrar baseline, cenário e resultado após otimização, distinguindo tamanho bruto e transferido.
+1. [x] Medir bundle de produção, carregamento de rotas e volume de documentos consultados em cenários sintéticos definidos.
+2. [x] Remover assinaturas redundantes e centralizar dados compartilhados quando fizer sentido.
+3. [x] Paginar listagens e filtrar consultas por período/necessidade; versionar índices necessários.
+4. [x] Escolher agregações ou resumos para contagens, explicitando eventual perda de atualização em tempo real.
+5. [x] Preservar lazy loading do PDF e conferir dependências que entram no bundle inicial.
+6. [x] Revisar `cssMinify: false` e dependências sem uso com medição e compatibilidade, evitando mudanças apenas cosméticas.
+7. [x] Registrar baseline, cenário e resultado após otimização, distinguindo tamanho bruto e transferido.
 
 **Resultado:** carregamento e consultas proporcionais ao que a tela precisa mostrar.
 
 **Aceite:** listas não carregam toda a base sem justificativa; métricas são reproduzíveis; nenhuma promessa de escalabilidade é feita sem evidência.
+
+```yaml
+etapa: 14 — Medir e reduzir custo das consultas e do carregamento
+status: concluido
+data: 2026-09-17
+arquivos_modificados:
+  - scripts/measure-bundle.mjs (novo)
+  - tests-perf/firestoreMeter.ts (novo)
+  - tests-perf/syntheticScenario.ts (novo)
+  - tests-perf/queryCost.test.ts (novo)
+  - vitest.perf.config.ts (novo)
+  - firestore.indexes.json (novo)
+  - docs/performance.md (novo)
+  - src/contexts/PatientDirectoryContext.tsx (novo)
+  - src/hooks/usePatientDirectory.ts (novo)
+  - src/hooks/useLatestDiets.ts (novo)
+  - src/utils/practiceStats.ts (novo)
+  - src/services/patientService.ts
+  - src/services/dietService.ts
+  - src/services/appointmentService.ts
+  - src/services/firebaseService.ts
+  - src/services/firebaseCore.ts
+  - src/services/authService.ts
+  - src/utils/dateTime.ts
+  - src/hooks/useDashboardData.ts
+  - src/hooks/usePatientPortalData.ts
+  - src/components/dashboard/dashboardUtils.ts
+  - src/components/Sidebar.tsx
+  - src/components/settings/BillingSection.tsx
+  - src/components/modals/PatientDietHistoryModal.tsx
+  - src/pages/Patients.tsx
+  - src/pages/Reports.tsx
+  - src/pages/Calendar.tsx
+  - src/pages/DietGenerator.tsx
+  - src/pages/EmailAdmin.tsx
+  - src/App.tsx
+  - src/locales/pt/common.json
+  - src/locales/en/common.json
+  - src/utils/__tests__/dateTime.test.ts
+  - src/utils/__tests__/practiceStats.test.ts (novo)
+  - src/contexts/__tests__/PatientDirectoryContext.test.tsx (novo)
+  - src/hooks/__tests__/useLatestDiets.test.ts (novo)
+  - src/pages/__tests__/Patients.test.tsx (novo)
+  - src/pages/__tests__/Dashboard.test.tsx
+  - src/components/dashboard/__tests__/dashboardUtils.test.ts
+  - src/components/settings/__tests__/BillingSection.test.tsx
+  - src/hooks/__tests__/useDietTemplates.test.ts
+  - scripts/seed-emulator.mjs
+  - vite.config.ts
+  - firebase.json
+  - package.json
+  - .github/workflows/ci.yml
+  - .claude/launch.json
+  - o-que-precisa-ser-feito.md
+comportamento_entregue:
+  - Medição reproduzível: `npm run measure:bundle` mostra o bundle bruto, gzip e brotli, a carga inicial, o custo por rota e a composição por pacote. `npm run test:perf:queries` compara, no emulador e com as regras ativas, o plano de consultas antigo (réplica) com o atual em um cenário sintético de 300 pacientes, 1.500 dietas e 903 consultas.
+  - Diretório de pacientes compartilhado: nove componentes assinavam a coleção inteira de pacientes a cada visita. Agora há uma única assinatura em tempo real por sessão, aberta sob demanda e encerrada no logout ou na troca de conta, sem expor dados da conta anterior.
+  - Dashboard: 7 listeners sobre as coleções inteiras deram lugar ao diretório compartilhado, 7 agregações (total de dietas e 6 meses) e `limit(6)` para o feed de atividade. Relatórios, Configurações e plano também passaram a usar agregações.
+  - Pacientes: a lista mostra 20 linhas por página com "Mostrar mais", e o status da dieta é lido com `limit(1)` só para as linhas visíveis. Antes, a página baixava todas as dietas.
+  - Agenda: lê o mês visível e as próximas 5 consultas agendadas; os pacientes só são pedidos quando o modal abre. Portal: lê só a próxima consulta, comparando pelo horário local da clínica (corrige a comparação entre horário local e string UTC).
+  - Índices compostos versionados em firestore.indexes.json e referenciados no firebase.json. O benchmark falha se uma consulta composta executada não tiver índice declarado.
+  - Bundle: Firebase Storage passou a ser carregado sob demanda (upload de foto); a minificação de CSS pelo esbuild foi reativada depois de verificar a equivalência semântica; o PDF continua lazy.
+resultados_medidos:
+  - Consultas, sessão típica (dashboard → pacientes → agenda → relatórios → configurações): 7.203 → 393 documentos, ~60,3 MB → ~0,8 MB de payload aproximado e ~7.203 → ~405 leituras estimadas. Dashboard: 1.800 → 6 documentos + 7 agregações. Pacientes: 1.800 → 20 documentos por página, com o diretório compartilhado lido 1× por sessão.
+  - Carga inicial: bruto 1.082,3 → 1.026,4 KiB (−5,2%), gzip 274,3 → 266,5 KiB (−2,8%), brotli 227,2 → 221,5 KiB (−2,5%). CSS: 149,2 → 120,7 KiB brutos. Storage virou um chunk separado de 33,2 KiB / 8,6 KiB em gzip. Detalhes, método e limitações em docs/performance.md.
+testes_executados:
+  - npm run test:coverage (215 testes unitários/componentes passando em 25 arquivos; thresholds de cobertura mantidos)
+  - npm run test:rules (34 testes de regras e integração no emulador Firestore passando)
+  - npm run test:perf:queries (15 testes passando: medições antes/depois, corretude das consultas limitadas em relação ao seed, orçamentos de leitura e cobertura de índices; um teste negativo confirmou que remover um índice faz o teste falhar)
+  - npm run test:e2e:emulated (6 testes E2E do Playwright passando contra os emuladores de Auth e Firestore)
+  - npm run type-check (0 erros; no HEAD 99e72fa havia 4 erros de tipo em fixtures de dashboardUtils.test.ts e useDietTemplates.test.ts, corrigidos nesta etapa)
+  - npm run lint (0 erros; os mesmos 4 avisos pré-existentes)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (build Vite de produção concluído em 1,52s)
+Validação manual e ambiente: Emuladores locais com o seed sintético (configuração isanutri-emulated em .claude/launch.json). Um script Playwright com as contas sintéticas do seed percorreu Dashboard, Pacientes, Agenda, Relatórios, Configurações e Portal e capturou screenshots. Todas as telas renderizaram com dados; o portal passou a mostrar a próxima consulta; a busca global carrega o diretório sob demanda. Na página de Pacientes, os avisos de `<img src="">` foram eliminados.
+Limitações ou decisões pendentes: Os índices precisam ser publicados manualmente em produção (`firebase deploy --only firestore:indexes`), o que não foi executado. As contagens por agregação não se atualizam em tempo real enquanto a tela fica aberta. O diretório de pacientes continua proporcional ao tamanho da base; se ela crescer, será preciso busca indexada no servidor. Documentos com `createdAt` do tipo Timestamp ou sem `dateTime` ficam fora das consultas por período. As traduções continuam na carga inicial (decisão para a Etapa 16). `@google/genai` não entra no bundle, mas ocupa 8,5 MB instalado; a remoção fica para a Etapa 18. Tempo em milissegundos, transferência real em produção e custo faturado não foram medidos. Pronto para a Etapa 15 (Completar acessibilidade e estados de interface).
+```
 
 ### 15 — Completar acessibilidade e estados de interface
 
@@ -749,17 +826,112 @@ Limitações ou decisões pendentes: Pronto para Etapa 14 (Medir e reduzir custo
 
 **Passos:**
 
-1. [ ] Padronizar modais com nome acessível, foco inicial, contenção de foco, Escape, retorno ao acionador e fundo não interativo.
-2. [ ] Revisar modais sobrepostos e desmontagem para não deixar scroll/foco bloqueados.
-3. [ ] Associar labels, instruções e erros aos campos; anunciar mudanças importantes e carregamento.
-4. [ ] Garantir navegação por teclado e foco visível em menus, tabelas, etapas, botões e seletores.
-5. [ ] Oferecer representação textual dos dados relevantes dos gráficos.
-6. [ ] Revisar layouts mobile, zoom, textos longos, overflow e contraste com a aplicação aberta.
-7. [ ] Padronizar estados vazio, erro, carregamento, sucesso e tentativa novamente.
+1. [x] Padronizar modais com nome acessível, foco inicial, contenção de foco, Escape, retorno ao acionador e fundo não interativo.
+2. [x] Revisar modais sobrepostos e desmontagem para não deixar scroll/foco bloqueados.
+3. [x] Associar labels, instruções e erros aos campos; anunciar mudanças importantes e carregamento.
+4. [x] Garantir navegação por teclado e foco visível em menus, tabelas, etapas, botões e seletores.
+5. [x] Oferecer representação textual dos dados relevantes dos gráficos.
+6. [x] Revisar layouts mobile, zoom, textos longos, overflow e contraste com a aplicação aberta.
+7. [x] Padronizar estados vazio, erro, carregamento, sucesso e tentativa novamente.
 
 **Resultado:** jornada principal utilizável com teclado e em diferentes tamanhos de tela.
 
 **Aceite:** revisão manual de teclado e foco mais verificação automatizada apropriada; registrar problemas restantes sem declarar conformidade integral sem auditoria.
+
+```yaml
+etapa: 15 — Completar acessibilidade e estados de interface
+status: concluido
+data: 2026-09-18
+arquivos_modificados:
+  - src/components/Dialog.tsx (novo)
+  - src/hooks/useDialog.ts (novo)
+  - src/hooks/useFocusOnChange.ts (novo)
+  - src/utils/a11y.ts (novo)
+  - src/utils/routes.ts (novo)
+  - src/components/ChartDataTable.tsx (novo)
+  - src/components/patient-list/PatientActionsMenu.tsx (novo)
+  - src/components/ui.tsx
+  - src/index.css
+  - src/components/icons.tsx
+  - src/components/AppShell.tsx
+  - src/components/Breadcrumbs.tsx
+  - src/components/Sidebar.tsx
+  - src/components/MealOptionTable.tsx
+  - src/components/modals/NewPatientModal.tsx
+  - src/components/modals/PatientDietHistoryModal.tsx
+  - src/components/modals/PatientModal.tsx
+  - src/components/patient-form/ProgressBar.tsx
+  - src/components/patient-form/Step1Personal.tsx
+  - src/components/patient-form/Step2Contact.tsx
+  - src/components/patient-form/Step3Professional.tsx
+  - src/components/patient-form/Step5Anthropometric.tsx
+  - src/components/diet-generator/DietProgressBar.tsx
+  - src/components/diet-generator/DietStep1Objectives.tsx
+  - src/components/diet-generator/DietStep2Nutrition.tsx
+  - src/components/diet-generator/DietStep3MealPlan.tsx
+  - src/components/dashboard/PerformanceSection.tsx
+  - src/components/patient-profile/WeightEvolutionChart.tsx
+  - src/components/patient-profile/BiomarkerEvolutionChart.tsx
+  - src/components/patient-profile/DietComparisonModal.tsx
+  - src/components/patient-profile/ProfileDietsTab.tsx
+  - src/components/patient-profile/ProfileAssessmentTab.tsx
+  - src/components/patient-portal/PortalWeightModal.tsx
+  - src/components/patient-portal/PortalPasswordModal.tsx
+  - src/components/patient-portal/SelfEvaluationForm.tsx
+  - src/components/patient-portal/AdherenceCheckIn.tsx
+  - src/components/patient-portal/PortalDietsSection.tsx
+  - src/components/patient-list/LoadingState.tsx
+  - src/contexts/PatientDirectoryContext.tsx
+  - src/hooks/usePatientDirectory.ts
+  - src/hooks/usePatientProfile.ts
+  - src/pages/Patients.tsx
+  - src/pages/PatientProfile.tsx
+  - src/pages/PatientPortal.tsx
+  - src/pages/Calendar.tsx
+  - src/pages/DietGenerator.tsx
+  - src/pages/Reports.tsx
+  - src/pages/Home.tsx
+  - src/pages/Login.tsx
+  - src/pages/Register.tsx
+  - src/pages/AcceptInvitation.tsx
+  - src/pages/FoodDatabase.tsx
+  - src/pages/MetabolicCalculator.tsx
+  - src/locales/pt/common.json
+  - src/locales/en/common.json
+  - src/components/__tests__/Dialog.test.tsx (novo)
+  - src/components/__tests__/uiAccessibility.test.tsx (novo)
+  - src/components/patient-list/__tests__/PatientActionsMenu.test.tsx (novo)
+  - src/components/modals/__tests__/NewPatientModal.a11y.test.tsx (novo)
+  - src/hooks/__tests__/usePatientProfile.test.ts (novo)
+  - tests-e2e/accessibility.spec.ts (novo)
+  - docs/accessibility.md (novo)
+  - .github/workflows/ci.yml
+  - package.json / package-lock.json (@axe-core/playwright 4.13.0, versão fixa, devDependency)
+  - o-que-precisa-ser-feito.md
+comportamento_entregue:
+  - Diálogos: um primitivo `Dialog`/`useDialog` (padrão APG) passou a ser usado pelo Modal compartilhado e pelos 7 modais próprios, incluindo a gaveta de navegação no mobile. Ele fornece nome acessível, foco inicial, contenção de Tab, Esc só no diálogo do topo, retorno do foco ao acionador, fundo `inert` via portal e bloqueio de scroll por contagem. Isso corrige modais aninhados (Esc fechava todos e o scroll era liberado cedo demais). A confirmação genérica virou `alertdialog` com foco inicial em "Cancelar".
+  - Formulários: erros ligados aos campos (`aria-invalid`/`aria-describedby`), foco no primeiro campo inválido e no título da nova etapa, etapas com nome e `aria-current`, macros como `fieldset`, rótulos associados no modal de consulta, no portal e no convite. Carregamento e sucesso são anunciados com `role="status"` e erros com `role="alert"`. Ao trocar de rota, o título do documento é atualizado e o foco vai para o `main`.
+  - Teclado e foco: skip link, marcos `nav`/`main` com nome, indicador de foco por outline (visível também em alto contraste), menu de ações no padrão APG de menu button, abas do perfil no padrão APG de tabs, linhas e cartões de paciente como links, dias e compromissos da agenda como botões com nome, e controles com `aria-pressed`/`aria-expanded`.
+  - Gráficos: tabela de dados alternativa (`ChartDataTable`, com `<details>` nativo) nos quatro gráficos, com o desenho em `aria-hidden`.
+  - Contraste: tokens de texto (`slate`, `gray`, `sage`, `emerald` e tons -600 de alerta) escurecidos com o mesmo matiz até atingir 4,5:1. Com `prefers-reduced-motion`, os atrasos das animações passam a ser zerados. A borda de erro dos campos, que nunca aparecia, agora é exibida.
+  - Estados: `LoadingState` e `ErrorState` (com "Tentar novamente") padronizados. A lista de pacientes em erro deixou de aparecer como vazia.
+  - Correções encontradas no caminho:
+    - `usePatientProfile` relia o paciente em ciclo (1.378 chamadas em ~0,1 s no teste de regressão). Foi corrigido e ganhou `retry`.
+    - A troca de idioma movia o foco para o `main`.
+    - A chave `nav.patient_portal_nav` faltava e o texto bruto aparecia no portal.
+    - A CI rodava os E2E autenticados sem emuladores; agora usa `test:e2e:emulated` com Java.
+testes_executados:
+  - npm run test:coverage (236 testes unitários e de componentes passando em 30 arquivos; antes da etapa eram 215 em 25; thresholds de cobertura mantidos)
+  - npm run test:e2e:emulated (14 testes Playwright passando: 6 jornadas existentes e 8 de acessibilidade. A varredura axe WCAG 2.0/2.1 A/AA de 31 estados de tela termina com zero violações, contra violações em 9 das 11 telas do baseline. Também passam o reflow a 320 px em 8 telas e as jornadas por teclado)
+  - npm run test:rules (34 testes passando)
+  - npm run test:perf:queries (15 testes passando; orçamentos da etapa 14 inalterados)
+  - npm run type-check (0 erros)
+  - npm run lint (0 erros; os mesmos 4 avisos pré-existentes)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (build Vite de produção concluído em 1,56s; carga inicial +10,4 KiB brutos / +3,6 KiB gzip)
+Validação manual e ambiente: Chromium via Playwright com emuladores e o seed sintético. Foram revisadas por teclado e capturas de tela a jornada profissional (pacientes, cadastro, menu de ações, histórico, gerador, agenda) e o portal, em desktop (1280 px) e mobile (375 px). Foi confirmada a visibilidade do indicador de foco em botões, links de navegação e itens de menu, do skip link, da gaveta mobile e das mensagens de erro.
+Limitações ou decisões pendentes: Não houve teste com leitores de tela (NVDA, JAWS, VoiceOver, TalkBack) nem auditoria por pessoas usuárias de tecnologia assistiva, portanto não se declara conformidade WCAG. A revisão manual por teclado cobriu só a jornada principal; alimentos, calculadora, envio de planos e configurações passam apenas no axe. Toasts de erro somem após 5 s. O dark mode está desativado e não foi revisado. Textos fixos em português ficam para a Etapa 16. O CI remoto não foi executado nesta sessão (sem push). Detalhes em docs/accessibility.md. Pronto para a Etapa 16 (Fechar lacunas de PT/EN).
+```
 
 ### 16 — Fechar lacunas de PT/EN
 
@@ -769,18 +941,69 @@ Limitações ou decisões pendentes: Pronto para Etapa 14 (Medir e reduzir custo
 
 **Passos:**
 
-1. [ ] Inventariar strings visíveis, incluindo erros, labels acessíveis, placeholders, notificações, PDF e e-mail.
-2. [ ] Extrair strings fixas e validar paridade de chaves/interpolações nos dois idiomas.
-3. [ ] Atualizar `document.documentElement.lang` ao mudar idioma e normalizar variantes como en-US/pt-BR.
-4. [ ] Usar locale adequado para datas/números; separar idioma, moeda e unidade, sem converter valores monetários automaticamente ao trocar tradução.
-5. [ ] Receber locale explícito nas funções de PDF/e-mail. Definir preferência do destinatário e fallback documentado.
-6. [ ] Traduzir nomes e decisões por IDs/códigos, preservando snapshots de documentos históricos sem reinterpretá-los silenciosamente.
-7. [ ] Manter fallback para planos antigos; evitar parsing dependente da conjunção portuguesa “e”.
-8. [ ] Testar troca de idioma antes/depois de gerar, salvar e reabrir um plano, inclusive erros e PDF.
+1. [x] Inventariar strings visíveis, incluindo erros, labels acessíveis, placeholders, notificações, PDF e e-mail.
+2. [x] Extrair strings fixas e validar paridade de chaves/interpolações nos dois idiomas.
+3. [x] Atualizar `document.documentElement.lang` ao mudar idioma e normalizar variantes como en-US/pt-BR.
+4. [x] Usar locale adequado para datas/números; separar idioma, moeda e unidade, sem converter valores monetários automaticamente ao trocar tradução.
+5. [x] Receber locale explícito nas funções de PDF/e-mail. Definir preferência do destinatário e fallback documentado.
+6. [x] Traduzir nomes e decisões por IDs/códigos, preservando snapshots de documentos históricos sem reinterpretá-los silenciosamente.
+7. [x] Manter fallback para planos antigos; evitar parsing dependente da conjunção portuguesa “e”.
+8. [x] Testar troca de idioma antes/depois de gerar, salvar e reabrir um plano, inclusive erros e PDF.
 
 **Resultado:** experiência coerente para avaliadores brasileiros e internacionais.
 
 **Aceite:** jornada crítica revisada integralmente em PT/EN; idioma do documento acompanha a UI; e-mail usa locale explícito do destinatário.
+
+```yaml
+etapa: 16
+nome: Fechar lacunas de PT/EN
+status: concluida
+data: 2026-09-18
+arquivos_modificados:
+  - index.html
+  - src/i18n.ts
+  - src/locales/en/common.json
+  - src/locales/pt/common.json
+  - src/locales/__tests__/i18nParity.test.ts
+  - src/utils/locale.ts
+  - src/utils/dateTime.ts
+  - src/utils/pdfExporter.ts
+  - src/services/emailService.ts
+  - src/components/LanguageSelector.tsx
+  - src/components/MealOptionTable.tsx
+  - src/components/modals/ExportDietModal.tsx
+  - src/components/Sidebar.tsx
+  - src/components/patient-profile/ProfileHeader.tsx
+  - src/components/patient-profile/ProfileTimelineTab.tsx
+  - src/components/patient-profile/ProfileAssessmentTab.tsx
+  - src/components/patient-profile/WeightEvolutionChart.tsx
+  - src/components/patient-profile/BiomarkerEvolutionChart.tsx
+  - src/components/diet-generator/DietPlanDisplay.tsx
+  - src/components/diet-generator/DietStep3MealPlan.tsx
+  - src/components/DietPlanViewer.tsx
+  - src/components/patient-portal/PortalDietsSection.tsx
+  - src/pages/DietGenerator.tsx
+  - src/pages/EmailAdmin.tsx
+  - src/pages/Home.tsx
+  - src/App.tsx
+  - o-que-precisa-ser-feito.md
+comportamento_entregue:
+  - Sincronização e normalização de idioma: `src/i18n.ts` atualiza `document.documentElement.lang` ("pt-BR" ou "en") automaticamente via handler central `languageChanged` e inicialização, normalizando variantes como "en-US" -> "en" e "pt-BR" -> "pt". O `index.html` declara `<html lang="en">` alinhado ao fallback inicial.
+  - Locale explícito em PDF e E-mail: `pdfExporter.ts` aceita `locale?: "pt" | "en" | string`, traduz títulos/datas/metas/rodapés dinamicamente com escopo de locale e formata nomes de arquivo de forma localizada. O `emailService.ts` aceita `locale?: "pt" | "en"` em `DietEmailParams` e `PortalAccessEmailParams`, despachando mensagens no idioma explícito do destinatário com fallback documentado para o idioma ativo.
+  - Separação de idioma, moeda e unidade: precificação na Home e no Billing permanece em BRL (`R$ 0`, `R$ 89`, `R$ 199`) sem conversões artificiais de taxa de câmbio ao alternar para o inglês; apenas os rótulos de periodicidade são traduzidos.
+  - Robustez de parsing em planos legados: `MealOptionTable.tsx` suporta tanto a conjunção "e" quanto "and" via regexes insensíveis a maiúsculas/minúsculas (`/\s+(?:e|and)\s+/gi`).
+  - Nomes de refeições centralizados: `src/utils/locale.ts` exporta `translateMealName` com suporte bidirecional (PT/EN) para nomes de refeições padrão, preservando o snapshot original intacto nos dados persistidos e traduzindo na camada de apresentação/PDF.
+  - Extração de textos fixos e paridade total: textos em português fixos no `DietGenerator.tsx` (validações), `App.tsx` (estados de erro/perfil incompleto), `EmailAdmin.tsx` (instruções de configuração), `WeightEvolutionChart.tsx` e `BiomarkerEvolutionChart.tsx` foram extraídos para os arquivos de tradução. Paridade de 100% de chaves e variáveis de interpolação mantida e garantida por teste automatizado.
+testes_executados:
+  - npm run test:coverage (247 testes unitários e de componentes passando em 31 arquivos, incluindo o novo teste i18nParity.test.ts)
+  - npm run test:rules (34 testes passando nos emuladores locais)
+  - npm run test:e2e:emulated (14 testes Playwright passando de ponta a ponta com emuladores Firebase)
+  - npm run type-check (0 erros TypeScript)
+  - npm run lint (0 erros de linting)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (build Vite de produção concluído com sucesso em 1,57s)
+  - graphify update . (grafo de conhecimento atualizado com sucesso)
+```
 
 ### 17 — Verificar PDF como entrega final do produto
 

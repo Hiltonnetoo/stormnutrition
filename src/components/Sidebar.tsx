@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useId } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
-import {
-  firebaseSignOut,
-  auth,
-  getPatients,
-} from "../services/firebaseService";
+import { firebaseSignOut, auth } from "../services/firebaseService";
+import { usePatientDirectory } from "../hooks/usePatientDirectory";
 import type { Patient } from "../types";
 import i18n from "../i18n";
+import { formatDateWithLocale } from "../utils/locale";
 import {
   UsersIcon,
   UtensilsIcon,
@@ -80,6 +78,8 @@ interface NavItemProps {
   label: string;
   badge?: string;
   onNavigate?: () => void;
+  /** Receives initial focus when the mobile drawer opens. */
+  autoFocus?: boolean;
 }
 
 const NavItem: React.FC<NavItemProps> = ({
@@ -88,12 +88,14 @@ const NavItem: React.FC<NavItemProps> = ({
   label,
   badge,
   onNavigate,
+  autoFocus,
 }) => (
   <NavLink
     to={to}
     onClick={onNavigate}
+    data-autofocus={autoFocus || undefined}
     className={({ isActive }) =>
-      `flex items-center gap-3 px-3.5 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 group relative ${
+      `flex items-center gap-3 px-3.5 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 group relative focus-ring ${
         isActive
           ? "bg-sage-600 text-white shadow-lg shadow-sage-600/25"
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -160,7 +162,7 @@ const deriveNotifications = (patients: Patient[]): NotifItem[] => {
           id: `eval_${e.id}`,
           icon: "📝",
           text: i18n.t("notifications.completed_self_evaluation", { name }),
-          time: new Date(e.completionDate!).toLocaleDateString("pt-BR"),
+          time: formatDateWithLocale(e.completionDate!, i18n.language),
           patientId: p.id,
         });
       });
@@ -177,7 +179,7 @@ const deriveNotifications = (patients: Patient[]): NotifItem[] => {
             name,
             weight: w.weight,
           }),
-          time: new Date(w.date).toLocaleDateString("pt-BR"),
+          time: formatDateWithLocale(w.date, i18n.language),
           patientId: p.id,
         });
       });
@@ -186,71 +188,99 @@ const deriveNotifications = (patients: Patient[]): NotifItem[] => {
   return items.sort((a, b) => b.time.localeCompare(a.time)).slice(0, 15);
 };
 
-const NotificationBell: React.FC<{ uid: string; onNavigate?: () => void }> = ({
-  uid,
+const NotificationBell: React.FC<{ onNavigate?: () => void }> = ({
   onNavigate,
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  // Opening the panel loads the shared roster; if a screen already loaded it,
+  // the badge is up to date without any extra read.
+  const { patients, loading } = usePatientDirectory(open);
   const panelRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
 
   useEffect(() => {
-    if (!open || loaded) return;
-    const unsub = getPatients(uid, (pts) => {
-      setPatients(pts);
-      setLoaded(true);
-    });
-    return () => unsub?.();
-  }, [open, uid, loaded]);
-
-  useEffect(() => {
+    if (!open) return;
     const handleClick = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node))
         setOpen(false);
     };
-    if (open) document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      buttonRef.current?.focus();
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, [open]);
 
-  const notifications = deriveNotifications(patients);
+  const notifications = useMemo(
+    () => deriveNotifications(patients),
+    [patients],
+  );
   const count = notifications.length;
 
   return (
     <div className="relative" ref={panelRef}>
       <button
+        ref={buttonRef}
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative p-2 rounded-xl text-slate-400 hover:text-sage-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+        className="relative p-2 rounded-xl text-slate-500 hover:text-sage-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer focus-ring"
+        aria-label={
+          count > 0
+            ? t("a11y.notifications_button", { count })
+            : t("notifications.title")
+        }
+        aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
         title={t("notifications.title")}
       >
         <BellIcon className="w-5 h-5" />
         {count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center">
+          <span
+            aria-hidden="true"
+            className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-rose-600 text-white text-[9px] font-extrabold flex items-center justify-center"
+          >
             {count > 9 ? "9+" : count}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-80 bg-white dark:bg-slate-850 rounded-2xl shadow-pop border border-slate-200/70 dark:border-slate-700 z-50 animate-scale-in overflow-hidden">
+        <div
+          id={panelId}
+          role="region"
+          aria-label={t("notifications.title")}
+          className="absolute left-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-850 rounded-2xl shadow-pop border border-slate-200/70 dark:border-slate-700 z-50 animate-scale-in overflow-hidden"
+        >
           <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
             <p className="font-bold text-slate-800 dark:text-white text-sm">
               {t("notifications.title")}
             </p>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-slate-500">
               {t("notifications.last_7_days")}
             </span>
           </div>
           <div className="max-h-72 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
-            {!loaded ? (
-              <div className="px-4 py-6 text-center text-sm text-slate-400">
+            {loading ? (
+              <div
+                role="status"
+                className="px-4 py-6 text-center text-sm text-slate-500"
+              >
                 {t("notifications.loading")}
               </div>
             ) : notifications.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <p className="text-2xl mb-2">🔕</p>
+                <p aria-hidden="true" className="text-2xl mb-2">
+                  🔕
+                </p>
                 <p className="text-sm text-slate-400">
                   {t("notifications.no_activity")}
                 </p>
@@ -289,22 +319,15 @@ const NotificationBell: React.FC<{ uid: string; onNavigate?: () => void }> = ({
 const GlobalSearch: React.FC<{ onNavigate?: () => void }> = ({
   onNavigate,
 }) => {
-  const { currentUser } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  // The roster is only requested once the professional starts searching.
+  const [searching, setSearching] = useState(false);
+  const { patients } = usePatientDirectory(searching);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!currentUser || loaded) return;
-    const unsub = getPatients(currentUser.uid, (pts) => {
-      setPatients(pts);
-      setLoaded(true);
-    });
-    return () => unsub?.();
-  }, [currentUser, loaded]);
+  const inputId = useId();
+  const resultsId = useId();
 
   const results =
     query.trim().length >= 2
@@ -321,26 +344,53 @@ const GlobalSearch: React.FC<{ onNavigate?: () => void }> = ({
 
   return (
     <div className="relative px-3 mb-2">
-      <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-        <SearchIcon className="w-4 h-4 text-slate-400 shrink-0" />
+      <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus-within:ring-2 focus-within:ring-sage-500">
+        <SearchIcon className="w-4 h-4 text-slate-500 shrink-0" />
+        <label htmlFor={inputId} className="sr-only">
+          {t("a11y.search_patients")}
+        </label>
         <input
+          id={inputId}
           ref={inputRef}
+          type="search"
+          autoComplete="off"
+          aria-controls={results.length > 0 ? resultsId : undefined}
+          onKeyDown={(e) => e.key === "Escape" && setQuery("")}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setSearching(true)}
+          onChange={(e) => {
+            setSearching(true);
+            setQuery(e.target.value);
+          }}
           placeholder={t("search.placeholder")}
           className="flex-1 bg-transparent text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 outline-none"
         />
         {query && (
           <button
-            onClick={() => setQuery("")}
-            className="text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+            type="button"
+            onClick={() => {
+              setQuery("");
+              inputRef.current?.focus();
+            }}
+            aria-label={t("a11y.clear_search")}
+            className="text-slate-500 hover:text-slate-700 text-xs cursor-pointer rounded focus-ring"
           >
-            ✕
+            <span aria-hidden="true">✕</span>
           </button>
         )}
       </div>
+      <p aria-live="polite" className="sr-only">
+        {query.trim().length >= 2
+          ? t("a11y.search_results_count", { count: results.length })
+          : ""}
+      </p>
       {results.length > 0 && (
-        <div className="absolute left-3 right-3 top-full mt-1 bg-white dark:bg-slate-855 rounded-xl shadow-pop border border-slate-200/70 dark:border-slate-700 z-50 overflow-hidden">
+        <div
+          id={resultsId}
+          role="region"
+          aria-label={t("a11y.search_results")}
+          className="absolute left-3 right-3 top-full mt-1 bg-white dark:bg-slate-855 rounded-xl shadow-pop border border-slate-200/70 dark:border-slate-700 z-50 overflow-hidden"
+        >
           {results.map((p) => (
             <button
               key={p.id}
@@ -408,13 +458,14 @@ const Sidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
             </span>
           </div>
         </button>
-        {currentUser && (
-          <NotificationBell uid={currentUser.uid} onNavigate={onNavigate} />
-        )}
+        {currentUser && <NotificationBell onNavigate={onNavigate} />}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-1">
+      <nav
+        aria-label={t("a11y.main_navigation")}
+        className="flex-1 px-3 py-4 overflow-y-auto space-y-1"
+      >
         {/* Busca global */}
         <GlobalSearch onNavigate={onNavigate} />
 
@@ -424,6 +475,7 @@ const Sidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
           icon={<BarChart3Icon className="w-5 h-5" />}
           label={t("nav.overview")}
           onNavigate={onNavigate}
+          autoFocus={Boolean(onNavigate)}
         />
         <NavItem
           to="/patients"
@@ -480,7 +532,7 @@ const Sidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
         <NavLink
           to="/settings"
           onClick={onNavigate}
-          className="flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group"
+          className="flex items-center gap-3 w-full p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all group focus-ring"
         >
           <div className="relative shrink-0">
             <img
@@ -489,9 +541,12 @@ const Sidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
                 currentUser?.photoURL ||
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.displayName || currentUser?.email || "U")}&background=0D9488&color=fff&bold=true`
               }
-              alt="Avatar"
+              alt=""
             />
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-850 bg-emerald-500" />
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-850 bg-emerald-500"
+            />
           </div>
           <div className="overflow-hidden flex-1 min-w-0">
             <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-sage-700 transition-colors">
@@ -504,8 +559,9 @@ const Sidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
           <SettingsGear className="w-4 h-4 text-slate-400 group-hover:text-sage-600 transition-colors shrink-0" />
         </NavLink>
         <button
+          type="button"
           onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 mt-1.5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all group dark:hover:bg-rose-500/10 cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 mt-1.5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all group dark:hover:bg-rose-500/10 cursor-pointer focus-ring"
         >
           <LogInIcon className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
           {t("nav.sign_out")}

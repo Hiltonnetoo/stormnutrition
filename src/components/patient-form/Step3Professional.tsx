@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Patient } from "../../types";
+import { errorIdFor, fieldErrorProps } from "../../utils/a11y";
 
 interface Step3Props {
   data: Partial<Patient>;
@@ -37,10 +38,15 @@ const Step3Professional: React.FC<Step3Props> = ({
             id="profession"
             value={data.profession || ""}
             onChange={handleChange}
-            className={`input-field ${errors.profession ? "border-rose-400 focus:ring-rose-500/60 focus:border-rose-400" : ""}`}
+            autoComplete="organization-title"
+            className={`input-field ${errors.profession ? "!border-rose-400 focus:!ring-rose-500/60 focus:!border-rose-400" : ""}`}
+            {...fieldErrorProps("profession", errors.profession)}
           />
           {errors.profession && (
-            <p className="mt-1.5 text-xs font-medium text-rose-600">
+            <p
+              id={errorIdFor("profession")}
+              className="mt-1.5 text-xs font-medium text-rose-600"
+            >
               {errors.profession}
             </p>
           )}

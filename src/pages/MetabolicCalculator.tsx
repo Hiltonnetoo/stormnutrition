@@ -83,10 +83,11 @@ const MetabolicCalculator: React.FC = () => {
           </h2>
           <form onSubmit={calculateMacros} className="space-y-4">
             <div>
-              <label className="input-label">
+              <label htmlFor="metabolic-gender" className="input-label">
                 {t("metabolic.gender_label")}
               </label>
               <select
+                id="metabolic-gender"
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}

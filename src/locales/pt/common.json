@@ -14,7 +14,8 @@
     "tools": "Ferramentas",
     "analysis": "Análise",
     "communication": "Comunicação",
-    "home": "Início"
+    "home": "Início",
+    "patient_portal_nav": "Portal do Paciente"
   },
   "notifications": {
     "title": "Notificações",
@@ -125,6 +126,8 @@
       "Suporte prioritário"
     ],
     "pricing_footnote": "Todos os planos incluem atualizações gratuitas e dados hospedados com segurança. Preços em reais (BRL).",
+    "pricing_period_forever": "para sempre",
+    "pricing_period_monthly": "/mês",
     "cta_title": "Comece a transformar seus atendimentos hoje",
     "cta_desc": "Junte-se aos nutricionistas que estão economizando horas a cada consulta com o Storm Nutrition.",
     "cta_btn": "Criar minha conta grátis",
@@ -425,7 +428,9 @@
     "general_recommendations": "Recomendações Gerais",
     "water_recommendation": "Beba aproximadamente {{liters}} litros de água por dia.",
     "generated_by": "Gerado pelo Storm Nutrition",
-    "page_of": "Página {{page}} de {{total}}"
+    "page_of": "Página {{page}} de {{total}}",
+    "target_label": "Meta",
+    "default_brand_footer": "Storm Nutrition · Gestão Nutricional"
   },
   "patients": {
     "title": "Pacientes",
@@ -437,6 +442,8 @@
     "error_delete_patient": "Falha ao excluir paciente.",
     "success_delete_patient": "Paciente excluído com sucesso!",
     "status_no_diet": "Sem dieta",
+    "status_loading": "Carregando…",
+    "load_more": "Mostrar mais {{count}}",
     "status_needs_review": "Requer revisão",
     "status_active": "Ativa · {{date}}",
     "status_outdated": "Desatualizada · {{date}}",
@@ -526,7 +533,15 @@
       "goal": "Meta",
       "goal_reduction": "Redução",
       "goal_gain": "Ganho",
-      "goal_maintenance": "Manutenção"
+      "goal_maintenance": "Manutenção",
+      "no_measurements": "Nenhuma medição de peso registrada até o momento.",
+      "weight_evolution_title": "Evolução do Peso (kg)",
+      "first_measurement": "1ª Medição Registrada",
+      "measured_on": "Aferido em {{date}}",
+      "register_more": "Registre medições adicionais para visualizar a linha de tendência comparativa.",
+      "filter_recent_10": "Últimas 10",
+      "filter_last_90d": "90 Dias",
+      "filter_all": "Todos ({{count}})"
     },
     "biomarkers": {
       "title": "Evolução de Biomarcadores",
@@ -535,7 +550,12 @@
       "altered": "ALTERADO",
       "no_exams": "Nenhum exame registrado.",
       "fasting_glucose": "Glicemia de Jejum",
-      "ldl_cholesterol": "Colesterol LDL"
+      "ldl_cholesterol": "Colesterol LDL",
+      "insufficient_chart_data": "Dados insuficientes para gráfico de evolução",
+      "trend": "Tendência",
+      "trend_up": "↑ Aumento",
+      "trend_down": "↓ Redução",
+      "trend_stable": "→ Estável"
     },
     "diets": {
       "plan_title": "Planos Alimentares",
@@ -839,6 +859,18 @@
         "recovery_title": "Recuperação e Hipertrofia",
         "recovery_desc": "Densidade calórica para desnutrição ou ganho muscular avançado."
       }
+    },
+    "save_error": "Não foi possível salvar o plano alimentar. Verifique sua conexão e tente novamente.",
+    "generation_failed": "Falha ao gerar o plano.",
+    "validation": {
+      "invalid_weight": "Peso inválido.",
+      "deadline_min_weeks": "Prazo deve ser de no mínimo 1 semana.",
+      "weight_loss_target": "Para emagrecer, o peso-alvo deve ser menor que o peso atual. Revise os campos ou altere o objetivo.",
+      "weight_gain_target": "Para ganho de massa, o peso-alvo deve ser maior que o peso atual. Revise os campos ou altere o objetivo.",
+      "calories_min": "Mínimo de 800 kcal.",
+      "calories_invalid": "As calorias diárias devem ser um número válido.",
+      "macros_sum": "A soma dos macros deve ser 100%.",
+      "infeasible_plan": "Não é possível aprovar ou salvar um plano alimentar com status inviável. Corrija os itens incompatíveis."
     }
   },
   "meal_table": {
@@ -1342,5 +1374,71 @@
       "respected": "RESPEITADO",
       "disclaimer": "Este plano foi gerado por meio do algoritmo nutricional Storm Nutrition baseado em diretrizes clínicas validadas. É dever do nutricionista revisar e atestar a adequação dos alimentos recomendados às condições individuais do paciente."
     }
+  },
+  "a11y": {
+    "close": "Fechar",
+    "loading": "Carregando…",
+    "retry": "Tentar novamente",
+    "error_title": "Algo deu errado",
+    "error_load": "Não foi possível carregar os dados. Verifique sua conexão e tente novamente.",
+    "skip_to_content": "Pular para o conteúdo principal",
+    "main_navigation": "Navegação principal",
+    "open_menu": "Abrir menu de navegação",
+    "navigation_menu": "Menu de navegação",
+    "search_patients": "Buscar pacientes",
+    "search_results": "Resultados da busca",
+    "more_actions": "Mais ações para {{name}}",
+    "previous_month": "Mês anterior",
+    "next_month": "Próximo mês",
+    "chart_data": "Dados do gráfico",
+    "show_data_table": "Ver dados em tabela",
+    "hide_data_table": "Ocultar tabela de dados",
+    "dismiss": "Fechar notificação",
+    "breadcrumb": "Trilha de navegação",
+    "notifications_count": "{{count}} novas",
+    "form_progress": "Progresso do formulário",
+    "step_completed": "Etapa {{number}}: {{label}} (concluída)",
+    "step_current": "Etapa {{number}}: {{label}} (etapa atual)",
+    "step_upcoming": "Etapa {{number}}: {{label}}",
+    "meal_time": "Horário de {{meal}}",
+    "back_to_list": "Voltar à lista de dietas",
+    "delete_diet": "Excluir dieta de {{date}}",
+    "edit_diet": "Editar dieta de {{date}}",
+    "view_diet": "Ver dieta de {{date}}",
+    "weight_kg": "Peso em quilogramas",
+    "saving": "Salvando…",
+    "nutrition_facts": "Informação nutricional: {{name}}",
+    "clear_search": "Limpar busca",
+    "search_results_count": "{{count}} pacientes encontrados",
+    "notifications_button": "Notificações ({{count}} novas)",
+    "step_of": "Etapa {{current}} de {{total}}",
+    "scale_value": "{{value}} de 5",
+    "appointments_count_zero": "nenhuma consulta",
+    "appointments_count_one": "{{count}} consulta",
+    "appointments_count_other": "{{count}} consultas",
+    "new_appointment_on": "Nova consulta em {{date}}",
+    "edit_appointment": "Editar consulta: {{name}} às {{time}}",
+    "col_month": "Mês",
+    "col_plans": "Planos criados",
+    "col_patients": "Novos pacientes",
+    "col_date": "Data",
+    "col_weight": "Peso (kg)",
+    "col_origin": "Origem",
+    "col_value": "Valor",
+    "weight_chart": "Evolução do peso",
+    "chart_filter": "Período do gráfico",
+    "profile_sections": "Seções do prontuário",
+    "food_table": "Tabela de alimentos (role horizontalmente)"
+  },
+  "app": {
+    "loading": "Carregando...",
+    "auth_error_title": "Falha na verificação da conta",
+    "auth_error_desc": "Não foi possível carregar os dados do seu perfil. Verifique sua conexão à internet e tente novamente.",
+    "retry": "Tentar novamente",
+    "logout": "Sair da conta",
+    "incomplete_profile_title": "Concluir cadastro profissional",
+    "incomplete_profile_desc": "Sua conta está autenticada, mas o perfil profissional ainda não foi inicializado. Deseja inicializar o seu espaço de trabalho?",
+    "init_profile_button": "Inicializar perfil profissional",
+    "exit_button": "Sair"
   }
 }

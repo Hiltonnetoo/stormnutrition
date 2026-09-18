@@ -260,15 +260,17 @@ try {
 
     // 6. Consultas / Agendamentos
     console.log("6/6 Criando agendamentos fictícios...");
+    // Same contract as Appointment: wall-clock "YYYY-MM-DDTHH:mm:ss" dateTime,
+    // so the calendar (month range) and the portal (next visit) find it.
+    const nextVisit = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const pad = (n) => String(n).padStart(2, "0");
     await setDoc(doc(db, `users/${NUTRI_1_ID}/appointments/appt-ana-retorno`), {
       patientId: PATIENT_1_ID,
       patientName: "Ana Silva",
-      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-      time: "14:00",
-      status: "confirmed",
-      type: "return",
+      dateTime: `${nextVisit.getFullYear()}-${pad(nextVisit.getMonth() + 1)}-${pad(nextVisit.getDate())}T14:00:00`,
+      durationMinutes: 60,
+      status: "scheduled",
+      type: "followup",
       notes: "Retorno quinzenal para reavaliação de bioimpedância.",
       createdAt: new Date().toISOString(),
     });

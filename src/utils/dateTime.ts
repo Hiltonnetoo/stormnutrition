@@ -91,11 +91,13 @@ export const isValidCivilDate = (str: string): boolean => {
  */
 export const formatCivilDate = (
   civilDateStr: string,
-  locale: "pt-BR" | "en-US" = "pt-BR",
+  locale: "pt-BR" | "en-US" | string = "pt-BR",
 ): string => {
   if (!civilDateStr || !isValidCivilDate(civilDateStr)) return civilDateStr;
   const [year, month, day] = civilDateStr.split("-");
-  if (locale === "en-US") {
+  const isEn =
+    typeof locale === "string" && locale.toLowerCase().startsWith("en");
+  if (isEn) {
     return `${month}/${day}/${year}`;
   }
   return `${day}/${month}/${year}`;
@@ -137,3 +139,74 @@ export const isSameCivilDay = (
 
   return Boolean(civil1 && civil2 && civil1 === civil2);
 };
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * Formats an instant as local wall time ("YYYY-MM-DDTHH:mm:ss") in the given
+ * timezone — the same representation used by `Appointment.dateTime`, so the
+ * result can be compared lexicographically in Firestore range queries.
+ */
+export const formatWallClock = (
+  date: Date = new Date(),
+  timeZone: string = DEFAULT_CLINIC_TIMEZONE,
+): string => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`;
+};
+
+/**
+ * Wall-clock bounds of a calendar month: [start, end) as "YYYY-MM-DD" strings,
+ * suitable for `dateTime >= start && dateTime < end` on appointment documents.
+ */
+export const getCivilMonthRange = (
+  year: number,
+  monthIndex: number,
+): { start: string; end: string } => {
+  const first = new Date(year, monthIndex, 1);
+  const next = new Date(year, monthIndex + 1, 1);
+  return {
+    start: `${first.getFullYear()}-${pad2(first.getMonth() + 1)}-01`,
+    end: `${next.getFullYear()}-${pad2(next.getMonth() + 1)}-01`,
+  };
+};
+
+export interface MonthInstantRange {
+  year: number;
+  monthIndex: number;
+  /** UTC ISO instant of local midnight on the 1st (inclusive). */
+  startIso: string;
+  /** UTC ISO instant of local midnight on the 1st of the next month (exclusive). */
+  endIso: string;
+}
+
+/**
+ * The last `count` local calendar months (oldest first, current month last),
+ * expressed as UTC ISO instants so they can bound `createdAt` audit timestamps.
+ */
+export const getRecentMonthRanges = (
+  count: number,
+  now: Date = new Date(),
+): MonthInstantRange[] =>
+  Array.from({ length: Math.max(0, count) }, (_, i) => {
+    const offset = count - 1 - i;
+    const start = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+    return {
+      year: start.getFullYear(),
+      monthIndex: start.getMonth(),
+      startIso: start.toISOString(),
+      endIso: end.toISOString(),
+    };
+  });

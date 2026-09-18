@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Patient } from "../../types";
+import { errorIdFor, fieldErrorProps } from "../../utils/a11y";
 
 interface Step1Props {
   data: Partial<Patient>;
@@ -30,7 +31,7 @@ const Step1Personal: React.FC<Step1Props> = ({
 
   const errClass = (k: string) =>
     errors[k]
-      ? "border-rose-400 focus:ring-rose-500/60 focus:border-rose-400"
+      ? "!border-rose-400 focus:!ring-rose-500/60 focus:!border-rose-400"
       : "";
 
   return (
@@ -47,12 +48,17 @@ const Step1Personal: React.FC<Step1Props> = ({
             type="text"
             name="firstName"
             id="firstName"
+            autoComplete="given-name"
             value={data.firstName || ""}
             onChange={handleChange}
             className={`input-field ${errClass("firstName")}`}
+            {...fieldErrorProps("firstName", errors.firstName)}
           />
           {errors.firstName && (
-            <p className="mt-1.5 text-xs font-medium text-rose-600">
+            <p
+              id={errorIdFor("firstName")}
+              className="mt-1.5 text-xs font-medium text-rose-600"
+            >
               {errors.firstName}
             </p>
           )}
@@ -65,12 +71,17 @@ const Step1Personal: React.FC<Step1Props> = ({
             type="text"
             name="lastName"
             id="lastName"
+            autoComplete="family-name"
             value={data.lastName || ""}
             onChange={handleChange}
             className={`input-field ${errClass("lastName")}`}
+            {...fieldErrorProps("lastName", errors.lastName)}
           />
           {errors.lastName && (
-            <p className="mt-1.5 text-xs font-medium text-rose-600">
+            <p
+              id={errorIdFor("lastName")}
+              className="mt-1.5 text-xs font-medium text-rose-600"
+            >
               {errors.lastName}
             </p>
           )}
@@ -87,10 +98,16 @@ const Step1Personal: React.FC<Step1Props> = ({
             onChange={handleChange}
             maxLength={10}
             placeholder="DD/MM/AAAA"
+            autoComplete="bday"
+            inputMode="numeric"
             className={`input-field ${errClass("dob")}`}
+            {...fieldErrorProps("dob", errors.dob)}
           />
           {errors.dob && (
-            <p className="mt-1.5 text-xs font-medium text-rose-600">
+            <p
+              id={errorIdFor("dob")}
+              className="mt-1.5 text-xs font-medium text-rose-600"
+            >
               {errors.dob}
             </p>
           )}

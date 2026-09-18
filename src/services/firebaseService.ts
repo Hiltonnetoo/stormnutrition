@@ -2,7 +2,6 @@
 export {
   auth,
   db,
-  storage,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -48,9 +47,7 @@ export {
   unarchivePatient,
   revokePatientPortalAccess,
   getPatients,
-  getPatientsCount,
-  getActivePatientsCount,
-  getNewPatientsThisMonthCount,
+  countPatients,
 } from "./patientService";
 
 // Import and re-export diet domain services
@@ -58,20 +55,21 @@ export {
   saveDietPlan,
   updateDietPlan,
   deleteDietPlan,
-  getDietPlansForPatient,
-  getAllDiets,
-  getDietsCount,
-  getDietsThisMonthCount,
   getPatientDiets,
+  subscribeLatestDiet,
+  subscribeRecentDiets,
+  getDietCountSummary,
 } from "./dietService";
+export type { DietCountSummary } from "./dietService";
 
 // Import and re-export appointment domain services
 export {
   addAppointment,
   updateAppointment,
   deleteAppointment,
-  getAppointments,
-  getPatientAppointments,
+  getAppointmentsInRange,
+  getUpcomingAppointments,
+  getNextPatientAppointment,
   findAppointmentConflict,
   validateAppointmentData,
 } from "./appointmentService";
@@ -84,8 +82,3 @@ export {
   logAdherence,
   updatePatientSettings,
 } from "./evaluationService";
-
-// Deprecated alias for patient portal compatibility
-import { getPatientDiets } from "./dietService";
-/** @deprecated use getPatientDiets + getPatientAppointments separately in PatientPortal */
-export const getPatientPortalData = getPatientDiets;

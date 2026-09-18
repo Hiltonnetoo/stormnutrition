@@ -30,10 +30,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       open={isOpen}
       onClose={onClose}
       size="sm"
+      role="alertdialog"
       title={title}
+      description={message}
       icon={
         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
           <svg
+            aria-hidden="true"
             className="h-6 w-6"
             fill="none"
             viewBox="0 0 24 24"
@@ -50,7 +53,12 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       }
       footer={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={isConfirmLoading}>
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            disabled={isConfirmLoading}
+            data-autofocus
+          >
             {cancelText || t("settings.cancel_btn", "Cancelar")}
           </Button>
           <Button
@@ -64,9 +72,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         </>
       }
     >
-      <p className="text-sm text-slate-500 dark:text-slate-400 py-1">
-        {message}
-      </p>
+      {null}
     </Modal>
   );
 };

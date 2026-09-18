@@ -1,19 +1,22 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useId } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import {
-  getAppointments,
+  getAppointmentsInRange,
+  getUpcomingAppointments,
   addAppointment,
   updateAppointment,
   deleteAppointment,
-  getPatients,
 } from "../services/firebaseService";
+import { usePatientDirectory } from "../hooks/usePatientDirectory";
 import type { Appointment, AppointmentType, Patient } from "../types";
 import { PageHeader, Card, Button, Modal } from "../components/ui";
 import { PlusIcon, ChevronRightIcon } from "../components/icons";
 import { ConfirmationModal } from "../components/modals/PatientModal";
-import { parseLocalDateTime } from "../utils/dateTime";
+import { getCivilMonthRange, parseLocalDateTime } from "../utils/dateTime";
+
+const UPCOMING_LIMIT = 5;
 
 const TYPE_DOT: Record<AppointmentType, string> = {
   consultation: "bg-sage-500",
@@ -77,6 +80,16 @@ const AppointmentModal: React.FC<ApptModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [patientError, setPatientError] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const fieldId = useId();
+  const ids = {
+    patient: `${fieldId}-patient`,
+    time: `${fieldId}-time`,
+    duration: `${fieldId}-duration`,
+    type: `${fieldId}-type`,
+    status: `${fieldId}-status`,
+    notes: `${fieldId}-notes`,
+    patientError: `${fieldId}-patient-error`,
+  };
 
   const dateStr = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
@@ -158,11 +171,16 @@ const AppointmentModal: React.FC<ApptModalProps> = ({
       >
         <div className="space-y-4 py-2">
           <div>
-            <label className="input-label">{t("calendar.patient_label")}</label>
+            <label htmlFor={ids.patient} className="input-label">
+              {t("calendar.patient_label")}
+            </label>
             <select
+              id={ids.patient}
+              aria-invalid={patientError ? true : undefined}
+              aria-describedby={patientError ? ids.patientError : undefined}
               value={patientId}
               onChange={handlePatientChange}
-              className={`${fieldClass} ${patientError ? "border-rose-400" : ""}`}
+              className={`${fieldClass} ${patientError ? "!border-rose-400" : ""}`}
             >
               <option value="">
                 {t("calendar.select_patient_placeholder")}
@@ -174,13 +192,18 @@ const AppointmentModal: React.FC<ApptModalProps> = ({
               ))}
             </select>
             {patientError && (
-              <p className="mt-1 text-xs text-rose-600">{patientError}</p>
+              <p id={ids.patientError} className="mt-1 text-xs text-rose-600">
+                {patientError}
+              </p>
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="input-label">{t("calendar.time_label")}</label>
+              <label htmlFor={ids.time} className="input-label">
+                {t("calendar.time_label")}
+              </label>
               <input
+                id={ids.time}
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
@@ -188,10 +211,11 @@ const AppointmentModal: React.FC<ApptModalProps> = ({
               />
             </div>
             <div>
-              <label className="input-label">
+              <label htmlFor={ids.duration} className="input-label">
                 {t("calendar.duration_label")}
               </label>
               <select
+                id={ids.duration}
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
                 className={fieldClass}
@@ -206,8 +230,11 @@ const AppointmentModal: React.FC<ApptModalProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="input-label">{t("calendar.type_label")}</label>
+              <label htmlFor={ids.type} className="input-label">
+                {t("calendar.type_label")}
+              </label>
               <select
+                id={ids.type}
                 value={type}
                 onChange={(e) => setType(e.target.value as AppointmentType)}
                 className={fieldClass}
@@ -220,10 +247,11 @@ const AppointmentModal: React.FC<ApptModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="input-label">
+              <label htmlFor={ids.status} className="input-label">
                 {t("calendar.status_label")}
               </label>
               <select
+                id={ids.status}
                 value={status}
                 onChange={(e) =>
                   setStatus(e.target.value as Appointment["status"])
@@ -243,8 +271,11 @@ const AppointmentModal: React.FC<ApptModalProps> = ({
             </div>
           </div>
           <div>
-            <label className="input-label">{t("calendar.notes_label")}</label>
+            <label htmlFor={ids.notes} className="input-label">
+              {t("calendar.notes_label")}
+            </label>
             <textarea
+              id={ids.notes}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
@@ -264,7 +295,7 @@ const Calendar: React.FC = () => {
   const { currentUser } = useAuth();
   const location = useLocation();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [upcomingAppts, setUpcomingAppts] = useState<Appointment[]>([]);
   const [today] = useState(new Date());
   const [currentDate, setCurrentDate] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1),
@@ -276,16 +307,31 @@ const Calendar: React.FC = () => {
   );
   const [prePatientId, setPrePatientId] = useState<string>("");
   const [prePatientName, setPrePatientName] = useState<string>("");
+  // The patient picker is only needed while the appointment modal is open.
+  const { patients } = usePatientDirectory(modalDate !== null);
+
+  const locale = i18n.language === "pt" ? "pt-BR" : "en-US";
+  const uid = currentUser?.uid;
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  // Only the visible month is read; navigating re-subscribes to the new range.
+  useEffect(() => {
+    if (!uid) return;
+    const { start, end } = getCivilMonthRange(year, month);
+    return getAppointmentsInRange(uid, start, end, setAppointments);
+  }, [uid, year, month]);
 
   useEffect(() => {
-    if (!currentUser) return;
-    const unsub1 = getAppointments(currentUser.uid, setAppointments);
-    const unsub2 = getPatients(currentUser.uid, setPatients);
-    return () => {
-      unsub1?.();
-      unsub2?.();
-    };
-  }, [currentUser]);
+    if (!uid) return;
+    return getUpcomingAppointments(
+      uid,
+      todayStr,
+      UPCOMING_LIMIT,
+      setUpcomingAppts,
+    );
+  }, [uid, todayStr]);
 
   // Abre o modal de nova consulta pré-selecionando o paciente vindo de PatientProfile (item 3 FASE 1)
   useEffect(() => {
@@ -303,8 +349,6 @@ const Calendar: React.FC = () => {
     }
   }, [location.state]);
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -333,11 +377,6 @@ const Calendar: React.FC = () => {
     await deleteAppointment(currentUser.uid, editingAppt.id);
   };
 
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const upcomingAppts = appointments
-    .filter((a) => a.dateTime >= todayStr && a.status === "scheduled")
-    .slice(0, 5);
-
   const DAYS_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
   return (
@@ -363,12 +402,17 @@ const Calendar: React.FC = () => {
         <Card className="lg:col-span-2 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800">
             <button
+              type="button"
               onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600"
+              aria-label={t("a11y.previous_month")}
+              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 focus-ring"
             >
               <ChevronRightIcon className="w-5 h-5 rotate-180" />
             </button>
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white">
+            <h2
+              aria-live="polite"
+              className="text-lg font-bold text-slate-800 dark:text-white"
+            >
               {(() => {
                 const mName = currentDate.toLocaleDateString(
                   i18n.language === "pt" ? "pt-BR" : "en-US",
@@ -379,8 +423,10 @@ const Calendar: React.FC = () => {
               {year}
             </h2>
             <button
+              type="button"
               onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600"
+              aria-label={t("a11y.next_month")}
+              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 focus-ring"
             >
               <ChevronRightIcon className="w-5 h-5" />
             </button>
@@ -390,7 +436,8 @@ const Calendar: React.FC = () => {
             {DAYS_KEYS.map((k) => (
               <div
                 key={k}
-                className="py-2.5 text-center text-[11px] font-bold text-slate-400 uppercase tracking-wider"
+                aria-hidden="true"
+                className="py-2.5 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider"
               >
                 {t(`calendar.days_short.${k}`)}
               </div>
@@ -398,6 +445,7 @@ const Calendar: React.FC = () => {
             {Array.from({ length: firstDay }).map((_, i) => (
               <div
                 key={`empty-${i}`}
+                aria-hidden="true"
                 className="border-t border-slate-50 dark:border-slate-800 min-h-[84px]"
               />
             ))}
@@ -411,33 +459,52 @@ const Calendar: React.FC = () => {
                 selectedDate?.getMonth() === month &&
                 selectedDate?.getFullYear() === year;
               const dayAppts = getApptForDay(day);
+              const dayDate = new Date(year, month, day);
+              const dayLabel = `${dayDate.toLocaleDateString(locale, {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              })}, ${t("a11y.appointments_count", { count: dayAppts.length })}`;
               return (
                 <div
                   key={day}
-                  onClick={() => setSelectedDate(new Date(year, month, day))}
+                  onClick={() => setSelectedDate(dayDate)}
                   className={`min-h-[84px] p-1.5 border-t border-slate-50 dark:border-slate-800 cursor-pointer transition-colors hover:bg-sage-50/50 dark:hover:bg-slate-800/50 ${isSelected ? "bg-sage-50 dark:bg-sage-900/20" : ""}`}
                 >
-                  <div
-                    className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-semibold mb-1 ${isToday ? "bg-sage-600 text-white" : "text-slate-700 dark:text-slate-300"}`}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedDate(dayDate);
+                    }}
+                    aria-label={dayLabel}
+                    aria-pressed={isSelected}
+                    aria-current={isToday ? "date" : undefined}
+                    className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-semibold mb-1 focus-ring ${isToday ? "bg-sage-600 text-white" : "text-slate-700 dark:text-slate-300"}`}
                   >
                     {day}
-                  </div>
+                  </button>
                   <div className="space-y-0.5">
                     {dayAppts.slice(0, 2).map((a) => (
-                      <div
+                      <button
+                        type="button"
                         key={a.id}
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditingAppt(a);
                           setModalDate(parseLocalDateTime(a.dateTime));
                         }}
-                        className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md truncate cursor-pointer border ${TYPE_LIGHT[a.type]}`}
+                        aria-label={t("a11y.edit_appointment", {
+                          name: a.patientName,
+                          time: a.dateTime.slice(11, 16),
+                        })}
+                        className={`block w-full text-left text-[11px] font-semibold px-1.5 py-0.5 rounded-md truncate cursor-pointer border focus-ring ${TYPE_LIGHT[a.type]}`}
                       >
                         {a.dateTime.slice(11, 16)} {a.patientName.split(" ")[0]}
-                      </div>
+                      </button>
                     ))}
                     {dayAppts.length > 2 && (
-                      <div className="text-[11px] text-slate-400 pl-1">
+                      <div className="text-[11px] text-slate-500 pl-1">
                         {t("calendar.more_events", {
                           count: dayAppts.length - 2,
                         })}
@@ -462,30 +529,38 @@ const Calendar: React.FC = () => {
                   )}
                 </h3>
                 <button
+                  type="button"
                   onClick={() => {
                     setEditingAppt(undefined);
                     setModalDate(selectedDate);
                   }}
-                  className="p-1.5 bg-sage-50 hover:bg-sage-100 dark:bg-sage-500/15 rounded-lg transition-colors text-sage-600"
+                  aria-label={t("a11y.new_appointment_on", {
+                    date: selectedDate.toLocaleDateString(locale, {
+                      day: "numeric",
+                      month: "long",
+                    }),
+                  })}
+                  className="p-1.5 bg-sage-50 hover:bg-sage-100 dark:bg-sage-500/15 rounded-lg transition-colors text-sage-700 focus-ring"
                 >
                   <PlusIcon className="w-4 h-4" />
                 </button>
               </div>
               <div className="p-4">
                 {selectedDayAppts.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-4">
+                  <p className="text-sm text-slate-500 text-center py-4">
                     {t("calendar.no_appts_today")}
                   </p>
                 ) : (
                   <div className="space-y-2">
                     {selectedDayAppts.map((a) => (
-                      <div
+                      <button
+                        type="button"
                         key={a.id}
                         onClick={() => {
                           setEditingAppt(a);
                           setModalDate(parseLocalDateTime(a.dateTime));
                         }}
-                        className={`p-3 rounded-xl border cursor-pointer hover:shadow-sm transition-shadow ${TYPE_LIGHT[a.type]}`}
+                        className={`block w-full text-left p-3 rounded-xl border cursor-pointer hover:shadow-sm transition-shadow focus-ring ${TYPE_LIGHT[a.type]}`}
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold">
@@ -499,11 +574,9 @@ const Calendar: React.FC = () => {
                           {a.patientName}
                         </p>
                         {a.notes && (
-                          <p className="text-xs opacity-75 mt-0.5 truncate">
-                            {a.notes}
-                          </p>
+                          <p className="text-xs mt-0.5 truncate">{a.notes}</p>
                         )}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -519,7 +592,7 @@ const Calendar: React.FC = () => {
             </div>
             <div className="p-4">
               {upcomingAppts.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-4">
+                <p className="text-sm text-slate-500 text-center py-4">
                   {t("calendar.no_appts_scheduled")}
                 </p>
               ) : (

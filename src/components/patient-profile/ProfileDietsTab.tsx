@@ -143,7 +143,10 @@ export const ProfileDietsTab: React.FC<ProfileDietsTabProps> = ({
                   }
                 >
                   {isSelected && (
-                    <div className="absolute top-3 right-3 w-6 h-6 bg-sky-500 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
+                    <div
+                      aria-hidden="true"
+                      className="absolute top-3 right-3 w-6 h-6 bg-sky-700 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md"
+                    >
                       ✓
                     </div>
                   )}

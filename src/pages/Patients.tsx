@@ -1,51 +1,31 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { Patient, AnyDietPlan } from "../types";
+import type { Patient } from "../types";
 import {
   SearchIcon,
   PlusIcon,
-  EditIcon,
-  TrashIcon,
-  DocumentTextIcon,
   CheckCircleIcon,
   XCircleIcon,
   UsersIcon,
 } from "../components/icons";
 import { useAuth } from "../contexts/AuthContext";
 import {
-  getPatients,
   deletePatientCascade,
   archivePatient,
   unarchivePatient,
-  getAllDiets,
 } from "../services/firebaseService";
+import { usePatientDirectory } from "../hooks/usePatientDirectory";
+import { useLatestDiets } from "../hooks/useLatestDiets";
 import PatientDietHistoryModal from "../components/modals/PatientDietHistoryModal";
 import NewPatientModal from "../components/modals/NewPatientModal";
 import { ConfirmationModal } from "../components/modals/PatientModal";
 
-const ArchiveIcon: React.FC<{ className?: string }> = ({
-  className = "w-4 h-4",
-}) => (
-  <svg
-    className={className}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={1.75}
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-    />
-  </svg>
-);
 import LoadingState from "../components/patient-list/LoadingState";
 import EmptyState from "../components/patient-list/EmptyState";
+import PatientActionsMenu from "../components/patient-list/PatientActionsMenu";
 import PatientAccessModal from "../components/modals/PatientAccessModal";
-import { PageHeader, Input, Button, Badge } from "../components/ui";
+import { PageHeader, Input, Button, Badge, ErrorState } from "../components/ui";
 
 /* ----------------------------------------------------------------- Toast */
 interface ToastProps {
@@ -55,79 +35,83 @@ interface ToastProps {
   onClose: () => void;
 }
 
-const Toast: React.FC<ToastProps> = ({ title, message, type, onClose }) => (
-  <div className="fixed top-4 left-4 right-4 sm:left-auto sm:w-full sm:max-w-sm z-50 animate-fade-in-down">
-    <div className="flex items-start gap-3 rounded-2xl bg-white border border-slate-200 shadow-pop p-4">
-      <div
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-          type === "success"
-            ? "bg-sage-50 text-sage-600"
-            : type === "warning"
-              ? "bg-amber-50 text-amber-600"
-              : "bg-rose-50 text-rose-600"
-        }`}
-      >
-        {type === "success" ? (
-          <CheckCircleIcon className="h-5 w-5" />
-        ) : type === "warning" ? (
+const Toast: React.FC<ToastProps> = ({ title, message, type, onClose }) => {
+  const { t } = useTranslation();
+  return (
+    <div
+      role={type === "error" ? "alert" : "status"}
+      className="fixed top-4 left-4 right-4 sm:left-auto sm:w-full sm:max-w-sm z-50 animate-fade-in-down"
+    >
+      <div className="flex items-start gap-3 rounded-2xl bg-white border border-slate-200 shadow-pop p-4">
+        <div
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+            type === "success"
+              ? "bg-sage-50 text-sage-600"
+              : type === "warning"
+                ? "bg-amber-50 text-amber-600"
+                : "bg-rose-50 text-rose-600"
+          }`}
+        >
+          {type === "success" ? (
+            <CheckCircleIcon className="h-5 w-5" />
+          ) : type === "warning" ? (
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+              />
+            </svg>
+          ) : (
+            <XCircleIcon className="h-5 w-5" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-slate-900">{title}</p>
+          <p className="mt-0.5 text-sm text-slate-500">{message}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-lg p-1 text-slate-500 hover:bg-slate-100 transition-colors focus-ring"
+          aria-label={t("a11y.dismiss")}
+        >
           <svg
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
+            aria-hidden="true"
+            className="h-4 w-4"
+            viewBox="0 0 20 20"
+            fill="currentColor"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-            />
+            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
           </svg>
-        ) : (
-          <XCircleIcon className="h-5 w-5" />
-        )}
+        </button>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-slate-900">{title}</p>
-        <p className="mt-0.5 text-sm text-slate-500">{message}</p>
-      </div>
-      <button
-        onClick={onClose}
-        className="shrink-0 rounded-lg p-1 text-slate-400 hover:bg-slate-100 transition-colors"
-        aria-label="Fechar"
-      >
-        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-        </svg>
-      </button>
     </div>
-  </div>
-);
+  );
+};
 
-const PortalLinkIcon: React.FC<{ active?: boolean }> = ({ active }) => (
-  <svg
-    className={`w-5 h-5 ${active ? "text-teal-500" : ""}`}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-    />
-  </svg>
-);
+/** Rows rendered per page; diet status is only read for rendered rows. */
+const PAGE_SIZE = 20;
 
 const Patients: React.FC = () => {
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [allDiets, setAllDiets] = useState<AnyDietPlan[]>([]);
+  // Shared roster: search, status tabs and counters work over all patients
+  // without re-reading them on every visit.
+  const {
+    patients,
+    loading,
+    error: patientsError,
+    retry: retryPatients,
+  } = usePatientDirectory();
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -165,56 +149,17 @@ const Patients: React.FC = () => {
     setToast(toastInfo);
   };
 
+  // Load failures are shown in place (ErrorState with retry), not as a toast.
   useEffect(() => {
-    if (currentUser) {
-      setLoading(true);
-      const unsubscribePatients = getPatients(
-        currentUser.uid,
-        (fetchedPatients) => {
-          setPatients(fetchedPatients);
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Error fetching patients:", error);
-          setLoading(false);
-          showToast({
-            title: t("patients.toast_error_title"),
-            message: t("patients.error_load_patients"),
-            type: "error",
-          });
-        },
-      );
-      const unsubscribeDiets = getAllDiets(
-        currentUser.uid,
-        (fetchedDiets) => setAllDiets(fetchedDiets),
-        (error) => {
-          console.error("Error fetching diets:", error);
-          showToast({
-            title: t("patients.toast_error_title"),
-            message: t("patients.error_load_diets"),
-            type: "error",
-          });
-        },
-      );
-      return () => {
-        unsubscribePatients();
-        unsubscribeDiets();
-      };
-    }
-  }, [currentUser, t]);
-
-  const latestDietByPatient = useMemo(() => {
-    const dietMap = new Map<string, AnyDietPlan>();
-    allDiets.forEach((diet) => {
-      if (!dietMap.has(diet.patientId)) dietMap.set(diet.patientId, diet);
-    });
-    return dietMap;
-  }, [allDiets]);
+    if (patientsError) console.error("Error fetching patients:", patientsError);
+  }, [patientsError]);
 
   const getDietStatus = (
     patientId: string,
   ): { text: string; tone: "emerald" | "amber" | "slate" } => {
-    const diet = latestDietByPatient.get(patientId);
+    const diet = latestDiets.get(patientId);
+    if (diet === undefined)
+      return { text: t("patients.status_loading"), tone: "slate" };
     if (!diet || !diet.id)
       return { text: t("patients.status_no_diet"), tone: "slate" };
     const patient = patients.find((p) => p.id === patientId);
@@ -342,168 +287,55 @@ const Patients: React.FC = () => {
     return true;
   });
 
-  const ActionButtons: React.FC<{ patient: Patient }> = ({ patient }) => {
-    const isOpen = openMenuId === patient.id;
-    const triggerRef = useRef<HTMLButtonElement>(null);
-    const menuRef = useRef<HTMLDivElement>(null);
-    const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
+  // Back to the first page whenever the search or the status tab changes.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchTerm, statusFilter]);
 
-    const computePosition = () => {
-      const el = triggerRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      // Abre para cima quando há pouco espaço abaixo, garantindo que todas as
-      // opções (inclusive "Excluir") fiquem sempre visíveis (correção D2).
-      const openUp = spaceBelow < 240 && rect.top > spaceBelow;
-      const right = Math.max(8, window.innerWidth - rect.right);
-      setMenuStyle(
-        openUp
-          ? {
-              position: "fixed",
-              bottom: window.innerHeight - rect.top + 4,
-              right,
-              maxHeight: rect.top - 16,
-            }
-          : {
-              position: "fixed",
-              top: rect.bottom + 4,
-              right,
-              maxHeight: window.innerHeight - rect.bottom - 16,
-            },
-      );
-    };
+  const pagePatients = filteredPatients.slice(0, visibleCount);
+  const remainingCount = filteredPatients.length - pagePatients.length;
+  const { latest: latestDiets, error: dietsError } = useLatestDiets(
+    currentUser?.uid,
+    pagePatients.map((p) => p.id!),
+  );
 
-    const handleToggle = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!isOpen) computePosition();
-      setOpenMenuId(isOpen ? null : patient.id!);
-    };
+  useEffect(() => {
+    if (!dietsError) return;
+    console.error("Error fetching latest diets:", dietsError);
+    showToast({
+      title: t("patients.toast_error_title"),
+      message: t("patients.error_load_diets"),
+      type: "error",
+    });
+  }, [dietsError, t]);
 
-    // Fecha ao clicar fora, rolar a página ou redimensionar (posição é fixa).
-    useEffect(() => {
-      if (!isOpen) return;
-      const onDocMouseDown = (ev: MouseEvent) => {
-        const t = ev.target as Node;
-        if (triggerRef.current?.contains(t) || menuRef.current?.contains(t))
-          return;
-        setOpenMenuId(null);
-      };
-      const onScrollOrResize = () => setOpenMenuId(null);
-      const onKey = (ev: KeyboardEvent) => {
-        if (ev.key === "Escape") setOpenMenuId(null);
-      };
-      document.addEventListener("mousedown", onDocMouseDown);
-      window.addEventListener("scroll", onScrollOrResize, true);
-      window.addEventListener("resize", onScrollOrResize);
-      document.addEventListener("keydown", onKey);
-      return () => {
-        document.removeEventListener("mousedown", onDocMouseDown);
-        window.removeEventListener("scroll", onScrollOrResize, true);
-        window.removeEventListener("resize", onScrollOrResize);
-        document.removeEventListener("keydown", onKey);
-      };
-    }, [isOpen]);
-
-    const itemCls =
-      "flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors";
-
+  const actionsFor = (patient: Patient, variant: "table" | "card") => {
+    // Desktop table and mobile cards both render a menu for each patient;
+    // key the open state by layout so only the clicked instance opens.
+    const menuKey = `${variant}:${patient.id}`;
     return (
-      <>
-        <button
-          ref={triggerRef}
-          onClick={handleToggle}
-          aria-label="Mais ações"
-          aria-haspopup="menu"
-          aria-expanded={isOpen}
-          className="flex items-center justify-center w-10 h-10 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 3a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 5.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
-          </svg>
-        </button>
-        {isOpen &&
-          createPortal(
-            <div
-              ref={menuRef}
-              role="menu"
-              style={menuStyle}
-              className="z-[100] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-pop min-w-[210px] overflow-y-auto py-1 animate-fade-in"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                role="menuitem"
-                onClick={() => {
-                  handleViewHistory(patient);
-                  setOpenMenuId(null);
-                }}
-                className={itemCls}
-              >
-                <DocumentTextIcon className="w-4 h-4 text-slate-400 shrink-0" />
-                {t("patients.history_menu")}
-              </button>
-              <button
-                role="menuitem"
-                onClick={() => {
-                  setPortalPatient(patient);
-                  setOpenMenuId(null);
-                }}
-                className={itemCls}
-              >
-                <PortalLinkIcon active={!!patient.portalUid} />
-                {patient.portalUid
-                  ? t("patients.manage_portal_menu")
-                  : t("patients.invite_portal_menu")}
-              </button>
-              <button
-                role="menuitem"
-                onClick={() => {
-                  handleEditPatient(patient);
-                  setOpenMenuId(null);
-                }}
-                className={itemCls}
-              >
-                <EditIcon className="w-4 h-4 text-slate-400 shrink-0" />
-                {t("patients.edit_patient_menu")}
-              </button>
-              <button
-                role="menuitem"
-                onClick={() => {
-                  setPatientToArchive(patient);
-                  setOpenMenuId(null);
-                }}
-                className={itemCls}
-              >
-                <ArchiveIcon className="w-4 h-4 text-slate-400 shrink-0" />
-                {patient.status === "Archived"
-                  ? t("patients.unarchive_patient_menu", {
-                      defaultValue: "Desarquivar Paciente",
-                    })
-                  : t("patients.archive_patient_menu", {
-                      defaultValue: "Arquivar Paciente",
-                    })}
-              </button>
-              <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-              <button
-                role="menuitem"
-                onClick={() => {
-                  promptDeletePatient(patient);
-                  setOpenMenuId(null);
-                }}
-                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-              >
-                <TrashIcon className="w-4 h-4 shrink-0" />
-                {t("patients.delete_patient_menu")}
-              </button>
-            </div>,
-            document.body,
-          )}
-      </>
+      <PatientActionsMenu
+        patient={patient}
+        open={openMenuId === menuKey}
+        onOpenChange={(open) => setOpenMenuId(open ? menuKey : null)}
+        onViewHistory={() => handleViewHistory(patient)}
+        onManagePortal={() => setPortalPatient(patient)}
+        onEdit={() => handleEditPatient(patient)}
+        onToggleArchive={() => setPatientToArchive(patient)}
+        onDelete={() => promptDeletePatient(patient)}
+      />
     );
   };
 
   const renderContent = () => {
     if (loading) return <LoadingState />;
+    if (patientsError)
+      return (
+        <ErrorState
+          message={t("patients.error_load_patients")}
+          onRetry={retryPatients}
+        />
+      );
     if (patients.length === 0)
       return <EmptyState onAddPatient={handleAddPatient} />;
     if (filteredPatients.length === 0)
@@ -526,6 +358,7 @@ const Patients: React.FC = () => {
         {/* Desktop table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full">
+            <caption className="sr-only">{t("patients.title")}</caption>
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800">
                 {[
@@ -536,15 +369,22 @@ const Patients: React.FC = () => {
                 ].map((h, i) => (
                   <th
                     key={i}
-                    className={`px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider ${i === 3 ? "text-right" : "text-left"}`}
+                    scope="col"
+                    className={`px-6 py-3.5 text-xs font-bold text-slate-500 uppercase tracking-wider ${i === 3 ? "text-right" : "text-left"}`}
                   >
-                    {h}
+                    {h || (
+                      <span className="sr-only">
+                        {t("patients.header_actions", {
+                          defaultValue: "Ações",
+                        })}
+                      </span>
+                    )}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredPatients.map((patient) => {
+              {pagePatients.map((patient) => {
                 const dietStatus = getDietStatus(patient.id!);
                 const age = getAge(patient.dob);
                 return (
@@ -552,14 +392,14 @@ const Patients: React.FC = () => {
                     key={patient.id}
                     className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors group"
                   >
-                    <td
-                      className="px-6 py-3.5 cursor-pointer"
-                      onClick={() => navigate(`/patients/${patient.id}`)}
-                    >
-                      <div className="flex items-center gap-3">
+                    <td className="px-6 py-3.5">
+                      <Link
+                        to={`/patients/${patient.id}`}
+                        className="flex items-center gap-3 rounded-xl focus-ring"
+                      >
                         <img
                           className="h-10 w-10 rounded-xl object-cover ring-2 ring-white shadow-sm group-hover:scale-105 transition-transform"
-                          src={patient.avatarUrl}
+                          src={patient.avatarUrl || undefined}
                           alt=""
                         />
                         <div className="min-w-0">
@@ -575,11 +415,11 @@ const Patients: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 truncate">
+                          <p className="text-xs text-slate-500 truncate">
                             {patient.email}
                           </p>
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     <td className="px-6 py-3.5 text-sm text-slate-500 whitespace-nowrap">
                       {age === "N/A"
@@ -591,7 +431,7 @@ const Patients: React.FC = () => {
                     </td>
                     <td className="px-6 py-3.5 text-right">
                       <div className="flex justify-end">
-                        <ActionButtons patient={patient} />
+                        {actionsFor(patient, "table")}
                       </div>
                     </td>
                   </tr>
@@ -603,18 +443,18 @@ const Patients: React.FC = () => {
 
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-          {filteredPatients.map((patient) => {
+          {pagePatients.map((patient) => {
             const dietStatus = getDietStatus(patient.id!);
             const age = getAge(patient.dob);
             return (
               <div key={patient.id} className="p-4">
-                <div
-                  className="flex items-center gap-3"
-                  onClick={() => navigate(`/patients/${patient.id}`)}
+                <Link
+                  to={`/patients/${patient.id}`}
+                  className="flex items-center gap-3 rounded-xl focus-ring"
                 >
                   <img
                     className="h-11 w-11 rounded-xl object-cover ring-2 ring-white shadow-sm"
-                    src={patient.avatarUrl}
+                    src={patient.avatarUrl || undefined}
                     alt=""
                   />
                   <div className="flex-1 min-w-0">
@@ -630,21 +470,34 @@ const Patients: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500">
                       {age === "N/A"
                         ? "N/A"
                         : t("patients.years_old", { count: age })}
                     </p>
                   </div>
-                </div>
+                </Link>
                 <div className="mt-3 flex items-center justify-between">
                   <Badge tone={dietStatus.tone}>{dietStatus.text}</Badge>
-                  <ActionButtons patient={patient} />
+                  {actionsFor(patient, "card")}
                 </div>
               </div>
             );
           })}
         </div>
+
+        {remainingCount > 0 && (
+          <div className="border-t border-slate-100 dark:border-slate-800 p-4 flex justify-center">
+            <Button
+              variant="ghost"
+              onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            >
+              {t("patients.load_more", {
+                count: Math.min(PAGE_SIZE, remainingCount),
+              })}
+            </Button>
+          </div>
+        )}
       </>
     );
   };
@@ -680,33 +533,39 @@ const Patients: React.FC = () => {
         {/* Status Filter Tabs */}
         <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold shrink-0">
           <button
+            type="button"
+            aria-pressed={statusFilter === "all"}
             onClick={() => setStatusFilter("all")}
             className={`px-3 py-1.5 rounded-lg transition-colors ${
               statusFilter === "all"
                 ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                : "text-slate-600 hover:text-slate-800 dark:text-slate-400"
             }`}
           >
             {t("patients.filter_all", { defaultValue: "Todos" })} (
             {patients.length})
           </button>
           <button
+            type="button"
+            aria-pressed={statusFilter === "active"}
             onClick={() => setStatusFilter("active")}
             className={`px-3 py-1.5 rounded-lg transition-colors ${
               statusFilter === "active"
                 ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                : "text-slate-600 hover:text-slate-800 dark:text-slate-400"
             }`}
           >
             {t("patients.filter_active", { defaultValue: "Ativos" })} (
             {patients.filter((p) => p.status !== "Archived").length})
           </button>
           <button
+            type="button"
+            aria-pressed={statusFilter === "archived"}
             onClick={() => setStatusFilter("archived")}
             className={`px-3 py-1.5 rounded-lg transition-colors ${
               statusFilter === "archived"
                 ? "bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm"
-                : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                : "text-slate-600 hover:text-slate-800 dark:text-slate-400"
             }`}
           >
             {t("patients.filter_archived", { defaultValue: "Arquivados" })} (

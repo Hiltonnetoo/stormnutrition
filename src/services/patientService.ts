@@ -4,6 +4,7 @@ import {
   where,
   getDocs,
   onSnapshot,
+  getCountFromServer,
   doc,
   addDoc,
   updateDoc,
@@ -11,8 +12,6 @@ import {
   getDoc,
   deleteDoc,
   type FirestoreError,
-  type Query,
-  type DocumentData,
 } from "firebase/firestore";
 import { db } from "./firebaseCore";
 import type { Patient } from "../types";
@@ -335,6 +334,13 @@ export const deletePatientCascade = async (
 /** Backwards-compatible alias for deletePatientCascade */
 export const deletePatient = deletePatientCascade;
 
+/**
+ * Real-time roster of the professional's patients. It reads the whole
+ * collection on purpose: substring search, notifications and patient pickers
+ * work over the full roster. Screens must consume it through the shared
+ * `PatientDirectoryProvider` (one subscription per session) instead of
+ * subscribing on their own.
+ */
 export const getPatients = (
   userId: string,
   callback: (patients: Patient[]) => void,
@@ -362,74 +368,13 @@ export const getPatients = (
   );
 };
 
-const getCountClientSide = (
-  q: Query<DocumentData>,
-  filterFn: (docData: DocumentData) => boolean,
-  callback: (count: number) => void,
-  contextName: string,
-) => {
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      let count = 0;
-      snapshot.docs.forEach((doc) => {
-        if (filterFn(doc.data())) {
-          count++;
-        }
-      });
-      callback(count);
-    },
-    (error) => {
-      handleSnapshotError(error, contextName);
-    },
-  );
-};
-
-export const getPatientsCount = (
-  userId: string,
-  callback: (count: number) => void,
-) => {
-  if (!userId) return () => {};
-  return getCountClientSide(
-    query(getPatientsCollection(userId)),
-    () => true,
-    callback,
-    "getPatientsCount",
-  );
-};
-
-export const getActivePatientsCount = (
-  userId: string,
-  callback: (count: number) => void,
-) => {
-  if (!userId) return () => {};
-  return getCountClientSide(
-    query(getPatientsCollection(userId)),
-    (data) => data.status === "Active",
-    callback,
-    "getActivePatientsCount",
-  );
-};
-
-export const getNewPatientsThisMonthCount = (
-  userId: string,
-  callback: (count: number) => void,
-) => {
-  if (!userId) return () => {};
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
-  const isoStart = startOfMonth.toISOString();
-
-  return getCountClientSide(
-    query(getPatientsCollection(userId)),
-    (data) => {
-      const createdAt = data.createdAt?.toDate
-        ? data.createdAt.toDate().toISOString()
-        : data.createdAt;
-      return createdAt >= isoStart;
-    },
-    callback,
-    "getNewPatientsThisMonthCount",
-  );
+/**
+ * Server-side count of the professional's patients (aggregation query: one
+ * billed read per 1 000 index entries instead of downloading every document).
+ * One-shot: callers refresh it when the screen opens, not in real time.
+ */
+export const countPatients = async (userId: string): Promise<number> => {
+  if (!userId) return 0;
+  const snap = await getCountFromServer(query(getPatientsCollection(userId)));
+  return snap.data().count;
 };

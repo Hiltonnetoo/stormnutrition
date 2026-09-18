@@ -36,12 +36,23 @@ const DietProgressBar: React.FC<DietProgressBarProps> = ({
   ];
 
   return (
-    <nav aria-label="Progress" className="w-full max-w-sm mx-auto">
+    <nav
+      aria-label={t("a11y.form_progress")}
+      className="w-full max-w-sm mx-auto"
+    >
       <ol className="flex items-center">
         {steps.map((step, stepIdx) => {
           const isCompleted = step.number < currentStep;
           const isActive = step.number === currentStep;
           const canNavigate = completedSteps[step.number - 1] || isCompleted;
+          const stepName = t(
+            isCompleted
+              ? "a11y.step_completed"
+              : isActive
+                ? "a11y.step_current"
+                : "a11y.step_upcoming",
+            { number: step.number, label: step.title },
+          );
           return (
             <li key={step.title} className="relative flex-1">
               {stepIdx < steps.length - 1 && (
@@ -51,11 +62,15 @@ const DietProgressBar: React.FC<DietProgressBarProps> = ({
                 />
               )}
               <button
+                type="button"
                 onClick={() => canNavigate && goToStep(step.number)}
                 disabled={!canNavigate}
-                className={`relative z-10 flex flex-col items-center justify-center w-full ${canNavigate ? "cursor-pointer" : "cursor-default"}`}
+                aria-label={stepName}
+                aria-current={isActive ? "step" : undefined}
+                className={`relative z-10 flex flex-col items-center justify-center w-full rounded-lg focus-ring ${canNavigate ? "cursor-pointer" : "cursor-default"}`}
               >
                 <div
+                  aria-hidden="true"
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isCompleted
                       ? "bg-sage-600 text-white shadow-md shadow-sage-600/25"
@@ -84,7 +99,8 @@ const DietProgressBar: React.FC<DietProgressBarProps> = ({
                   )}
                 </div>
                 <p
-                  className={`mt-2 text-xs text-center font-semibold transition-colors ${isActive ? "text-sage-600 dark:text-sage-300" : "text-slate-400"}`}
+                  aria-hidden="true"
+                  className={`mt-2 text-xs text-center font-semibold transition-colors ${isActive ? "text-sage-600 dark:text-sage-300" : "text-slate-500"}`}
                 >
                   {step.title}
                 </p>

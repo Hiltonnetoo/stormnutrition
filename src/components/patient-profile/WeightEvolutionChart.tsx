@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import ChartDataTable from "../ChartDataTable";
 import { WeightRecord } from "../../types";
 import { formatCivilDate } from "../../utils/dateTime";
 
@@ -9,6 +11,7 @@ interface Props {
 type RangeFilter = "recent10" | "last90d" | "all";
 
 const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
+  const { t, i18n } = useTranslation();
   const [filter, setFilter] = useState<RangeFilter>("recent10");
 
   // Filter and sort data chronologically
@@ -36,7 +39,7 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
       <div className="h-64 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
         <span className="text-4xl mb-2">📊</span>
         <p className="text-gray-400 font-medium">
-          Nenhuma medição de peso registrada até o momento.
+          {t("profile.evolution.no_measurements")}
         </p>
       </div>
     );
@@ -49,10 +52,13 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
         <div className="flex justify-between items-center mb-6">
           <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <span className="text-blue-500">📈</span> Evolução do Peso (kg)
+            <span aria-hidden="true" className="text-blue-500">
+              📈
+            </span>{" "}
+            {t("profile.evolution.weight_evolution_title")}
           </h3>
           <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg">
-            1ª Medição Registrada
+            {t("profile.evolution.first_measurement")}
           </span>
         </div>
         <div className="h-48 flex flex-col items-center justify-center bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/30 p-4">
@@ -60,12 +66,13 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
             {single.weight.toFixed(1)} kg
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Aferido em {formatCivilDate(single.date.split("T")[0])}
+            {t("profile.evolution.measured_on", {
+              date: formatCivilDate(single.date.split("T")[0], i18n.language),
+            })}
             {single.origin ? ` (${single.origin})` : ""}
           </p>
           <p className="text-[11px] text-gray-400 mt-3 text-center">
-            Registre medições adicionais para visualizar a linha de tendência
-            comparativa.
+            {t("profile.evolution.register_more")}
           </p>
         </div>
       </div>
@@ -102,45 +109,58 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-          <span className="text-blue-500">📈</span> Evolução do Peso (kg)
+          <span aria-hidden="true" className="text-blue-500">
+            📈
+          </span>{" "}
+          {t("profile.evolution.weight_evolution_title")}
         </h3>
 
         {/* Range filter buttons */}
-        <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700/50 p-1 rounded-xl">
+        <div
+          role="group"
+          aria-label={t("a11y.chart_filter")}
+          className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700/50 p-1 rounded-xl"
+        >
           <button
+            type="button"
+            aria-pressed={filter === "recent10"}
             onClick={() => setFilter("recent10")}
-            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all focus-ring ${
               filter === "recent10"
-                ? "bg-white dark:bg-gray-800 text-blue-600 shadow-xs"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-white dark:bg-gray-800 text-blue-700 shadow-xs"
+                : "text-gray-600 hover:text-gray-800"
             }`}
           >
-            Últimas 10
+            {t("profile.evolution.filter_recent_10")}
           </button>
           <button
+            type="button"
+            aria-pressed={filter === "last90d"}
             onClick={() => setFilter("last90d")}
-            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all focus-ring ${
               filter === "last90d"
-                ? "bg-white dark:bg-gray-800 text-blue-600 shadow-xs"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-white dark:bg-gray-800 text-blue-700 shadow-xs"
+                : "text-gray-600 hover:text-gray-800"
             }`}
           >
-            90 Dias
+            {t("profile.evolution.filter_last_90d")}
           </button>
           <button
+            type="button"
+            aria-pressed={filter === "all"}
             onClick={() => setFilter("all")}
-            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
+            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all focus-ring ${
               filter === "all"
-                ? "bg-white dark:bg-gray-800 text-blue-600 shadow-xs"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-white dark:bg-gray-800 text-blue-700 shadow-xs"
+                : "text-gray-600 hover:text-gray-800"
             }`}
           >
-            Todos ({data.length})
+            {t("profile.evolution.filter_all", { count: data.length })}
           </button>
         </div>
       </div>
 
-      <div className="relative h-[300px] w-full">
+      <div aria-hidden="true" className="relative h-[300px] w-full">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="w-full h-full overflow-visible"
@@ -233,6 +253,19 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
           ))}
         </svg>
       </div>
+      <ChartDataTable
+        caption={t("a11y.weight_chart")}
+        columns={[
+          t("a11y.col_date"),
+          t("a11y.col_weight"),
+          t("a11y.col_origin"),
+        ]}
+        rows={sortedData.map((d) => [
+          formatCivilDate(d.date.split("T")[0]),
+          d.weight.toFixed(1),
+          d.origin ?? "—",
+        ])}
+      />
     </div>
   );
 };

@@ -1,8 +1,8 @@
 import React from "react";
-import { Skeleton } from "../ui";
+import { Skeleton, LoadingState as StatusRegion } from "../ui";
 
 const LoadingState: React.FC = () => (
-  <div className="p-4 sm:p-6 space-y-3">
+  <StatusRegion className="p-4 sm:p-6 space-y-3">
     {Array.from({ length: 6 }).map((_, i) => (
       <div key={i} className="flex items-center gap-4 p-3">
         <Skeleton className="h-11 w-11 rounded-xl shrink-0" />
@@ -14,7 +14,7 @@ const LoadingState: React.FC = () => (
         <Skeleton className="h-8 w-20 rounded-lg" />
       </div>
     ))}
-  </div>
+  </StatusRegion>
 );
 
 export default LoadingState;

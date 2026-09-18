@@ -1,23 +1,26 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, {
+  useState,
+  useEffect,
+  useId,
+  useRef,
+  lazy,
+  Suspense,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/AuthContext";
 import {
-  getDietPlansForPatient,
+  getPatientDiets,
   deleteDietPlan,
 } from "../../services/firebaseService";
 import type { Patient, DietPlan, AnyDietPlan } from "../../types";
-import {
-  CloseIcon,
-  UtensilsIcon,
-  DownloadIcon,
-  EditIcon,
-  TrashIcon,
-} from "../icons";
+import { UtensilsIcon, DownloadIcon, EditIcon, TrashIcon } from "../icons";
 import DietPlanViewer from "../DietPlanViewer";
 const ExportDietModal = lazy(() => import("./ExportDietModal"));
 import { ConfirmationModal } from "./PatientModal";
 import { useNavigate } from "react-router-dom";
-import { Badge } from "../ui";
+import { Badge, CloseButton, LoadingState } from "../ui";
+import { Dialog } from "../Dialog";
+import { useFocusOnChange } from "../../hooks/useFocusOnChange";
 
 interface PatientDietHistoryModalProps {
   isOpen: boolean;
@@ -39,11 +42,16 @@ const PatientDietHistoryModal: React.FC<PatientDietHistoryModalProps> = ({
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [dietToDelete, setDietToDelete] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
+  const titleId = useId();
+  const contentRef = useRef<HTMLDivElement>(null);
+  // Switching between the list and one diet replaces the dialog content:
+  // move focus to the new heading.
+  useFocusOnChange(selectedDiet?.id ?? "list", contentRef, "h2");
 
   useEffect(() => {
     if (isOpen && currentUser && patient.id) {
       setLoading(true);
-      const unsubscribe = getDietPlansForPatient(
+      const unsubscribe = getPatientDiets(
         currentUser.uid,
         patient.id,
         (fetchedDiets) => {
@@ -92,187 +100,210 @@ const PatientDietHistoryModal: React.FC<PatientDietHistoryModalProps> = ({
     />
   );
 
-  const overlay = "fixed inset-0 z-50 flex justify-center items-center p-4";
-  const backdrop =
-    "absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fade-in";
-  const panel =
-    "relative bg-white dark:bg-slate-850 rounded-3xl shadow-pop border border-slate-200/70 dark:border-slate-700/60 w-full flex flex-col max-h-[95vh] animate-scale-in";
-
-  if (selectedDiet) {
-    const isV2 = (selectedDiet as DietPlan).version === 2;
-    return (
-      <>
-        {confirmDelete}
-        <div className={overlay}>
-          <div className={backdrop} onClick={() => setSelectedDiet(null)} />
-          <div
-            className={`${panel} max-w-4xl`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                {t("modals.patient_diet_history.diet_of", {
-                  date: new Date(selectedDiet.createdAt).toLocaleDateString(
-                    i18n.language === "en" ? "en-US" : "pt-BR",
-                  ),
-                })}
-              </h2>
-              <div className="flex items-center gap-2 no-export">
-                {isV2 && (
-                  <>
-                    <button
-                      onClick={() => handleEditDiet(selectedDiet as DietPlan)}
-                      className="btn-secondary btn-sm"
-                    >
-                      <EditIcon className="w-4 h-4" />{" "}
-                      {t("modals.patient_diet_history.edit_btn")}
-                    </button>
-                    <button
-                      onClick={() => setIsExportModalOpen(true)}
-                      className="btn-secondary btn-sm"
-                    >
-                      <DownloadIcon className="w-4 h-4" />{" "}
-                      {t("modals.patient_diet_history.export_btn")}
-                    </button>
-                  </>
-                )}
-                <button
-                  onClick={() => setSelectedDiet(null)}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800"
-                >
-                  <CloseIcon className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            <div id="diet-plan-viewer-content" className="p-6 overflow-y-auto">
-              <DietPlanViewer
-                plan={selectedDiet as DietPlan}
-                patient={patient}
-              />
-            </div>
-          </div>
-        </div>
-        {isV2 && (
-          <Suspense fallback={null}>
-            <ExportDietModal
-              isOpen={isExportModalOpen}
-              onClose={() => setIsExportModalOpen(false)}
-              plan={selectedDiet as DietPlan}
-              targetElementId="diet-plan-viewer-content"
-            />
-          </Suspense>
-        )}
-      </>
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString(
+      i18n.language === "en" ? "en-US" : "pt-BR",
     );
-  }
+  const isV2 = (selectedDiet as DietPlan | null)?.version === 2;
 
   return (
     <>
       {confirmDelete}
-      <div className={overlay}>
-        <div className={backdrop} onClick={onClose} />
-        <div
-          className={`${panel} max-w-2xl`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {t("modals.patient_diet_history.title", {
-                name: patient.firstName,
-              })}
-            </h2>
-            <button
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800"
-            >
-              <CloseIcon className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="p-6 overflow-y-auto">
-            {loading && (
-              <p className="text-sm text-slate-400 text-center py-8">
-                {t("modals.patient_diet_history.loading")}
-              </p>
-            )}
-            {!loading && diets.length === 0 && (
-              <div className="text-center py-12">
-                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-                  <UtensilsIcon className="w-6 h-6" />
+      <Dialog
+        open
+        onClose={selectedDiet ? () => setSelectedDiet(null) : onClose}
+        labelledBy={titleId}
+        backdropClassName="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
+        className={`relative bg-white dark:bg-slate-850 rounded-3xl shadow-pop border border-slate-200/70 dark:border-slate-700/60 w-full flex flex-col max-h-[95vh] animate-scale-in ${selectedDiet ? "max-w-4xl" : "max-w-2xl"}`}
+      >
+        <div ref={contentRef} className="flex flex-col min-h-0">
+          {selectedDiet ? (
+            <>
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap gap-2 justify-between items-center shrink-0">
+                <h2
+                  id={titleId}
+                  className="text-lg font-bold text-slate-900 dark:text-white"
+                >
+                  {t("modals.patient_diet_history.diet_of", {
+                    date: formatDate(selectedDiet.createdAt),
+                  })}
+                </h2>
+                <div className="flex items-center gap-2 no-export">
+                  {isV2 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleEditDiet(selectedDiet as DietPlan)}
+                        className="btn-secondary btn-sm"
+                      >
+                        <EditIcon className="w-4 h-4" aria-hidden="true" />{" "}
+                        {t("modals.patient_diet_history.edit_btn")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsExportModalOpen(true)}
+                        className="btn-secondary btn-sm"
+                      >
+                        <DownloadIcon className="w-4 h-4" aria-hidden="true" />{" "}
+                        {t("modals.patient_diet_history.export_btn")}
+                      </button>
+                    </>
+                  )}
+                  <CloseButton
+                    onClick={() => setSelectedDiet(null)}
+                    label={t("a11y.back_to_list")}
+                  />
                 </div>
-                <h3 className="font-bold text-slate-900 dark:text-white">
-                  {t("modals.patient_diet_history.empty_title")}
-                </h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  {t("modals.patient_diet_history.empty_desc")}
-                </p>
               </div>
-            )}
-            {deleteError && (
-              <p className="mb-3 text-sm text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
-                {deleteError}
-              </p>
-            )}
-            {!loading && diets.length > 0 && (
-              <ul className="space-y-2">
-                {diets.map((diet) => (
-                  <li
-                    key={diet.id}
-                    className="flex justify-between items-center p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+              <div
+                id="diet-plan-viewer-content"
+                className="p-6 overflow-y-auto"
+              >
+                <DietPlanViewer
+                  plan={selectedDiet as DietPlan}
+                  patient={patient}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <h2
+                  id={titleId}
+                  className="text-lg font-bold text-slate-900 dark:text-white"
+                >
+                  {t("modals.patient_diet_history.title", {
+                    name: patient.firstName,
+                  })}
+                </h2>
+                <CloseButton onClick={onClose} label={t("a11y.close")} />
+              </div>
+              <div className="p-6 overflow-y-auto">
+                {loading && (
+                  <LoadingState
+                    label={t("modals.patient_diet_history.loading")}
+                  />
+                )}
+                {!loading && diets.length === 0 && (
+                  <div className="text-center py-12">
+                    <div
+                      aria-hidden="true"
+                      className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400"
+                    >
+                      <UtensilsIcon className="w-6 h-6" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">
+                      {t("modals.patient_diet_history.empty_title")}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {t("modals.patient_diet_history.empty_desc")}
+                    </p>
+                  </div>
+                )}
+                {deleteError && (
+                  <p
+                    role="alert"
+                    className="mb-3 text-sm text-rose-700 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2"
                   >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-slate-800 dark:text-white">
-                          {t("modals.patient_diet_history.diet_plan_label")}
-                        </p>
-                        <Badge
-                          tone={
-                            (diet as DietPlan).version === 2 ? "sage" : "slate"
-                          }
+                    {deleteError}
+                  </p>
+                )}
+                {!loading && diets.length > 0 && (
+                  <ul className="space-y-2">
+                    {diets.map((diet) => {
+                      const date = formatDate(diet.createdAt);
+                      return (
+                        <li
+                          key={diet.id}
+                          className="flex flex-wrap gap-2 justify-between items-center p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
                         >
-                          {(diet as DietPlan).version === 2
-                            ? "v2"
-                            : t("modals.patient_diet_history.legacy_badge")}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {t("modals.patient_diet_history.created_on", {
-                          date: new Date(diet.createdAt).toLocaleDateString(
-                            i18n.language === "en" ? "en-US" : "pt-BR",
-                          ),
-                        })}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setSelectedDiet(diet)}
-                        className="px-3 py-1.5 text-xs font-bold text-sage-700 bg-sage-50 border border-sage-200 rounded-lg hover:bg-sage-100 transition-colors"
-                      >
-                        {t("modals.patient_diet_history.view_btn")}
-                      </button>
-                      {(diet as DietPlan).version === 2 && (
-                        <button
-                          onClick={() => handleEditDiet(diet as DietPlan)}
-                          className="p-2 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors"
-                          title={t("modals.patient_diet_history.edit_btn")}
-                        >
-                          <EditIcon className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => diet.id && handleDeleteDiet(diet.id)}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                        title={t("patients.delete_patient_menu")}
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-slate-800 dark:text-white">
+                                {t(
+                                  "modals.patient_diet_history.diet_plan_label",
+                                )}
+                              </p>
+                              <Badge
+                                tone={
+                                  (diet as DietPlan).version === 2
+                                    ? "sage"
+                                    : "slate"
+                                }
+                              >
+                                {(diet as DietPlan).version === 2
+                                  ? "v2"
+                                  : t(
+                                      "modals.patient_diet_history.legacy_badge",
+                                    )}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {t("modals.patient_diet_history.created_on", {
+                                date,
+                              })}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedDiet(diet)}
+                              aria-label={t("a11y.view_diet", { date })}
+                              className="px-3 py-1.5 text-xs font-bold text-sage-700 bg-sage-50 border border-sage-200 rounded-lg hover:bg-sage-100 transition-colors focus-ring"
+                            >
+                              {t("modals.patient_diet_history.view_btn")}
+                            </button>
+                            {(diet as DietPlan).version === 2 && (
+                              <button
+                                type="button"
+                                onClick={() => handleEditDiet(diet as DietPlan)}
+                                className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors focus-ring"
+                                aria-label={t("a11y.edit_diet", { date })}
+                                title={t(
+                                  "modals.patient_diet_history.edit_btn",
+                                )}
+                              >
+                                <EditIcon
+                                  className="w-4 h-4"
+                                  aria-hidden="true"
+                                />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                diet.id && handleDeleteDiet(diet.id)
+                              }
+                              className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors focus-ring"
+                              aria-label={t("a11y.delete_diet", { date })}
+                              title={t("a11y.delete_diet", { date })}
+                            >
+                              <TrashIcon
+                                className="w-4 h-4"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
         </div>
-      </div>
+      </Dialog>
+      {selectedDiet && isV2 && (
+        <Suspense fallback={null}>
+          <ExportDietModal
+            isOpen={isExportModalOpen}
+            onClose={() => setIsExportModalOpen(false)}
+            plan={selectedDiet as DietPlan}
+            targetElementId="diet-plan-viewer-content"
+          />
+        </Suspense>
+      )}
     </>
   );
 };

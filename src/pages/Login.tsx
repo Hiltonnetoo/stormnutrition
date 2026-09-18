@@ -201,14 +201,20 @@ const Login: React.FC<LoginProps> = ({ isPatient = false }) => {
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 text-sm flex items-start gap-3 animate-fade-in">
+          <div
+            role="alert"
+            className="p-3.5 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-sm flex items-start gap-3 animate-fade-in"
+          >
             <ShieldIcon className="w-5 h-5 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
         {info && (
-          <div className="p-3.5 rounded-xl bg-sage-50 border border-sage-100 text-sage-700 text-sm flex items-start gap-3 animate-fade-in">
+          <div
+            role="status"
+            className="p-3.5 rounded-xl bg-sage-50 border border-sage-100 text-sage-700 text-sm flex items-start gap-3 animate-fade-in"
+          >
             <CheckCircleIcon className="w-5 h-5 shrink-0 mt-0.5" />
             <span>{info}</span>
           </div>

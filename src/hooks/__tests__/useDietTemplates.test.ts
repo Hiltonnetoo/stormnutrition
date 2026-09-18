@@ -9,6 +9,8 @@ describe("useDietTemplates", () => {
   });
 
   const mockPlan: DietPlan = {
+    version: 2,
+    mode: "general",
     patientId: "p1",
     patientName: "Bob",
     createdAt: "2026-09-01",
@@ -25,6 +27,8 @@ describe("useDietTemplates", () => {
       fatPercentage: 30,
     },
     meals: [],
+    waterRecommendationLiters: 2,
+    generalObservations: [],
   };
 
   it("initializes with empty templates array when no uid", () => {

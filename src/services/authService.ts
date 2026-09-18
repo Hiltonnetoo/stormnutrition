@@ -7,8 +7,7 @@ import {
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { auth, db, storage, updateProfile } from "./firebaseCore";
+import { app, auth, db, updateProfile } from "./firebaseCore";
 import type { User } from "./firebaseCore";
 import type { PatientPortalProfile, NutritionistProfile } from "../types";
 import { firebaseConfig } from "./firebase.config";
@@ -30,7 +29,14 @@ export const uploadProfilePicture = async (
   if (!check.valid) {
     throw new Error(check.error);
   }
-  const storageRef = ref(storage, `profilePictures/${uid}/${file.name}`);
+  // Cloud Storage is only needed here: load it on demand so @firebase/storage
+  // stays out of the initial bundle.
+  const { getStorage, ref, uploadBytes, getDownloadURL } =
+    await import("firebase/storage");
+  const storageRef = ref(
+    getStorage(app),
+    `profilePictures/${uid}/${file.name}`,
+  );
   const snapshot = await uploadBytes(storageRef, file);
   return getDownloadURL(snapshot.ref);
 };

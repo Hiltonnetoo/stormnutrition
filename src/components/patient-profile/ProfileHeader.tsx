@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { Patient } from "../../types";
 import { Card, Button } from "../ui";
 import { calcAge } from "../../utils/calcAge";
+import { formatNumberWithLocale } from "../../utils/locale";
 
 interface ProfileHeaderProps {
   patient: Patient;
@@ -32,10 +33,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     {
       icon: "📏",
       label: t("profile.label_height"),
-      value:
-        i18n.language === "pt"
-          ? `${(patient.height / 100).toFixed(2).replace(".", ",")} m`
-          : `${(patient.height / 100).toFixed(2)} m`,
+      value: `${formatNumberWithLocale(patient.height / 100, i18n.language, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} m`,
     },
     {
       icon: "🎯",

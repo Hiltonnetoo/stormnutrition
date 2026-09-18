@@ -8,6 +8,9 @@ import {
   toUtcIsoString,
   parseLocalDateTime,
   isSameCivilDay,
+  formatWallClock,
+  getCivilMonthRange,
+  getRecentMonthRanges,
 } from "../dateTime";
 
 describe("dateTime utilities - Timezone and Civil Date Contracts", () => {
@@ -79,5 +82,60 @@ describe("dateTime utilities - Timezone and Civil Date Contracts", () => {
     expect(isSameCivilDay(morning, night, "America/Sao_Paulo")).toBe(true);
     // In UTC they are different days
     expect(isSameCivilDay(morning, night, "UTC")).toBe(false);
+  });
+});
+
+describe("dateTime utilities - query ranges (etapa 14)", () => {
+  it("formats wall-clock time in the clinic timezone, comparable to appointment dateTime", () => {
+    // 01:30 UTC on Sep 18 is still 22:30 on Sep 17 in São Paulo (UTC-3)
+    const instant = new Date("2026-09-18T01:30:05Z");
+    expect(formatWallClock(instant, "America/Sao_Paulo")).toBe(
+      "2026-09-17T22:30:05",
+    );
+    expect(formatWallClock(instant, "UTC")).toBe("2026-09-18T01:30:05");
+    // Lexicographic comparison works against stored "YYYY-MM-DDTHH:mm:ss"
+    expect("2026-09-17T23:00:00" >= formatWallClock(instant)).toBe(true);
+    expect("2026-09-17T22:00:00" >= formatWallClock(instant)).toBe(false);
+  });
+
+  it("uses 00 (not 24) for midnight wall-clock hours", () => {
+    expect(formatWallClock(new Date("2026-09-18T03:00:00Z"))).toBe(
+      "2026-09-18T00:00:00",
+    );
+  });
+
+  it("builds [start, end) month bounds including the year rollover", () => {
+    expect(getCivilMonthRange(2026, 8)).toEqual({
+      start: "2026-09-01",
+      end: "2026-10-01",
+    });
+    expect(getCivilMonthRange(2026, 11)).toEqual({
+      start: "2026-12-01",
+      end: "2027-01-01",
+    });
+    const { start, end } = getCivilMonthRange(2026, 1);
+    expect("2026-02-28T23:30:00" >= start && "2026-02-28T23:30:00" < end).toBe(
+      true,
+    );
+    expect("2026-03-01T00:00:00" < end).toBe(false);
+  });
+
+  it("returns the last N local months oldest-first, contiguous and ending with the current month", () => {
+    const now = new Date(2026, 1, 15, 12, 0, 0); // 15 Feb 2026, local time
+    const ranges = getRecentMonthRanges(6, now);
+    expect(ranges.map((r) => [r.year, r.monthIndex])).toEqual([
+      [2025, 8],
+      [2025, 9],
+      [2025, 10],
+      [2025, 11],
+      [2026, 0],
+      [2026, 1],
+    ]);
+    for (let i = 1; i < ranges.length; i++) {
+      expect(ranges[i].startIso).toBe(ranges[i - 1].endIso);
+    }
+    expect(ranges[5].startIso).toBe(new Date(2026, 1, 1).toISOString());
+    expect(ranges[5].endIso).toBe(new Date(2026, 2, 1).toISOString());
+    expect(getRecentMonthRanges(0, now)).toEqual([]);
   });
 });

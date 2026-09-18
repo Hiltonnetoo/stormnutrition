@@ -14,7 +14,6 @@ import {
   initializeFirestore,
   connectFirestoreEmulator,
 } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 import { firebaseConfig } from "./firebase.config";
 
 const app: FirebaseApp = initializeApp(firebaseConfig);
@@ -23,7 +22,6 @@ const auth = getAuth(app);
 const db = initializeFirestore(app, {
   ignoreUndefinedProperties: true,
 });
-const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
 // Detect explicit emulator test mode
@@ -67,7 +65,6 @@ export {
   app,
   auth,
   db,
-  storage,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,

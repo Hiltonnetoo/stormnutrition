@@ -2,34 +2,46 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BarChart3Icon } from "../icons";
-import { Card, Skeleton } from "../ui";
+import { Card, LoadingState, Skeleton } from "../ui";
 import type { MonthBucket } from "./dashboardUtils";
+import ChartDataTable from "../ChartDataTable";
 
 export const PerformanceBars: React.FC<{ buckets: MonthBucket[] }> = ({
   buckets,
 }) => {
+  const { t } = useTranslation();
   const max = Math.max(1, ...buckets.map((b) => b.count));
   return (
-    <div className="h-48 flex items-end justify-between gap-3 px-2 pt-4">
-      {buckets.map((b, i) => (
-        <div
-          key={i}
-          className="flex-1 flex flex-col items-center gap-2 h-full justify-end"
-        >
-          <span className="text-xs font-bold text-slate-500 dark:text-slate-300 stat-number">
-            {b.count}
-          </span>
+    <>
+      <div
+        aria-hidden="true"
+        className="h-48 flex items-end justify-between gap-3 px-2 pt-4"
+      >
+        {buckets.map((b, i) => (
           <div
-            className="w-full rounded-t-lg bg-gradient-to-t from-sage-300 to-sage-500 transition-all duration-500 min-h-[4px]"
-            style={{ height: `${(b.count / max) * 100}%` }}
-            title={`${b.count} plano(s) em ${b.label}`}
-          />
-          <span className="text-[11px] font-semibold text-slate-400 uppercase">
-            {b.label}
-          </span>
-        </div>
-      ))}
-    </div>
+            key={i}
+            className="flex-1 flex flex-col items-center gap-2 h-full justify-end"
+          >
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-300 stat-number">
+              {b.count}
+            </span>
+            <div
+              className="w-full rounded-t-lg bg-gradient-to-t from-sage-300 to-sage-500 transition-all duration-500 min-h-[4px]"
+              style={{ height: `${(b.count / max) * 100}%` }}
+              title={`${b.count} plano(s) em ${b.label}`}
+            />
+            <span className="text-[11px] font-semibold text-slate-500 uppercase">
+              {b.label}
+            </span>
+          </div>
+        ))}
+      </div>
+      <ChartDataTable
+        caption={t("dashboard.performance_subtitle")}
+        columns={[t("a11y.col_month"), t("a11y.col_plans")]}
+        rows={buckets.map((b) => [b.label, b.count])}
+      />
+    </>
   );
 };
 
@@ -61,13 +73,15 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({
         <button
           type="button"
           onClick={() => navigate("/patients")}
-          className="text-sm font-semibold text-sage-600 hover:text-sage-700 bg-sage-50 hover:bg-sage-100 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+          className="text-sm font-semibold text-sage-700 hover:text-sage-800 bg-sage-50 hover:bg-sage-100 px-4 py-2 rounded-lg transition-colors cursor-pointer focus-ring"
         >
           {t("dashboard.view_patients")}
         </button>
       </div>
       {loading ? (
-        <Skeleton className="h-48 w-full rounded-xl" />
+        <LoadingState>
+          <Skeleton className="h-48 w-full rounded-xl" />
+        </LoadingState>
       ) : hasDietData ? (
         <PerformanceBars buckets={dietBuckets} />
       ) : (

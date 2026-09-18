@@ -183,9 +183,7 @@ const DashFrame: React.FC = () => {
           ],
         ].map(([label, val, cls]) => (
           <div key={label} className={`${cls} rounded-xl p-3`}>
-            <p className="text-[11px] font-bold uppercase opacity-60">
-              {label}
-            </p>
+            <p className="text-[11px] font-bold uppercase">{label}</p>
             <p className="text-xl font-extrabold stat-number">{val}</p>
           </div>
         ))}
@@ -413,7 +411,7 @@ const ProductShowcase: React.FC = () => {
               <span className="w-3 h-3 rounded-full bg-emerald-400/80" />
             </div>
             <div className="flex-1 text-center">
-              <span className="inline-block bg-slate-800/60 text-slate-400 text-[11px] font-medium px-4 py-1 rounded-md border border-slate-700/50 transition-all">
+              <span className="inline-block bg-slate-800/60 text-slate-300 text-[11px] font-medium px-4 py-1 rounded-md border border-slate-700/50 transition-all">
                 {url}
               </span>
             </div>
@@ -714,7 +712,7 @@ const Pricing: React.FC = () => {
     {
       name: t("home.pricing_free_title"),
       price: "R$ 0",
-      period: i18n.language.startsWith("pt") ? "para sempre" : "forever",
+      period: t("home.pricing_period_forever"),
       tagline: t("home.pricing_free_tagline"),
       cta: t("home.pricing_free_cta"),
       highlighted: false,
@@ -724,8 +722,8 @@ const Pricing: React.FC = () => {
     },
     {
       name: t("home.pricing_pro_title"),
-      price: i18n.language.startsWith("pt") ? "R$ 89" : "$19",
-      period: i18n.language.startsWith("pt") ? "/mês" : "/mo",
+      price: "R$ 89",
+      period: t("home.pricing_period_monthly"),
       tagline: t("home.pricing_pro_tagline"),
       cta: t("home.pricing_pro_cta"),
       highlighted: true,
@@ -735,8 +733,8 @@ const Pricing: React.FC = () => {
     },
     {
       name: t("home.pricing_clinic_title"),
-      price: i18n.language.startsWith("pt") ? "R$ 199" : "$49",
-      period: i18n.language.startsWith("pt") ? "/mês" : "/mo",
+      price: "R$ 199",
+      period: t("home.pricing_period_monthly"),
       tagline: t("home.pricing_clinic_tagline"),
       cta: t("home.pricing_clinic_cta"),
       highlighted: false,
@@ -889,7 +887,7 @@ const Footer: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   return (
-    <footer className="bg-slate-900 text-slate-400">
+    <footer className="bg-slate-900 text-slate-300">
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-14">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">

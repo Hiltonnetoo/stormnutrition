@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { DietFormData } from "./dietForm.types";
+import { errorIdFor, fieldErrorProps } from "../../utils/a11y";
 
 interface Step1Props {
   formData: DietFormData;
@@ -10,7 +11,7 @@ interface Step1Props {
 }
 
 const errBorder = (on?: string) =>
-  on ? "border-rose-400 focus:ring-rose-500/60 focus:border-rose-400" : "";
+  on ? "!border-rose-400 focus:!ring-rose-500/60 focus:!border-rose-400" : "";
 
 const Step1Objectives: React.FC<Step1Props> = ({
   formData,
@@ -82,9 +83,13 @@ const Step1Objectives: React.FC<Step1Props> = ({
             value={formData.currentWeight}
             onChange={handleChange}
             className={`input-field ${errBorder(errors.currentWeight)}`}
+            {...fieldErrorProps("currentWeight", errors.currentWeight)}
           />
           {errors.currentWeight && (
-            <p className="mt-1.5 text-xs font-medium text-rose-600">
+            <p
+              id={errorIdFor("currentWeight")}
+              className="mt-1.5 text-xs font-medium text-rose-600"
+            >
               {errors.currentWeight}
             </p>
           )}
@@ -100,14 +105,18 @@ const Step1Objectives: React.FC<Step1Props> = ({
             value={formData.targetWeight}
             onChange={handleChange}
             className={`input-field ${errBorder(errors.targetWeight)}`}
+            {...fieldErrorProps("targetWeight", errors.targetWeight)}
           />
           {errors.targetWeight && (
-            <p className="mt-1.5 text-xs font-medium text-rose-600">
+            <p
+              id={errorIdFor("targetWeight")}
+              className="mt-1.5 text-xs font-medium text-rose-600"
+            >
               {errors.targetWeight}
             </p>
           )}
           {showWeightWarning && (
-            <p className="mt-1.5 text-xs text-amber-600">
+            <p role="status" className="mt-1.5 text-xs text-amber-700">
               {t("diet_generator.goals.weight_warning")}
             </p>
           )}
@@ -123,9 +132,13 @@ const Step1Objectives: React.FC<Step1Props> = ({
             value={formData.deadlineWeeks}
             onChange={handleChange}
             className={`input-field ${errBorder(errors.deadlineWeeks)}`}
+            {...fieldErrorProps("deadlineWeeks", errors.deadlineWeeks)}
           />
           {errors.deadlineWeeks && (
-            <p className="mt-1.5 text-xs font-medium text-rose-600">
+            <p
+              id={errorIdFor("deadlineWeeks")}
+              className="mt-1.5 text-xs font-medium text-rose-600"
+            >
               {errors.deadlineWeeks}
             </p>
           )}

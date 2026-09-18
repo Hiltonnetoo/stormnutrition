@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MealOption, MealOptionItem } from "../types";
 import NutritionLabel from "./diet-generator/NutritionLabel";
+import { Dialog } from "./Dialog";
 
 interface Props {
   mainOption: MealOption;
@@ -17,31 +18,36 @@ const NutritionModal: React.FC<{
   const { t } = useTranslation();
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
+    <Dialog
+      open
+      onClose={onClose}
+      label={t("a11y.nutrition_facts", { name: item.name })}
+      overlayClassName="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      backdropClassName="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+      className="bg-white rounded-xl shadow-2xl relative max-h-[90vh] overflow-y-auto transform transition-all animate-scale-in"
     >
-      <div
-        className="bg-white rounded-xl shadow-2xl relative max-h-[90vh] overflow-y-auto transform transition-all animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="flex justify-end p-2">
         <button
+          type="button"
           onClick={onClose}
-          className="absolute -top-12 right-0 text-white hover:text-gray-200 transition-colors flex items-center gap-2 font-bold"
+          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-100 focus-ring"
         >
-          {t("meal_table.close")} <span className="text-2xl">×</span>
+          {t("meal_table.close")}{" "}
+          <span aria-hidden="true" className="text-xl leading-none">
+            ×
+          </span>
         </button>
-        <NutritionLabel
-          name={item.name}
-          portion={item.portion}
-          calories={item.calories}
-          protein={item.protein}
-          carbs={item.carbs}
-          fat={item.fat}
-          micros={item.micros}
-        />
       </div>
-    </div>
+      <NutritionLabel
+        name={item.name}
+        portion={item.portion}
+        calories={item.calories}
+        protein={item.protein}
+        carbs={item.carbs}
+        fat={item.fat}
+        micros={item.micros}
+      />
+    </Dialog>
   );
 };
 
@@ -51,7 +57,7 @@ const NutritionModal: React.FC<{
  */
 function parseAmounts(portion: string): string[] {
   return portion
-    .replace(/\s+e\s+/g, ", ")
+    .replace(/\s+(?:e|and)\s+/gi, ", ")
     .split(/,\s+/)
     .map((s) => s.trim())
     .filter(Boolean);
@@ -64,8 +70,8 @@ function parseAmounts(portion: string): string[] {
 function parseFoodNames(name: string, count: number): string[] {
   if (count <= 1) return [name];
 
-  // Normalize: replace the last " e " before the final item with ", "
-  const normalized = name.replace(/,?\s+e\s+(?=[^,]+$)/, ", ");
+  // Normalize: replace the last " e " or " and " before the final item with ", "
+  const normalized = name.replace(/,?\s+(?:e|and)\s+(?=[^,]+$)/i, ", ");
   const parts = normalized.split(/,\s+/);
 
   if (parts.length === count) return parts.map((p) => p.trim());

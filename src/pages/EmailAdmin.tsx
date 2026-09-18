@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
-import {
-  getPatients,
-  getDietPlansForPatient,
-} from "../services/firebaseService";
+import { getPatientDiets } from "../services/firebaseService";
+import { usePatientDirectory } from "../hooks/usePatientDirectory";
 import { sendDietEmail, isEmailConfigured } from "../services/emailService";
 import {
   CheckCircleIcon,
   XCircleIcon,
   PaperAirplaneIcon,
 } from "../components/icons";
-import type { Patient, EmailLog, AnyDietPlan } from "../types";
+import type { EmailLog, AnyDietPlan } from "../types";
 import { PageHeader, Card, Button } from "../components/ui";
 import { loadUserState } from "../utils/localStorage";
 
@@ -20,7 +18,7 @@ const selectClass = "input-field";
 const EmailAdmin: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { currentUser } = useAuth();
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const { patients, error: patientsError } = usePatientDirectory();
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [dietPlans, setDietPlans] = useState<AnyDietPlan[]>([]);
   const [selectedDietId, setSelectedDietId] = useState<string>("");
@@ -35,18 +33,15 @@ const EmailAdmin: React.FC = () => {
   const emailReady = isEmailConfigured();
 
   useEffect(() => {
-    if (currentUser) {
-      const unsubscribe = getPatients(currentUser.uid, setPatients, (error) => {
-        console.error("EmailAdmin: Error fetching patients", error);
-        setLoadError(t("email_admin.error_load_patients"));
-      });
-      return () => unsubscribe();
+    if (patientsError) {
+      console.error("EmailAdmin: Error fetching patients", patientsError);
+      setLoadError(t("email_admin.error_load_patients"));
     }
-  }, [currentUser, t]);
+  }, [patientsError, t]);
 
   useEffect(() => {
     if (currentUser && selectedPatientId) {
-      const unsubscribe = getDietPlansForPatient(
+      const unsubscribe = getPatientDiets(
         currentUser.uid,
         selectedPatientId,
         setDietPlans,
@@ -143,22 +138,7 @@ const EmailAdmin: React.FC = () => {
           <PaperAirplaneIcon className="w-5 h-5 shrink-0 mt-0.5" />
           <span>
             <strong>{t("email_admin.configure_alert")}</strong>{" "}
-            {i18n.language === "en" ? "set" : "defina"} variables{" "}
-            <code className="font-mono text-xs bg-sky-100 px-1 py-0.5 rounded">
-              VITE_EMAILJS_*
-            </code>{" "}
-            {i18n.language === "en" ? "in the file" : "no arquivo"}{" "}
-            <code className="font-mono text-xs bg-sky-100 px-1 py-0.5 rounded">
-              .env.local
-            </code>{" "}
-            ({i18n.language === "en" ? "see" : "veja o"}{" "}
-            <code className="font-mono text-xs bg-sky-100 px-1 py-0.5 rounded">
-              .env.example
-            </code>
-            ){" "}
-            {i18n.language === "en"
-              ? "to dispatch real messages to patients."
-              : "para disparar mensagens reais aos pacientes."}
+            {t("email_admin.configure_alert_desc")}
           </span>
         </div>
       )}

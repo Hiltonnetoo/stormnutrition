@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Patient, DietPlan } from "../../types";
 import { Card } from "../ui";
+import { formatDateWithLocale } from "../../utils/locale";
 
 interface ProfileTimelineTabProps {
   patient: Patient;
@@ -90,10 +91,11 @@ export const ProfileTimelineTab: React.FC<ProfileTimelineTabProps> = ({
                 {event.title}
               </h4>
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                {new Date(event.date).toLocaleDateString(
-                  i18n.language === "pt" ? "pt-BR" : "en-US",
-                  { day: "2-digit", month: "long", year: "numeric" },
-                )}
+                {formatDateWithLocale(event.date, i18n.language, {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
               </span>
             </div>
             <Card className="p-4 flex items-start gap-3">

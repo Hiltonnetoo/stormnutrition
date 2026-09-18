@@ -23,7 +23,7 @@ const ExportDietModal: React.FC<ExportDietModalProps> = ({
   plan,
   targetElementId,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { currentUser } = useAuth();
   const [exportingType, setExportingType] = useState<
     "custom" | "screenshot" | null
@@ -46,7 +46,9 @@ const ExportDietModal: React.FC<ExportDietModalProps> = ({
               clinicPhone: loadUserState(currentUser.uid, "clinicPhone", ""),
             }
           : undefined;
-        await generateCustomLayoutPdf(plan, clinicInfo);
+        await generateCustomLayoutPdf(plan, clinicInfo, {
+          locale: i18n.language,
+        });
       } else {
         const element = document.getElementById(targetElementId);
         if (element) {

@@ -3,62 +3,74 @@ import {
   buildMonthlyDietBuckets,
   formatRelative,
   buildRecentActivity,
+  RECENT_ACTIVITY_LIMIT,
 } from "../dashboardUtils";
 import type { AnyDietPlan, Patient } from "../../../types";
+import { validatePatient } from "../../../utils/validation";
+import { getRecentMonthRanges } from "../../../utils/dateTime";
+
+const dietFixture = (id: string, createdAt: string): AnyDietPlan => ({
+  version: 2,
+  id,
+  patientId: "p1",
+  patientName: "John Doe",
+  mode: "general",
+  createdAt,
+  durationDays: 7,
+  startDate: "2026-09-15",
+  dailyCalories: 2000,
+  macronutrients: {
+    proteinGrams: 150,
+    proteinPercentage: 30,
+    carbsGrams: 200,
+    carbsPercentage: 40,
+    fatGrams: 67,
+    fatPercentage: 30,
+  },
+  meals: [],
+  waterRecommendationLiters: 2,
+  generalObservations: [],
+  dietType: "traditional",
+});
 
 describe("dashboardUtils", () => {
   describe("buildMonthlyDietBuckets", () => {
-    it("returns 6 month buckets ending with current month", () => {
-      const buckets = buildMonthlyDietBuckets([], false);
+    const months = getRecentMonthRanges(6, new Date(2026, 1, 10));
+
+    it("maps one bucket per aggregated month, oldest first", () => {
+      const buckets = buildMonthlyDietBuckets(
+        months,
+        [1, 0, 2, 0, 3, 4],
+        false,
+      );
       expect(buckets).toHaveLength(6);
+      expect(buckets.map((b) => b.label)).toEqual([
+        "set",
+        "out",
+        "nov",
+        "dez",
+        "jan",
+        "fev",
+      ]);
+      // The last bucket represents the current month
+      expect(buckets[5].count).toBe(4);
+    });
+
+    it("treats missing counts (aggregation not loaded yet) as zero", () => {
+      const buckets = buildMonthlyDietBuckets(months, [], false);
       expect(buckets.every((b) => b.count === 0)).toBe(true);
     });
 
-    it("aggregates diets into correct buckets", () => {
-      const now = new Date();
-      const mockDiets: AnyDietPlan[] = [
-        {
-          id: "d1",
-          patientId: "p1",
-          patientName: "Alice",
-          createdAt: now.toISOString(),
-          durationDays: 7,
-          startDate: "2026-09-01",
-          dailyCalories: 2000,
-          macronutrients: {
-            proteinGrams: 150,
-            proteinPercentage: 30,
-            carbsGrams: 200,
-            carbsPercentage: 40,
-            fatGrams: 67,
-            fatPercentage: 30,
-          },
-          meals: [],
-        },
-      ];
-
-      const buckets = buildMonthlyDietBuckets(mockDiets, false);
-      // The last bucket represents the current month
-      expect(buckets[5].count).toBe(1);
-    });
-
     it("uses english month labels when isEn is true", () => {
-      const buckets = buildMonthlyDietBuckets([], true);
-      const enLabels = [
-        "jan",
-        "feb",
-        "mar",
-        "apr",
-        "may",
-        "jun",
-        "jul",
-        "aug",
+      const buckets = buildMonthlyDietBuckets(months, [], true);
+      expect(buckets.map((b) => b.label)).toEqual([
         "sep",
         "oct",
         "nov",
         "dec",
-      ];
-      expect(buckets.every((b) => enLabels.includes(b.label))).toBe(true);
+        "jan",
+        "feb",
+      ]);
     });
   });
 
@@ -88,16 +100,11 @@ describe("dashboardUtils", () => {
         `${key}:${opts?.name || ""}`) as unknown as TFunction;
 
       const mockPatients: Patient[] = [
-        {
+        validatePatient({
           id: "p1",
           firstName: "John",
           lastName: "Doe",
           email: "john@example.com",
-          phone: "123",
-          dob: "1990-01-01",
-          gender: "male",
-          height: 180,
-          weight: 75,
           createdAt: new Date("2026-09-10T10:00:00Z").toISOString(),
           weightHistory: [
             {
@@ -106,28 +113,11 @@ describe("dashboardUtils", () => {
               origin: "self_reported",
             },
           ],
-        },
+        }),
       ];
 
       const mockDiets: AnyDietPlan[] = [
-        {
-          id: "d1",
-          patientId: "p1",
-          patientName: "John Doe",
-          createdAt: new Date("2026-09-15T10:00:00Z").toISOString(),
-          durationDays: 7,
-          startDate: "2026-09-15",
-          dailyCalories: 2000,
-          macronutrients: {
-            proteinGrams: 150,
-            proteinPercentage: 30,
-            carbsGrams: 200,
-            carbsPercentage: 40,
-            fatGrams: 67,
-            fatPercentage: 30,
-          },
-          meals: [],
-        },
+        dietFixture("d1", new Date("2026-09-15T10:00:00Z").toISOString()),
       ];
 
       const activity = buildRecentActivity(
@@ -141,6 +131,29 @@ describe("dashboardUtils", () => {
       expect(activity[0].iconKey).toBe("diet");
       expect(activity[1].iconKey).toBe("weight");
       expect(activity[2].iconKey).toBe("patient");
+    });
+
+    it("gives the same feed from the latest 6 diets as from the full history", () => {
+      const mockT = ((key: string, opts?: { name?: string }) =>
+        `${key}:${opts?.name || ""}`) as unknown as TFunction;
+      const allDiets = Array.from({ length: 30 }, (_, i) =>
+        dietFixture(
+          `d${i}`,
+          new Date(Date.UTC(2026, 0, 1 + i, 12)).toISOString(),
+        ),
+      );
+      const newestFirst = [...allDiets].sort((a, b) =>
+        b.createdAt.localeCompare(a.createdAt),
+      );
+      const fromAll = buildRecentActivity([], allDiets, mockT, true);
+      const fromLatest = buildRecentActivity(
+        [],
+        newestFirst.slice(0, RECENT_ACTIVITY_LIMIT),
+        mockT,
+        true,
+      );
+      expect(fromLatest).toEqual(fromAll);
+      expect(fromAll).toHaveLength(RECENT_ACTIVITY_LIMIT);
     });
   });
 });

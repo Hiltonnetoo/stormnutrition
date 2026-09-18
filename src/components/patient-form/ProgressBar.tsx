@@ -42,12 +42,21 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   const { t } = useTranslation();
 
   return (
-    <nav aria-label="Progress">
+    <nav aria-label={t("a11y.form_progress")}>
       <ol className="flex items-center">
         {steps.map((step, stepIdx) => {
           const isCompleted = step.number < currentStep;
           const isActive = step.number === currentStep;
           const canNavigate = isCompleted || isEditMode;
+          const label = t("patient_form.steps." + step.key);
+          const stepName = t(
+            isCompleted
+              ? "a11y.step_completed"
+              : isActive
+                ? "a11y.step_current"
+                : "a11y.step_upcoming",
+            { number: step.number, label },
+          );
 
           return (
             <li key={step.key} className="relative flex-1">
@@ -58,11 +67,15 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
                 />
               )}
               <button
+                type="button"
                 onClick={() => canNavigate && goToStep(step.number)}
                 disabled={!canNavigate}
-                className={`relative z-10 flex flex-col items-center justify-center w-full ${canNavigate ? "cursor-pointer" : "cursor-default"}`}
+                aria-label={stepName}
+                aria-current={isActive ? "step" : undefined}
+                className={`relative z-10 flex flex-col items-center justify-center w-full rounded-lg focus-ring ${canNavigate ? "cursor-pointer" : "cursor-default"}`}
               >
                 <div
+                  aria-hidden="true"
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isCompleted
                       ? "bg-sage-600 text-white shadow-md shadow-sage-600/25"
@@ -91,9 +104,10 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
                   )}
                 </div>
                 <p
-                  className={`mt-2 text-[11px] text-center font-semibold transition-colors hidden sm:block ${isActive ? "text-sage-600 dark:text-sage-300" : "text-slate-400"}`}
+                  aria-hidden="true"
+                  className={`mt-2 text-[11px] text-center font-semibold transition-colors hidden sm:block ${isActive ? "text-sage-600 dark:text-sage-300" : "text-slate-500"}`}
                 >
-                  {t("patient_form.steps." + step.key)}
+                  {label}
                 </p>
               </button>
             </li>

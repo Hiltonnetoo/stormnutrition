@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "measure:bundle": "node scripts/measure-bundle.mjs",
     "preview": "vite preview",
     "lint": "eslint src",
     "type-check": "tsc --noEmit",
@@ -20,6 +21,7 @@
     "test:e2e": "playwright test",
     "test:e2e:emulated": "firebase emulators:exec --only auth,firestore --project demo-storm \"node scripts/seed-emulator.mjs && VITE_USE_FIREBASE_EMULATOR=true playwright test\"",
     "test:rules": "firebase emulators:exec --only firestore --project demo-storm \"vitest run --config vitest.rules.config.ts\"",
+    "test:perf:queries": "firebase emulators:exec --only firestore --project demo-storm \"vitest run --config vitest.perf.config.ts\"",
     "seed:emulator": "firebase emulators:exec --only auth,firestore --project demo-storm \"node scripts/seed-emulator.mjs\"",
     "emulators": "firebase emulators:start --only auth,firestore --project demo-storm"
   },
@@ -36,6 +38,7 @@
     "react-router-dom": "^7.9.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "^9.25.0",
     "@firebase/rules-unit-testing": "^5.0.1",
     "@playwright/test": "^1.60.0",

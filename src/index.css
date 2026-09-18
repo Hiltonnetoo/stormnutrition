@@ -14,15 +14,17 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", sans-serif;
 
-  /* Brand — Sage (teal) */
-  --color-sage: #0d9488;
+  /* Brand — Sage (teal)
+     Etapa 15: 600 escurecido de #0d9488 (3,74:1 com branco) para #0b8076
+     (4,81:1), mantendo o matiz, para texto e botões atingirem WCAG AA. */
+  --color-sage: #0b8076;
   --color-sage-50: #f0fdfa;
   --color-sage-100: #ccfbf1;
   --color-sage-200: #99f6e4;
   --color-sage-300: #5eead4;
   --color-sage-400: #2dd4bf;
   --color-sage-500: #14b8a6;
-  --color-sage-600: #0d9488;
+  --color-sage-600: #0b8076;
   --color-sage-700: #0f766e;
   --color-sage-800: #115e59;
   --color-sage-900: #134e4a;
@@ -44,6 +46,25 @@
 
   --color-slate-850: #1e293b;
   --color-slate-900: #0f172a;
+
+  /* Etapa 15 — contraste de texto (WCAG AA 4,5:1). Os tons padrão do
+     Tailwind v4 falhavam: slate-400 2,63:1 em branco; slate-500 4,34:1 em
+     slate-100; emerald-600 3,65:1 em branco. Cada tom desce um degrau, com o
+     mesmo matiz, preservando a hierarquia 400 < 500 < 600. */
+  --color-slate-400: #64748b; /* 4,76:1 em branco · 4,55:1 em slate-50 */
+  --color-slate-500: #5d6e87; /* 5,19:1 em branco · 4,74:1 em slate-100 */
+  --color-emerald-600: #008257; /* 4,85:1 em branco · 4,60:1 em emerald-50 */
+  --color-gray-400: #6a7282; /* 4,83:1 em branco (era 2,6:1) */
+  --color-gray-500: #5d6472; /* 5,93:1 em branco · 5,27:1 em gray-100 */
+  /* Tons -600 usados como texto de alerta/estado: mesmo matiz, escurecidos
+     até 4,6:1 em branco e em slate-50 (antes 2,9–4,5:1). */
+  --color-amber-600: #ac5600; /* era 3,20:1; 4,6:1 também em amber-100 */
+  --color-orange-600: #cf3e00; /* era 3,60:1 */
+  --color-teal-600: #008075; /* era 3,67:1 */
+  --color-sky-600: #0076bb; /* era 4,02:1 */
+  --color-green-600: #008431; /* era 3,22:1 */
+  --color-rose-600: #d20038; /* era 4,53:1; 4,6:1 também em rose-100 */
+  --color-yellow-600: #9d6600; /* era 2,94:1 */
 
   /* Elevation — soft, layered, modern */
   --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
@@ -282,8 +303,13 @@ h4 {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    /* Etapa 15: sem o atraso, conteúdo escalonado (.stagger) aparecia só
+       depois de até 0,5 s mesmo para quem pede menos movimento. */
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -357,7 +383,8 @@ h4 {
 .btn {
   @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl text-sm px-5 py-2.5;
   @apply transition-all duration-200 select-none cursor-pointer;
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+  /* Etapa 15: foco por outline (visível também em modo de alto contraste). */
+  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
   @apply disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97];
 }
 .btn-sm {
@@ -375,7 +402,7 @@ h4 {
   @apply transition-all duration-200 select-none cursor-pointer active:scale-[0.97];
   @apply bg-sage-600 text-white shadow-lg shadow-sage-600/25;
   @apply hover:bg-sage-700 hover:shadow-sage-600/30;
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sage-500;
+  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
   @apply disabled:opacity-50 disabled:pointer-events-none;
 }
 .btn-secondary {
@@ -383,7 +410,7 @@ h4 {
   @apply transition-all duration-200 select-none cursor-pointer active:scale-[0.97];
   @apply bg-white text-slate-700 border border-slate-200 shadow-xs;
   @apply hover:bg-slate-50 hover:border-slate-300;
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-300;
+  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
   @apply disabled:opacity-50 disabled:pointer-events-none;
   @apply dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700;
 }
@@ -391,7 +418,7 @@ h4 {
   @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl px-5 py-2.5;
   @apply transition-all duration-200 select-none cursor-pointer active:scale-[0.97];
   @apply text-slate-600 hover:bg-slate-100;
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-300;
+  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
   @apply disabled:opacity-50 disabled:pointer-events-none;
   @apply dark:text-slate-300 dark:hover:bg-slate-800;
 }
@@ -399,7 +426,7 @@ h4 {
   @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl px-5 py-2.5;
   @apply transition-all duration-200 select-none cursor-pointer active:scale-[0.97];
   @apply bg-rose-600 text-white shadow-lg shadow-rose-600/25 hover:bg-rose-700;
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-rose-500;
+  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600;
   @apply disabled:opacity-50 disabled:pointer-events-none;
 }
 
@@ -463,7 +490,26 @@ h4 {
 }
 
 .focus-ring {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2;
+  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
+}
+
+/* Etapa 15 — indicador de foco padrão para qualquer controle que não defina
+   o seu (links, botões sem classe de botão, células clicáveis, sumários).
+   Em camada base: utilitários como `focus-visible:ring-*` continuam valendo. */
+@layer base {
+  :where(
+    a[href],
+    button,
+    [role="button"],
+    [tabindex]:not([tabindex="-1"]),
+    summary,
+    input[type="checkbox"],
+    input[type="radio"],
+    input[type="range"]
+  ):focus-visible {
+    outline: 2px solid var(--color-sage-600);
+    outline-offset: 2px;
+  }
 }
 
 /* Print / PDF export support (preserved from original) */

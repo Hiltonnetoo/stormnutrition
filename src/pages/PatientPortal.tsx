@@ -75,33 +75,38 @@ const PatientPortal: React.FC = () => {
       <header className="bg-gradient-to-r from-sage-700 via-teal-700 to-sky-700 text-white pt-8 pb-16 px-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center font-black text-xl">
+            <div
+              aria-hidden="true"
+              className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center font-black text-xl"
+            >
               🌿
             </div>
             <div>
               <p className="text-xs font-bold text-sage-200 uppercase tracking-widest">
                 {t("nav.patient_portal_nav")}
               </p>
-              <p className="font-extrabold text-lg leading-tight">
+              <h1 className="font-extrabold text-lg leading-tight">
                 {patient
                   ? `${patient.firstName} ${patient.lastName}`
                   : "Storm Nutrition"}
-              </p>
+              </h1>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setIsPasswordModalOpen(true)}
-              className="text-xs font-semibold text-white/80 hover:text-white transition-colors"
+              className="text-xs font-semibold text-white hover:text-white/90 transition-colors rounded-lg px-1 py-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
-              🔐{" "}
+              <span aria-hidden="true">🔐</span>{" "}
               {t("patient_portal.change_password_btn", {
                 defaultValue: "Change Password",
               })}
             </button>
             <button
+              type="button"
               onClick={logout}
-              className="text-xs font-semibold text-white/80 hover:text-rose-200 transition-colors"
+              className="text-xs font-semibold text-white hover:text-rose-100 transition-colors rounded-lg px-1 py-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               {t("nav.sign_out")}
             </button>
@@ -214,8 +219,11 @@ const PatientPortal: React.FC = () => {
         >
           <div className="p-5 space-y-4">
             {weightSavedMsg && (
-              <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2">
-                <span>✓</span> {weightSavedMsg}
+              <div
+                role="status"
+                className="bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2"
+              >
+                <span aria-hidden="true">✓</span> {weightSavedMsg}
               </div>
             )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

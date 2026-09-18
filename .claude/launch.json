@@ -4,8 +4,28 @@
     {
       "name": "isanutri-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5173"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5173"
+      ],
       "port": 5173
+    },
+    {
+      "name": "isanutri-emulated",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "firebase",
+        "emulators:exec",
+        "--only",
+        "auth,firestore",
+        "--project",
+        "demo-storm",
+        "node scripts/seed-emulator.mjs && VITE_USE_FIREBASE_EMULATOR=true VITE_FIREBASE_PROJECT_ID=demo-storm npx vite --port 5006 --strictPort"
+      ],
+      "port": 5006
     }
   ]
 }

@@ -5,10 +5,12 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "./contexts/AuthContext";
 
 // Layout Components
 import AppShell from "./components/AppShell";
+import { PatientDirectoryProvider } from "./contexts/PatientDirectoryContext";
 
 // Lazy Loaded Pages
 const Home = lazy(() => import("./pages/Home"));
@@ -27,38 +29,42 @@ const Reports = lazy(() => import("./pages/Reports"));
 const MetabolicCalculator = lazy(() => import("./pages/MetabolicCalculator"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 
-const PageLoader: React.FC = () => (
-  <div
-    role="status"
-    aria-busy="true"
-    aria-label="Carregando..."
-    className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900"
-  >
-    <svg
-      className="animate-spin h-8 w-8 text-emerald-600"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
+const PageLoader: React.FC = () => {
+  const { t } = useTranslation();
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label={t("app.loading")}
+      className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900"
     >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      ></circle>
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      ></path>
-    </svg>
-    <span className="sr-only">Carregando...</span>
-  </div>
-);
+      <svg
+        className="animate-spin h-8 w-8 text-emerald-600"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+        ></circle>
+        <path
+          className="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        ></path>
+      </svg>
+      <span className="sr-only">{t("app.loading")}</span>
+    </div>
+  );
+};
 
 const App: React.FC = () => {
+  const { t } = useTranslation();
   const {
     currentUser,
     status,
@@ -96,24 +102,23 @@ const App: React.FC = () => {
           </svg>
         </div>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-          Falha na verificação da conta
+          {t("app.auth_error_title")}
         </h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-md mb-6 text-sm">
-          {authError?.message ||
-            "Não foi possível carregar os dados do seu perfil. Verifique sua conexão à internet e tente novamente."}
+          {authError?.message || t("app.auth_error_desc")}
         </p>
         <div className="flex gap-3">
           <button
             onClick={() => retryProfileFetch()}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            Tentar novamente
+            {t("app.retry")}
           </button>
           <button
             onClick={() => logout()}
             className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg transition-colors"
           >
-            Sair da conta
+            {t("app.logout")}
           </button>
         </div>
       </div>
@@ -139,24 +144,23 @@ const App: React.FC = () => {
           </svg>
         </div>
         <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
-          Concluir cadastro profissional
+          {t("app.incomplete_profile_title")}
         </h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-md mb-6 text-sm">
-          Sua conta está autenticada, mas o perfil profissional ainda não foi
-          inicializado. Deseja inicializar o seu espaço de trabalho?
+          {t("app.incomplete_profile_desc")}
         </p>
         <div className="flex gap-3">
           <button
             onClick={() => completeProfessionalRegistration()}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            Inicializar perfil profissional
+            {t("app.init_profile_button")}
           </button>
           <button
             onClick={() => logout()}
             className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg transition-colors"
           >
-            Sair
+            {t("app.exit_button")}
           </button>
         </div>
       </div>
@@ -184,26 +188,28 @@ const App: React.FC = () => {
             <Route path="*" element={<Navigate to="/paciente" />} />
           </Routes>
         ) : (
-          <AppShell>
-            <Routes>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/patients" element={<Patients />} />
-              <Route path="/patients/:id" element={<PatientProfile />} />
-              <Route path="/calendar" element={<Calendar />} />
-              <Route path="/diet-generator" element={<DietGenerator />} />
-              <Route
-                path="/metabolic-calculator"
-                element={<MetabolicCalculator />}
-              />
-              <Route path="/food-database" element={<FoodDatabase />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/email-admin" element={<EmailAdmin />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/convite/:token" element={<AcceptInvitation />} />
-              <Route path="/convite" element={<AcceptInvitation />} />
-              <Route path="*" element={<Navigate to="/dashboard" />} />
-            </Routes>
-          </AppShell>
+          <PatientDirectoryProvider>
+            <AppShell>
+              <Routes>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/patients" element={<Patients />} />
+                <Route path="/patients/:id" element={<PatientProfile />} />
+                <Route path="/calendar" element={<Calendar />} />
+                <Route path="/diet-generator" element={<DietGenerator />} />
+                <Route
+                  path="/metabolic-calculator"
+                  element={<MetabolicCalculator />}
+                />
+                <Route path="/food-database" element={<FoodDatabase />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/email-admin" element={<EmailAdmin />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/convite/:token" element={<AcceptInvitation />} />
+                <Route path="/convite" element={<AcceptInvitation />} />
+                <Route path="*" element={<Navigate to="/dashboard" />} />
+              </Routes>
+            </AppShell>
+          </PatientDirectoryProvider>
         )}
       </Suspense>
     </Router>

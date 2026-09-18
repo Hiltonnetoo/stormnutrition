@@ -3,16 +3,20 @@ import {
   query,
   where,
   onSnapshot,
+  orderBy,
+  limit,
+  getCountFromServer,
   doc,
   addDoc,
   updateDoc,
   deleteDoc,
   getDoc,
   type FirestoreError,
-  type Query,
+  type QueryDocumentSnapshot,
   type DocumentData,
 } from "firebase/firestore";
 import { db } from "./firebaseCore";
+import type { MonthInstantRange } from "../utils/dateTime";
 import type {
   DietPlan,
   AnyDietPlan,
@@ -687,159 +691,129 @@ export const deleteDietPlan = (userId: string, dietId: string) => {
   return deleteDoc(getDietDoc(userId, dietId));
 };
 
-export const getDietPlansForPatient = (
-  userId: string,
-  patientId: string,
-  callback: (diets: AnyDietPlan[]) => void,
-  onError?: (error: FirestoreError) => void,
-) => {
-  if (!userId) return () => {};
-  const q = query(
-    getDietsCollection(userId),
-    where("patientId", "==", patientId),
-  );
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const diets = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        const createdAt = data.createdAt?.toDate
-          ? data.createdAt.toDate().toISOString()
-          : data.createdAt;
-        return { ...data, id: doc.id, createdAt } as AnyDietPlan;
-      });
-      diets.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-      callback(diets);
-    },
-    (error) => {
-      handleSnapshotError(error, "getDietPlansForPatient");
-      if (onError) onError(error);
-    },
-  );
+const toDietPlan = (snap: QueryDocumentSnapshot<DocumentData>): AnyDietPlan => {
+  const data = snap.data();
+  const createdAt = data.createdAt?.toDate
+    ? data.createdAt.toDate().toISOString()
+    : data.createdAt;
+  return { ...data, id: snap.id, createdAt } as AnyDietPlan;
 };
 
-export const getAllDiets = (
-  userId: string,
-  callback: (diets: AnyDietPlan[]) => void,
-  onError?: (error: FirestoreError) => void,
-) => {
-  if (!userId) return () => {};
-  const q = query(getDietsCollection(userId));
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const diets = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        const createdAt = data.createdAt?.toDate
-          ? data.createdAt.toDate().toISOString()
-          : data.createdAt;
-        return { ...data, id: doc.id, createdAt } as AnyDietPlan;
-      });
-      diets.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-      callback(diets);
-    },
-    (error) => {
-      handleSnapshotError(error, "getAllDiets");
-      if (onError) onError(error);
-    },
-  );
-};
+const byNewestFirst = (a: AnyDietPlan, b: AnyDietPlan) =>
+  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 
-const getCountClientSide = (
-  q: Query<DocumentData>,
-  filterFn: (docData: DocumentData) => boolean,
-  callback: (count: number) => void,
-  contextName: string,
-) => {
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      let count = 0;
-      snapshot.docs.forEach((doc) => {
-        if (filterFn(doc.data())) {
-          count++;
-        }
-      });
-      callback(count);
-    },
-    (error) => {
-      handleSnapshotError(error, contextName);
-    },
-  );
-};
-
-export const getDietsCount = (
-  userId: string,
-  callback: (count: number) => void,
-) => {
-  if (!userId) return () => {};
-  return getCountClientSide(
-    query(getDietsCollection(userId)),
-    () => true,
-    callback,
-    "getDietsCount",
-  );
-};
-
-export const getDietsThisMonthCount = (
-  userId: string,
-  callback: (count: number) => void,
-) => {
-  if (!userId) return () => {};
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
-  const isoStart = startOfMonth.toISOString();
-
-  return getCountClientSide(
-    query(getDietsCollection(userId)),
-    (data) => {
-      const createdAt = data.createdAt?.toDate
-        ? data.createdAt.toDate().toISOString()
-        : data.createdAt;
-      return createdAt >= isoStart;
-    },
-    callback,
-    "getDietsThisMonthCount",
-  );
-};
-
+/**
+ * Real-time diet history of ONE patient (profile, history modal, e-mail, portal).
+ * Bounded by that patient's history; the `patientId` filter is also what the
+ * security rules require for portal (patient) reads.
+ */
 export const getPatientDiets = (
   nutritionistId: string,
   patientId: string,
   callback: (diets: AnyDietPlan[]) => void,
   onError?: (e: FirestoreError) => void,
 ) => {
+  if (!nutritionistId || !patientId) return () => {};
   const q = query(
-    collection(db, "users", nutritionistId, "diets"),
+    getDietsCollection(nutritionistId),
     where("patientId", "==", patientId),
   );
   return onSnapshot(
     q,
-    (snap) => {
-      const diets = snap.docs
-        .map((d) => {
-          const data = d.data();
-          const createdAt = data.createdAt?.toDate
-            ? data.createdAt.toDate().toISOString()
-            : data.createdAt;
-          return { ...data, id: d.id, createdAt } as AnyDietPlan;
-        })
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        );
-      callback(diets);
-    },
+    (snap) => callback(snap.docs.map(toDietPlan).sort(byNewestFirst)),
     (err) => {
       handleSnapshotError(err, "getPatientDiets");
       if (onError) onError(err);
     },
   );
+};
+
+/**
+ * Most recent diet of one patient (`limit(1)`), used by the patients list to
+ * show plan status only for the rows on screen.
+ * Requires the composite index diets(patientId ASC, createdAt DESC).
+ */
+export const subscribeLatestDiet = (
+  userId: string,
+  patientId: string,
+  callback: (diet: AnyDietPlan | null) => void,
+  onError?: (e: FirestoreError) => void,
+) => {
+  if (!userId || !patientId) return () => {};
+  const q = query(
+    getDietsCollection(userId),
+    where("patientId", "==", patientId),
+    orderBy("createdAt", "desc"),
+    limit(1),
+  );
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.empty ? null : toDietPlan(snap.docs[0])),
+    (err) => {
+      handleSnapshotError(err, "subscribeLatestDiet");
+      if (onError) onError(err);
+    },
+  );
+};
+
+/** The `max` most recently created diets (dashboard activity feed). */
+export const subscribeRecentDiets = (
+  userId: string,
+  max: number,
+  callback: (diets: AnyDietPlan[]) => void,
+  onError?: (e: FirestoreError) => void,
+) => {
+  if (!userId) return () => {};
+  const q = query(
+    getDietsCollection(userId),
+    orderBy("createdAt", "desc"),
+    limit(max),
+  );
+  return onSnapshot(
+    q,
+    (snap) => callback(snap.docs.map(toDietPlan)),
+    (err) => {
+      handleSnapshotError(err, "subscribeRecentDiets");
+      if (onError) onError(err);
+    },
+  );
+};
+
+export interface DietCountSummary {
+  total: number;
+  /** One count per requested month range, in the same order. */
+  perMonth: number[];
+}
+
+/**
+ * Diet counters via aggregation queries: 1 + ranges.length requests, each
+ * billed as one read per 1 000 index entries. One-shot (no real-time update):
+ * screens fetch it when they open.
+ *
+ * `createdAt` is stored as a UTC ISO string, so range filters compare
+ * lexicographically. Legacy documents with a Firestore Timestamp `createdAt`
+ * are counted in `total` but not in the per-month ranges.
+ */
+export const getDietCountSummary = async (
+  userId: string,
+  ranges: MonthInstantRange[],
+): Promise<DietCountSummary> => {
+  if (!userId) return { total: 0, perMonth: ranges.map(() => 0) };
+  const dietsCol = getDietsCollection(userId);
+  const [totalSnap, ...monthSnaps] = await Promise.all([
+    getCountFromServer(query(dietsCol)),
+    ...ranges.map((r) =>
+      getCountFromServer(
+        query(
+          dietsCol,
+          where("createdAt", ">=", r.startIso),
+          where("createdAt", "<", r.endIso),
+        ),
+      ),
+    ),
+  ]);
+  return {
+    total: totalSnap.data().count,
+    perMonth: monthSnaps.map((m) => m.data().count),
+  };
 };

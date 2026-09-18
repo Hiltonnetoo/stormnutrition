@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useId } from "react";
 import { useTranslation } from "react-i18next";
 import type { Patient, DietPlan } from "../../types";
 import { Button } from "../ui";
+import { Dialog } from "../Dialog";
 
 interface DietComparisonModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const DietComparisonModal: React.FC<DietComparisonModalProps> = ({
   selectedDietIds,
 }) => {
   const { t, i18n } = useTranslation();
+  const titleId = useId();
 
   if (!isOpen || selectedDietIds.length !== 2) return null;
 
@@ -38,11 +40,23 @@ export const DietComparisonModal: React.FC<DietComparisonModalProps> = ({
     (sortedCompareDiets[0]?.dailyCalories || 0);
 
   return (
-    <div className="fixed inset-0 bg-slate-50 dark:bg-slate-900 z-[100] flex flex-col animate-fade-in">
-      <div className="px-6 py-4 border-b border-slate-200/70 dark:border-slate-800 flex justify-between items-center glass sticky top-0 z-10">
+    <Dialog
+      open
+      onClose={onClose}
+      labelledBy={titleId}
+      overlayClassName="fixed inset-0 z-[100]"
+      className="h-full bg-slate-50 dark:bg-slate-900 flex flex-col animate-fade-in"
+    >
+      <div className="px-6 py-4 border-b border-slate-200/70 dark:border-slate-800 flex flex-wrap gap-3 justify-between items-center glass sticky top-0 z-10">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-800 dark:text-white flex items-center gap-3">
-            <span className="p-2 bg-sky-100 dark:bg-sky-900/30 rounded-xl text-sky-600">
+          <h2
+            id={titleId}
+            className="text-xl font-extrabold text-slate-800 dark:text-white flex items-center gap-3"
+          >
+            <span
+              aria-hidden="true"
+              className="p-2 bg-sky-100 dark:bg-sky-900/30 rounded-xl text-sky-600"
+            >
               📊
             </span>
             {t("profile.compare.title")}
@@ -66,7 +80,7 @@ export const DietComparisonModal: React.FC<DietComparisonModalProps> = ({
               className={`relative p-6 rounded-3xl border-2 shadow-card bg-white dark:bg-slate-850 ${idx === 0 ? "border-sky-100 dark:border-sky-900/40" : "border-emerald-100 dark:border-emerald-900/40"}`}
             >
               <div
-                className={`absolute -top-3 -right-3 w-10 h-10 rounded-2xl flex items-center justify-center text-white font-extrabold shadow-lg ${idx === 0 ? "bg-sky-500" : "bg-emerald-500"}`}
+                className={`absolute -top-3 -right-3 w-10 h-10 rounded-2xl flex items-center justify-center text-white font-extrabold shadow-lg ${idx === 0 ? "bg-sky-700" : "bg-emerald-700"}`}
               >
                 {idx + 1}
               </div>
@@ -137,7 +151,7 @@ export const DietComparisonModal: React.FC<DietComparisonModalProps> = ({
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
+              <p className="text-slate-300 text-xs font-bold uppercase tracking-widest">
                 {t("profile.compare.energy_adjustment")}
               </p>
               <p className="text-3xl font-extrabold">
@@ -152,7 +166,7 @@ export const DietComparisonModal: React.FC<DietComparisonModalProps> = ({
                       : t("profile.compare.reduction")}
                 </span>
               </p>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <p className="text-slate-300 text-sm leading-relaxed">
                 {t("profile.compare.date_comparison", {
                   prevDate: sortedCompareDiets[0]
                     ? new Date(
@@ -172,7 +186,7 @@ export const DietComparisonModal: React.FC<DietComparisonModalProps> = ({
               </p>
             </div>
             <div className="bg-slate-700/40 p-5 rounded-2xl border border-slate-700">
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3">
+              <p className="text-slate-300 text-xs font-bold uppercase tracking-widest mb-3">
                 {t("profile.compare.clinical_advice_title")}
               </p>
               <p className="text-sm leading-relaxed text-slate-300 italic">
@@ -182,7 +196,7 @@ export const DietComparisonModal: React.FC<DietComparisonModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 };
 

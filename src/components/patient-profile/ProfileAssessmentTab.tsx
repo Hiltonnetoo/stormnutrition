@@ -7,6 +7,7 @@ import {
   updatePatientSettings,
   type User,
 } from "../../services/firebaseService";
+import { formatDateWithLocale } from "../../utils/locale";
 
 interface ProfileAssessmentTabProps {
   patient: Patient;
@@ -113,7 +114,10 @@ export const ProfileAssessmentTab: React.FC<ProfileAssessmentTabProps> = ({
         <div className="mb-8 p-5 bg-sky-50 dark:bg-sky-900/20 rounded-2xl border border-sky-100 dark:border-sky-800">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-sky-500 text-white flex items-center justify-center text-lg shrink-0">
+              <div
+                aria-hidden="true"
+                className="w-10 h-10 rounded-xl bg-sky-700 text-white flex items-center justify-center text-lg shrink-0"
+              >
                 🤖
               </div>
               <div>
@@ -160,10 +164,9 @@ export const ProfileAssessmentTab: React.FC<ProfileAssessmentTabProps> = ({
               <span className="text-[11px] text-sky-400 font-medium">
                 {patient.automationSettings.lastAutoRequestDate
                   ? t("profile.assessment.last_triggered", {
-                      date: new Date(
+                      date: formatDateWithLocale(
                         patient.automationSettings.lastAutoRequestDate,
-                      ).toLocaleDateString(
-                        i18n.language === "pt" ? "pt-BR" : "en-US",
+                        i18n.language,
                       ),
                     })
                   : t("profile.assessment.waiting_first_cycle")}
@@ -198,17 +201,15 @@ export const ProfileAssessmentTab: React.FC<ProfileAssessmentTabProps> = ({
                     <p className="text-xs text-slate-400">
                       {evalItem.status === "completed"
                         ? t("profile.assessment.completed_on", {
-                            date: new Date(
+                            date: formatDateWithLocale(
                               evalItem.completionDate!,
-                            ).toLocaleDateString(
-                              i18n.language === "pt" ? "pt-BR" : "en-US",
+                              i18n.language,
                             ),
                           })
                         : t("profile.assessment.requested_on", {
-                            date: new Date(
+                            date: formatDateWithLocale(
                               evalItem.requestDate,
-                            ).toLocaleDateString(
-                              i18n.language === "pt" ? "pt-BR" : "en-US",
+                              i18n.language,
                             ),
                           })}
                     </p>

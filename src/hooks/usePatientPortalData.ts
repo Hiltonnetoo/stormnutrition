@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import {
   getPatientById,
   getPatientDiets,
-  getPatientAppointments,
+  getNextPatientAppointment,
 } from "../services/firebaseService";
+import { formatWallClock } from "../utils/dateTime";
 import type {
   Patient,
   AnyDietPlan,
@@ -61,16 +62,15 @@ export function usePatientPortalData(
       },
     );
 
-    const unsubAppts = getPatientAppointments(
+    // Only the next scheduled appointment is shown, so only one is read.
+    // `dateTime` is clinic wall-clock time: compare it with "now" on the same
+    // clock, not with a UTC ISO string.
+    const unsubAppts = getNextPatientAppointment(
       patientProfile.nutritionistId,
       patientProfile.patientId,
-      (appts) => {
-        if (!isMounted) return;
-        const now = new Date().toISOString();
-        const upcoming = appts.filter(
-          (a) => a.status === "scheduled" && a.dateTime >= now,
-        );
-        setNextAppt(upcoming[0] || null);
+      formatWallClock(new Date()),
+      (appt) => {
+        if (isMounted) setNextAppt(appt);
       },
     );
 

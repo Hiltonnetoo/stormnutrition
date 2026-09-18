@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useId, useRef } from "react";
 import { FirebaseError } from "firebase/app";
 import { useTranslation } from "react-i18next";
 import { addPatient, updatePatient } from "../../services/firebaseService";
@@ -6,8 +6,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import type { Patient } from "../../types";
 import usePersistentState from "../../hooks/usePersistentState";
 import { loadState, getUserStorageKey } from "../../utils/localStorage";
-import { CloseIcon } from "../icons";
-import { Button } from "../ui";
+import { Button, CloseButton } from "../ui";
+import { Dialog } from "../Dialog";
+import { focusFirstInvalid } from "../../utils/a11y";
+import { useFocusOnChange } from "../../hooks/useFocusOnChange";
 
 import ProgressBar from "../patient-form/ProgressBar";
 import Step1Personal from "../patient-form/Step1Personal";
@@ -108,6 +110,16 @@ const NewPatientModal: React.FC<NewPatientModalProps> = ({
     }
   }, [isOpen, patient, isEditMode, storageKey]);
 
+  // Moving between steps replaces the form content: move focus to the new
+  // step's heading so keyboard and screen-reader users land on it.
+  const stepRegionRef = useRef<HTMLDivElement>(null);
+  useFocusOnChange(currentStep, stepRegionRef, "h3");
+
+  const titleId = useId();
+  const stepCounterId = useId();
+  const discardTitleId = useId();
+  const discardDescId = useId();
+
   const handleDataChange = (data: Partial<typeof formData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
   };
@@ -156,7 +168,9 @@ const NewPatientModal: React.FC<NewPatientModalProps> = ({
         newErrors.termsAccepted = t("patient_form.anthropometric.err_terms");
     }
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const invalid = Object.keys(newErrors);
+    if (invalid.length > 0) focusFirstInvalid(invalid);
+    return invalid.length === 0;
   }, [currentStep, formData, t]);
 
   const nextStep = () => {
@@ -309,36 +323,38 @@ const NewPatientModal: React.FC<NewPatientModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
-        onClick={handleForceClose}
-      />
-      <div
+    <>
+      <Dialog
+        open
+        onClose={handleForceClose}
+        labelledBy={titleId}
+        describedBy={stepCounterId}
+        overlayClassName="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        backdropClassName="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
         className="relative bg-white dark:bg-slate-850 rounded-t-3xl sm:rounded-3xl shadow-pop border border-slate-200/70 dark:border-slate-700/60 w-full max-w-3xl flex flex-col max-h-[95vh] animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2
+              id={titleId}
+              className="text-lg font-bold text-slate-900 dark:text-white"
+            >
               {isEditMode
                 ? t("patient_form.edit_patient")
                 : t("patient_form.new_patient")}
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p
+              id={stepCounterId}
+              aria-live="polite"
+              className="text-xs text-slate-500 mt-0.5"
+            >
               {t("patient_form.step_counter", {
                 current: currentStep,
                 total: TOTAL_STEPS,
               })}
             </p>
           </div>
-          <button
-            onClick={handleForceClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800"
-            aria-label={t("meal_table.close")}
-          >
-            <CloseIcon className="w-5 h-5" />
-          </button>
+          <CloseButton onClick={handleForceClose} label={t("a11y.close")} />
         </div>
 
         <div className="px-6 pt-6 pb-2 shrink-0">
@@ -350,7 +366,10 @@ const NewPatientModal: React.FC<NewPatientModalProps> = ({
           />
         </div>
 
-        <div className="px-6 py-5 overflow-y-auto flex-grow">
+        <div
+          ref={stepRegionRef}
+          className="px-6 py-5 overflow-y-auto flex-grow"
+        >
           {currentStep === 1 && (
             <Step1Personal
               data={formData}
@@ -420,33 +439,45 @@ const NewPatientModal: React.FC<NewPatientModalProps> = ({
             </Button>
           )}
         </div>
-      </div>
+      </Dialog>
 
-      {showDiscardConfirm && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/50 animate-fade-in"
-            onClick={() => setShowDiscardConfirm(false)}
-          />
-          <div className="relative w-full max-w-sm bg-white dark:bg-slate-850 rounded-2xl shadow-pop border border-slate-200 dark:border-slate-700 p-6 animate-scale-in">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              {t("patient_form.discard_title")}
-            </h3>
-            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-              {t("patient_form.discard_desc")}
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={keepDraftAndClose}>
-                {t("patient_form.keep_draft")}
-              </Button>
-              <Button variant="danger" size="sm" onClick={discardAndClose}>
-                {t("patient_form.discard_btn")}
-              </Button>
-            </div>
-          </div>
+      <Dialog
+        open={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        role="alertdialog"
+        labelledBy={discardTitleId}
+        describedBy={discardDescId}
+        overlayClassName="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        backdropClassName="absolute inset-0 bg-slate-900/50 animate-fade-in"
+        className="relative w-full max-w-sm bg-white dark:bg-slate-850 rounded-2xl shadow-pop border border-slate-200 dark:border-slate-700 p-6 animate-scale-in"
+      >
+        <h3
+          id={discardTitleId}
+          className="text-base font-bold text-slate-900 dark:text-white"
+        >
+          {t("patient_form.discard_title")}
+        </h3>
+        <p
+          id={discardDescId}
+          className="mt-1.5 text-sm text-slate-500 dark:text-slate-400"
+        >
+          {t("patient_form.discard_desc")}
+        </p>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={keepDraftAndClose}
+            data-autofocus
+          >
+            {t("patient_form.keep_draft")}
+          </Button>
+          <Button variant="danger" size="sm" onClick={discardAndClose}>
+            {t("patient_form.discard_btn")}
+          </Button>
         </div>
-      )}
-    </div>
+      </Dialog>
+    </>
   );
 };
 

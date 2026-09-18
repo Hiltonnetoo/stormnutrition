@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { Patient } from "../../types";
+import { errorIdFor, fieldErrorProps } from "../../utils/a11y";
 
 interface Step2Props {
   data: Partial<Patient>;
@@ -8,10 +9,14 @@ interface Step2Props {
   errors: Record<string, string>;
 }
 
-const errMsg = (m?: string) =>
-  m ? <p className="mt-1.5 text-xs font-medium text-rose-600">{m}</p> : null;
+const errMsg = (m?: string, id?: string) =>
+  m ? (
+    <p id={id} className="mt-1.5 text-xs font-medium text-rose-600">
+      {m}
+    </p>
+  ) : null;
 const errBorder = (on?: string) =>
-  on ? "border-rose-400 focus:ring-rose-500/60 focus:border-rose-400" : "";
+  on ? "!border-rose-400 focus:!ring-rose-500/60 focus:!border-rose-400" : "";
 
 const Step2Contact: React.FC<Step2Props> = ({ data, onDataChange, errors }) => {
   const { t } = useTranslation();
@@ -90,9 +95,11 @@ const Step2Contact: React.FC<Step2Props> = ({ data, onDataChange, errors }) => {
             id="email"
             value={data.email || ""}
             onChange={handleInputChange}
+            autoComplete="email"
             className={`input-field ${errBorder(errors.email)}`}
+            {...fieldErrorProps("email", errors.email)}
           />
-          {errMsg(errors.email)}
+          {errMsg(errors.email, errorIdFor("email"))}
         </div>
         <div>
           <label htmlFor="phone" className="input-label">
@@ -106,9 +113,11 @@ const Step2Contact: React.FC<Step2Props> = ({ data, onDataChange, errors }) => {
             onChange={handleInputChange}
             maxLength={15}
             placeholder="(XX) XXXXX-XXXX"
+            autoComplete="tel"
             className={`input-field ${errBorder(errors.phone)}`}
+            {...fieldErrorProps("phone", errors.phone)}
           />
-          {errMsg(errors.phone)}
+          {errMsg(errors.phone, errorIdFor("phone"))}
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="cep" className="input-label">
@@ -123,14 +132,21 @@ const Step2Contact: React.FC<Step2Props> = ({ data, onDataChange, errors }) => {
               onChange={handleAddressChange}
               maxLength={9}
               placeholder="XXXXX-XXX"
+              autoComplete="postal-code"
               className={`input-field sm:w-40 ${errBorder(errors.cep || cepError)}`}
+              {...fieldErrorProps("cep", errors.cep || cepError)}
+              aria-busy={cepLoading || undefined}
             />
             {cepLoading && (
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-sage-500 border-t-transparent" />
+              <div
+                role="status"
+                className="animate-spin rounded-full h-5 w-5 border-2 border-sage-500 border-t-transparent"
+              >
+                <span className="sr-only">{t("a11y.loading")}</span>
+              </div>
             )}
           </div>
-          {errMsg(errors.cep)}
-          {errMsg(cepError)}
+          {errMsg(errors.cep || cepError, errorIdFor("cep"))}
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="street" className="input-label">

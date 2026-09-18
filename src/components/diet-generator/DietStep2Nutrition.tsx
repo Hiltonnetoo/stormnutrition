@@ -5,6 +5,7 @@ import type {
   DietCalculations,
   MacroSplit,
 } from "./dietForm.types";
+import { errorIdFor, fieldErrorProps } from "../../utils/a11y";
 
 interface Step2Props {
   formData: DietFormData;
@@ -112,10 +113,14 @@ const Step2Nutrition: React.FC<Step2Props> = ({
               id="dailyCalories"
               value={formData.dailyCalories}
               onChange={handleInputChange}
-              className={`input-field ${errors.dailyCalories ? "border-rose-400 focus:ring-rose-500/60" : ""}`}
+              className={`input-field ${errors.dailyCalories ? "!border-rose-400 focus:!ring-rose-500/60" : ""}`}
+              {...fieldErrorProps("dailyCalories", errors.dailyCalories)}
             />
             {errors.dailyCalories && (
-              <p className="mt-1.5 text-xs font-medium text-rose-600">
+              <p
+                id={errorIdFor("dailyCalories")}
+                className="mt-1.5 text-xs font-medium text-rose-600"
+              >
                 {errors.dailyCalories}
               </p>
             )}
@@ -153,10 +158,12 @@ const Step2Nutrition: React.FC<Step2Props> = ({
           </div>
         </div>
 
-        <div>
-          <label className="input-label">
+        <fieldset
+          aria-describedby={errors.macros ? errorIdFor("macros") : undefined}
+        >
+          <legend className="input-label">
             {t("diet_generator.nutrition.macro_distribution")}
-          </label>
+          </legend>
           <div className="grid grid-cols-3 gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-2xl">
             {[
               {
@@ -185,6 +192,7 @@ const Step2Nutrition: React.FC<Step2Props> = ({
                   id={m.name}
                   value={formData.macros?.[m.name as keyof MacroSplit]}
                   onChange={handleMacroChange}
+                  aria-invalid={errors.macros ? true : undefined}
                   className="input-field mt-1 px-3 py-2"
                 />
                 <span className="text-xs text-slate-500 mt-1 block">
@@ -194,11 +202,14 @@ const Step2Nutrition: React.FC<Step2Props> = ({
             ))}
           </div>
           {errors.macros && (
-            <p className="mt-1.5 text-xs font-medium text-rose-600">
+            <p
+              id={errorIdFor("macros")}
+              className="mt-1.5 text-xs font-medium text-rose-600"
+            >
               {errors.macros}
             </p>
           )}
-        </div>
+        </fieldset>
       </div>
     </div>
   );

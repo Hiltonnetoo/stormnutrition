@@ -1,13 +1,19 @@
 import type { TFunction } from "i18next";
 import type { AnyDietPlan, Patient } from "../../types";
+import type { MonthInstantRange } from "../../utils/dateTime";
 
 export interface MonthBucket {
   label: string;
   count: number;
 }
 
+/**
+ * Chart buckets from per-month counts (aggregation results) — the dashboard no
+ * longer downloads every diet to count them.
+ */
 export const buildMonthlyDietBuckets = (
-  diets: AnyDietPlan[],
+  months: Array<Pick<MonthInstantRange, "monthIndex">>,
+  counts: number[],
   isEn: boolean,
 ): MonthBucket[] => {
   const MONTHS_SHORT = isEn
@@ -39,23 +45,10 @@ export const buildMonthlyDietBuckets = (
         "nov",
         "dez",
       ];
-  const now = new Date();
-  const buckets: MonthBucket[] = [];
-  const keyToIndex = new Map<string, number>();
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    keyToIndex.set(key, buckets.length);
-    buckets.push({ label: MONTHS_SHORT[d.getMonth()], count: 0 });
-  }
-  diets.forEach((diet) => {
-    if (!diet.createdAt) return;
-    const d = new Date(diet.createdAt);
-    if (isNaN(d.getTime())) return;
-    const idx = keyToIndex.get(`${d.getFullYear()}-${d.getMonth()}`);
-    if (idx !== undefined) buckets[idx].count++;
-  });
-  return buckets;
+  return months.map((m, i) => ({
+    label: MONTHS_SHORT[m.monthIndex],
+    count: counts[i] ?? 0,
+  }));
 };
 
 export type ActivityIconKey = "patient" | "diet" | "eval" | "weight";
@@ -84,6 +77,13 @@ export const formatRelative = (ts: number, isEn: boolean): string => {
   });
 };
 
+/** How many feed items the dashboard shows (and how many recent diets it reads). */
+export const RECENT_ACTIVITY_LIMIT = 6;
+
+/**
+ * Merges the latest events. Diets only need the RECENT_ACTIVITY_LIMIT most
+ * recent documents: an older diet can never reach the top of the feed.
+ */
 export const buildRecentActivity = (
   patients: Patient[],
   diets: AnyDietPlan[],
@@ -148,6 +148,6 @@ export const buildRecentActivity = (
 
   return items
     .sort((a, b) => b.date - a.date)
-    .slice(0, 6)
+    .slice(0, RECENT_ACTIVITY_LIMIT)
     .map((it) => ({ ...it, label: formatRelative(it.date, isEn) }));
 };

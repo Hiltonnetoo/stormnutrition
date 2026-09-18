@@ -174,7 +174,10 @@ const AcceptInvitation: React.FC = () => {
             </div>
           ) : error && invitation?.status !== "pending" ? (
             <div className="space-y-6">
-              <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm">
+              <div
+                role="alert"
+                className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm"
+              >
                 <div className="flex items-center gap-2 font-semibold mb-1">
                   <ShieldIcon className="w-5 h-5 text-amber-600" />
                   <span>Aviso do Convite</span>
@@ -217,7 +220,10 @@ const AcceptInvitation: React.FC = () => {
                   </div>
 
                   {error && (
-                    <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs text-rose-600 dark:text-rose-400">
+                    <div
+                      role="alert"
+                      className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs text-rose-700 dark:text-rose-400"
+                    >
                       {error}
                     </div>
                   )}
@@ -234,11 +240,16 @@ const AcceptInvitation: React.FC = () => {
                 // New user password definition form
                 <form onSubmit={handleActivateNewAccount} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label
+                      htmlFor="invite-email"
+                      className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1"
+                    >
                       {t("modals.patient_access.email_label")}
                     </label>
                     <input
+                      id="invite-email"
                       type="email"
+                      autoComplete="email"
                       value={invitation.patientEmail}
                       disabled
                       className="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-500 cursor-not-allowed"
@@ -268,13 +279,19 @@ const AcceptInvitation: React.FC = () => {
                   </div>
 
                   {passwordError && (
-                    <p className="text-xs text-rose-500 font-medium">
+                    <p
+                      role="alert"
+                      className="text-xs text-rose-700 font-medium"
+                    >
                       {passwordError}
                     </p>
                   )}
 
                   {error && (
-                    <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs text-rose-600 dark:text-rose-400">
+                    <div
+                      role="alert"
+                      className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs text-rose-700 dark:text-rose-400"
+                    >
                       {error}
                     </div>
                   )}

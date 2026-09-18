@@ -1,4 +1,6 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
+import { Dialog } from "./Dialog";
 
 /* ============================================================================
    cn — tiny class combiner
@@ -53,6 +55,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(
         "btn",
         buttonVariants[variant],
@@ -81,6 +84,7 @@ export const Spinner: React.FC<{ className?: string }> = ({
   className = "w-6 h-6",
 }) => (
   <svg
+    aria-hidden="true"
     className={cn("animate-spin", className)}
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
@@ -148,7 +152,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     { label, hint, error, leftIcon, rightSlot, className, id, ...props },
     ref,
   ) => {
-    const inputId = id || props.name;
+    const generatedId = React.useId();
+    const inputId = id || props.name || generatedId;
+    const messageId = `${inputId}-message`;
+    const describedBy =
+      [props["aria-describedby"], error || hint ? messageId : undefined]
+        .filter(Boolean)
+        .join(" ") || undefined;
     return (
       <div className="w-full">
         {label && (
@@ -158,7 +168,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {leftIcon && (
-            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+            <span
+              aria-hidden="true"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            >
               {leftIcon}
             </span>
           )}
@@ -172,10 +185,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               !!leftIcon && "!pl-11",
               !!rightSlot && "!pr-11",
               error &&
-                "border-rose-400 focus:ring-rose-500/60 focus:border-rose-400",
+                "!border-rose-400 focus:!ring-rose-500/60 focus:!border-rose-400",
               className,
             )}
             {...props}
+            aria-invalid={error ? true : props["aria-invalid"]}
+            aria-describedby={describedBy}
           />
           {rightSlot && (
             <span className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -184,9 +199,16 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error ? (
-          <p className="mt-1.5 text-xs font-medium text-rose-600">{error}</p>
+          <p
+            id={messageId}
+            className="mt-1.5 text-xs font-medium text-rose-600"
+          >
+            {error}
+          </p>
         ) : hint ? (
-          <p className="mt-1.5 text-xs text-slate-400">{hint}</p>
+          <p id={messageId} className="mt-1.5 text-xs text-slate-500">
+            {hint}
+          </p>
         ) : null}
       </div>
     );
@@ -263,7 +285,71 @@ export const EmptyState: React.FC<{
 );
 
 /* ============================================================================
-   Modal — accessible, animated dialog shell
+   LoadingState / ErrorState — standard async states. Loading is announced
+   politely (role="status"); errors interrupt (role="alert") and offer retry.
+   ========================================================================== */
+export const LoadingState: React.FC<{
+  label?: string;
+  className?: string;
+  children?: React.ReactNode;
+}> = ({ label, className, children }) => {
+  const { t } = useTranslation();
+  return (
+    <div role="status" aria-busy="true" className={className}>
+      <span className="sr-only">{label ?? t("a11y.loading")}</span>
+      {children ?? (
+        <div className="flex justify-center py-10 text-sage-600">
+          <Spinner />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const ErrorState: React.FC<{
+  title?: string;
+  message?: string;
+  onRetry?: () => void;
+  className?: string;
+}> = ({ title, message, onRetry, className }) => {
+  const { t } = useTranslation();
+  return (
+    <div
+      role="alert"
+      className={cn(
+        "flex flex-col items-center justify-center text-center py-12 px-6",
+        className,
+      )}
+    >
+      <div
+        aria-hidden="true"
+        className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 text-xl font-bold"
+      >
+        !
+      </div>
+      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+        {title ?? t("a11y.error_title")}
+      </h3>
+      <p className="mt-1.5 max-w-sm text-sm text-slate-500 dark:text-slate-400">
+        {message ?? t("a11y.error_load")}
+      </p>
+      {onRetry && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-5"
+          onClick={onRetry}
+        >
+          {t("a11y.retry")}
+        </Button>
+      )}
+    </div>
+  );
+};
+
+/* ============================================================================
+   Modal — accessible, animated dialog shell (built on Dialog: focus trap,
+   Escape, inert background, scroll lock, focus returned to the trigger)
    ========================================================================== */
 export const Modal: React.FC<{
   open: boolean;
@@ -274,6 +360,11 @@ export const Modal: React.FC<{
   footer?: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
   icon?: React.ReactNode;
+  /** Accessible name when `title` is not provided. */
+  label?: string;
+  /** "alertdialog" for confirmations. */
+  role?: "dialog" | "alertdialog";
+  initialFocus?: React.RefObject<HTMLElement | null>;
 }> = ({
   open,
   onClose,
@@ -283,19 +374,13 @@ export const Modal: React.FC<{
   footer,
   size = "md",
   icon,
+  label,
+  role,
+  initialFocus,
 }) => {
-  React.useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
+  const { t } = useTranslation();
+  const titleId = React.useId();
+  const descriptionId = React.useId();
 
   const sizes = {
     sm: "max-w-md",
@@ -305,75 +390,99 @@ export const Modal: React.FC<{
   } as const;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        className={cn(
-          "relative w-full bg-white dark:bg-slate-850 shadow-pop animate-scale-in",
-          "rounded-t-3xl sm:rounded-3xl border border-slate-200/70 dark:border-slate-700/60",
-          "max-h-[92vh] flex flex-col",
-          sizes[size],
-        )}
-      >
-        {(title || icon) && (
-          <div className="flex items-start gap-4 p-6 pb-4">
-            {icon && (
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sage-50 text-sage-600 dark:bg-sage-500/15 dark:text-sage-400">
-                {icon}
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              {title && (
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  {title}
-                </h2>
-              )}
-              {description && (
-                <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                  {description}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800"
-              aria-label="Fechar"
+    <Dialog
+      open={open}
+      onClose={onClose}
+      role={role}
+      labelledBy={title ? titleId : undefined}
+      label={label}
+      describedBy={description ? descriptionId : undefined}
+      initialFocus={initialFocus}
+      overlayClassName="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      backdropClassName="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-fade-in"
+      className={cn(
+        "relative w-full bg-white dark:bg-slate-850 shadow-pop animate-scale-in",
+        "rounded-t-3xl sm:rounded-3xl border border-slate-200/70 dark:border-slate-700/60",
+        "max-h-[92vh] flex flex-col",
+        sizes[size],
+      )}
+    >
+      {(title || icon) && (
+        <div className="flex items-start gap-4 p-6 pb-4">
+          {icon && (
+            <div
+              aria-hidden="true"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sage-50 text-sage-600 dark:bg-sage-500/15 dark:text-sage-400"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+              {icon}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            {title && (
+              <h2
+                id={titleId}
+                className="text-lg font-bold text-slate-900 dark:text-white"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+                {title}
+              </h2>
+            )}
+            {description && (
+              <p
+                id={descriptionId}
+                className="mt-0.5 text-sm text-slate-500 dark:text-slate-400"
+              >
+                {description}
+              </p>
+            )}
           </div>
-        )}
-        <div className="flex-1 overflow-y-auto px-6 py-2">{children}</div>
-        {footer && (
-          <div className="flex items-center justify-end gap-3 p-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-            {footer}
-          </div>
-        )}
-      </div>
-    </div>
+          <CloseButton onClick={onClose} label={t("a11y.close")} />
+        </div>
+      )}
+      <div className="flex-1 overflow-y-auto px-6 py-2">{children}</div>
+      {footer && (
+        <div className="flex flex-wrap items-center justify-end gap-3 p-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+          {footer}
+        </div>
+      )}
+    </Dialog>
   );
 };
+
+/** Icon-only close button with an accessible name. */
+export const CloseButton: React.FC<{
+  onClick: () => void;
+  label: string;
+  className?: string;
+}> = ({ onClick, label, className }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={cn(
+      "shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800 focus-ring",
+      className,
+    )}
+    aria-label={label}
+  >
+    <svg
+      aria-hidden="true"
+      className="w-5 h-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6 18L18 6M6 6l12 12"
+      />
+    </svg>
+  </button>
+);
 
 /* ============================================================================
    Skeleton
    ========================================================================== */
 export const Skeleton: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={cn("skeleton", className)} />
+  <div aria-hidden="true" className={cn("skeleton", className)} />
 );

@@ -7,15 +7,13 @@ vi.mock("../../../contexts/AuthContext", () => ({
   useAuth: () => ({ currentUser: { uid: "u1" } }),
 }));
 vi.mock("../../../services/firebaseService", () => ({
-  getPatientsCount: (_uid: string, cb: (n: number) => void) => {
-    cb(2);
-    return () => {};
-  },
+  countPatients: async (_uid: string) => 2,
 }));
 
 // Initialize i18next (English default) so labels render translated.
 import "../../../i18n";
 import BillingSection from "../BillingSection";
+import { changePlan } from "../../../services/billingService";
 
 describe("BillingSection", () => {
   // billingService persists to localStorage; reset so each test starts on the
@@ -40,5 +38,11 @@ describe("BillingSection", () => {
     render(<BillingSection />);
     fireEvent.click(screen.getByText("Cancel subscription"));
     expect(screen.getByText(/will be canceled/)).toBeInTheDocument();
+  });
+
+  it("shows the patient usage from the server-side count", async () => {
+    changePlan("free", "u1"); // only limited plans render the usage meter
+    render(<BillingSection />);
+    expect(await screen.findByText("2 / 5")).toBeInTheDocument();
   });
 });

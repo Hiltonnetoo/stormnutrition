@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
-import {
-  getPatients,
-  saveDietPlan,
-  updateDietPlan,
-} from "../services/firebaseService";
+import { saveDietPlan, updateDietPlan } from "../services/firebaseService";
+import { usePatientDirectory } from "../hooks/usePatientDirectory";
+import { useFocusOnChange } from "../hooks/useFocusOnChange";
+import { focusFirstInvalid } from "../utils/a11y";
 import { calcAge } from "../utils/calcAge";
 import {
   generateAlgorithmicDietPlan,
@@ -58,7 +57,7 @@ const DietGenerator: React.FC = () => {
   const [step, setStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState([false, false, false]);
 
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const { patients, error: patientsError } = usePatientDirectory();
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const formStorageKey = currentUser?.uid
     ? getUserStorageKey(currentUser.uid, "dietGeneratorDraft")
@@ -75,10 +74,16 @@ const DietGenerator: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  // Focus follows the wizard: new step heading, generated plan, save result.
+  const stepRegionRef = useRef<HTMLDivElement>(null);
+  const resultRegionRef = useRef<HTMLDivElement>(null);
+  const [resultFocusKey, setResultFocusKey] = useState(0);
   const [savedPatientData, setSavedPatientData] = useState<Patient | null>(
     null,
   );
   const [apiError, setApiError] = useState<string | null>(null);
+  useFocusOnChange(step, stepRegionRef, "h3");
+  useFocusOnChange(resultFocusKey, resultRegionRef, "h2, h3");
   const [editingDietId, setEditingDietId] = useState<string | null>(null);
 
   const selectedPatient = useMemo(
@@ -149,16 +154,16 @@ const DietGenerator: React.FC = () => {
     setFormData((prev) => ({ ...prev, ...newData }));
 
   useEffect(() => {
-    if (currentUser) {
-      const unsubscribe = getPatients(currentUser.uid, setPatients, (error) => {
-        console.error("Error fetching patients for diet generator:", error);
-        setApiError(
-          "Falha ao carregar a lista de pacientes. Recarregue a página.",
-        );
-      });
-      return () => unsubscribe();
+    if (patientsError) {
+      console.error(
+        "Error fetching patients for diet generator:",
+        patientsError,
+      );
+      setApiError(
+        "Falha ao carregar a lista de pacientes. Recarregue a página.",
+      );
     }
-  }, [currentUser]);
+  }, [patientsError]);
 
   // Auto-seleciona o paciente quando vindo de /patients/:id?patient=:id
   useEffect(() => {
@@ -284,39 +289,47 @@ const DietGenerator: React.FC = () => {
     const newErrors: Record<string, string> = {};
     if (stepToValidate === 1) {
       if (!formData.currentWeight || Number(formData.currentWeight) < 20)
-        newErrors.currentWeight = "Peso inválido.";
+        newErrors.currentWeight = t("diet_generator.validation.invalid_weight");
       if (!formData.targetWeight || Number(formData.targetWeight) < 20)
-        newErrors.targetWeight = "Peso inválido.";
+        newErrors.targetWeight = t("diet_generator.validation.invalid_weight");
       if (!formData.deadlineWeeks || Number(formData.deadlineWeeks) < 1)
-        newErrors.deadlineWeeks = "Prazo deve ser de no mínimo 1 semana.";
+        newErrors.deadlineWeeks = t(
+          "diet_generator.validation.deadline_min_weeks",
+        );
       if (
         formData.goal === "weight_loss" &&
         Number(formData.targetWeight) >= Number(formData.currentWeight)
       ) {
-        newErrors.targetWeight =
-          "Para emagrecer, o peso-alvo deve ser menor que o peso atual. Revise os campos ou altere o objetivo.";
+        newErrors.targetWeight = t(
+          "diet_generator.validation.weight_loss_target",
+        );
       }
       if (
         formData.goal === "weight_gain" &&
         Number(formData.targetWeight) <= Number(formData.currentWeight)
       ) {
-        newErrors.targetWeight =
-          "Para ganho de massa, o peso-alvo deve ser maior que o peso atual. Revise os campos ou altere o objetivo.";
+        newErrors.targetWeight = t(
+          "diet_generator.validation.weight_gain_target",
+        );
       }
     }
     if (stepToValidate === 2) {
       if (!formData.dailyCalories || Number(formData.dailyCalories) < 800)
-        newErrors.dailyCalories = "Mínimo de 800 kcal.";
+        newErrors.dailyCalories = t("diet_generator.validation.calories_min");
       const { protein, carbs, fat } = formData.macros ?? {
         protein: 0,
         carbs: 0,
         fat: 0,
       };
       if (protein + carbs + fat !== 100)
-        newErrors.macros = "A soma dos macros deve ser 100%.";
+        newErrors.macros = t("diet_generator.validation.macros_sum");
     }
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const invalid = Object.keys(newErrors);
+    // The macro split has no single field: send focus to its first input.
+    if (invalid.length > 0)
+      focusFirstInvalid(invalid.map((k) => (k === "macros" ? "protein" : k)));
+    return invalid.length === 0;
   };
 
   const goToStep = (targetStep: number) => {
@@ -340,7 +353,7 @@ const DietGenerator: React.FC = () => {
     setGeneratedPlan(null);
     const numericDailyCalories = Number(formData.dailyCalories);
     if (isNaN(numericDailyCalories)) {
-      setApiError("As calorias diárias devem ser um número válido.");
+      setApiError(t("diet_generator.validation.calories_invalid"));
       setLoading(false);
       return;
     }
@@ -396,9 +409,12 @@ const DietGenerator: React.FC = () => {
         labExams: formData.lastLabExams || [],
       };
       setGeneratedPlan(finalPlan);
+      setResultFocusKey((k) => k + 1);
     } catch (err) {
       setApiError(
-        err instanceof Error ? err.message : "Falha ao gerar o plano.",
+        err instanceof Error
+          ? err.message
+          : t("diet_generator.generation_failed"),
       );
     } finally {
       setLoading(false);
@@ -408,9 +424,7 @@ const DietGenerator: React.FC = () => {
   const handleSave = async () => {
     if (saving || !generatedPlan || !currentUser) return;
     if (generatedPlan.validation?.status === "infeasible") {
-      setApiError(
-        "Não é possível aprovar ou salvar um plano alimentar com status inviável. Corrija os itens incompatíveis.",
-      );
+      setApiError(t("diet_generator.validation.infeasible_plan"));
       return;
     }
     setSaving(true);
@@ -423,6 +437,7 @@ const DietGenerator: React.FC = () => {
       }
       setSavedPatientData(selectedPatient || null);
       setSaveSuccess(true);
+      setResultFocusKey((k) => k + 1);
     } catch (err) {
       console.error("[DietGenerator] Erro ao salvar plano alimentar:", {
         code: (err as { code?: string })?.code || "unknown",
@@ -602,31 +617,33 @@ const DietGenerator: React.FC = () => {
               />
             </div>
 
-            {step === 1 && (
-              <Step1Objectives
-                formData={formData}
-                onUpdate={updateFormData}
-                patientData={selectedPatient}
-                errors={errors}
-              />
-            )}
-            {step === 2 && calculations && (
-              <Step2Nutrition
-                formData={formData}
-                onUpdate={updateFormData}
-                calculations={calculations}
-                errors={errors}
-                validationWarnings={calculations.validationWarnings}
-              />
-            )}
-            {step === 3 && calculations && (
-              <Step3MealPlan
-                formData={formData}
-                onUpdate={updateFormData}
-                dailyCalories={Number(formData.dailyCalories) || 0}
-                calculations={calculations}
-              />
-            )}
+            <div ref={stepRegionRef}>
+              {step === 1 && (
+                <Step1Objectives
+                  formData={formData}
+                  onUpdate={updateFormData}
+                  patientData={selectedPatient}
+                  errors={errors}
+                />
+              )}
+              {step === 2 && calculations && (
+                <Step2Nutrition
+                  formData={formData}
+                  onUpdate={updateFormData}
+                  calculations={calculations}
+                  errors={errors}
+                  validationWarnings={calculations.validationWarnings}
+                />
+              )}
+              {step === 3 && calculations && (
+                <Step3MealPlan
+                  formData={formData}
+                  onUpdate={updateFormData}
+                  dailyCalories={Number(formData.dailyCalories) || 0}
+                  calculations={calculations}
+                />
+              )}
+            </div>
 
             <div className="mt-7 pt-5 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
               <Button
@@ -656,9 +673,12 @@ const DietGenerator: React.FC = () => {
         )}
       </Card>
 
-      <div className="mt-6">
+      <div className="mt-6" ref={resultRegionRef}>
         {loading && (
-          <Card className="flex flex-col items-center justify-center p-8 text-center border-2 border-dashed">
+          <Card
+            role="status"
+            className="flex flex-col items-center justify-center p-8 text-center border-2 border-dashed"
+          >
             <Spinner className="h-10 w-10 text-sage-500" />
             <p className="mt-4 text-lg font-bold text-slate-700 dark:text-slate-200">
               {t("diet_generator.generating_perfect_plan")}
@@ -669,7 +689,10 @@ const DietGenerator: React.FC = () => {
           </Card>
         )}
         {apiError && (
-          <div className="text-rose-700 bg-rose-50 border border-rose-100 p-4 rounded-xl text-sm">
+          <div
+            role="alert"
+            className="text-rose-700 bg-rose-50 border border-rose-100 p-4 rounded-xl text-sm"
+          >
             {apiError}
           </div>
         )}
