@@ -1,42 +1,42 @@
 # Graph Report - Isanutri V5  (2026-09-18)
 
 ## Corpus Check
-- 259 files · ~227,168 words
+- 260 files · ~229,142 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 15 file(s) not represented in the graph (top: (none) 9, .rules 2, .mdc 1)
 
 ## Summary
-- 1609 nodes · 3912 edges · 111 communities (88 shown, 23 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 85 edges (avg confidence: 0.92)
+- 1620 nodes · 3923 edges · 110 communities (88 shown, 22 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 84 edges (avg confidence: 0.92)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `376ea62f`
+- Built from commit: `9fa15073`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - icons.tsx
-- LabExamsModule.tsx
-- react-i18next
+- Step4Nutritional.tsx
+- DietPlanDisplay.tsx
 - pdfExporter.ts
 - MealOptionTable.tsx
-- ProgressBar.tsx
+- react
 - firebaseService.ts
-- useAuth
-- metabolicCalculations.ts
-- useLatestDiets.test.ts
+- vitest
+- DietPlanViewer.tsx
+- dietAlgorithmService.ts
 - devDependencies
-- App.tsx
-- build-foods.mjs
+- Login.tsx
+- PatientActionsMenu.tsx
 - patientService.ts
 - compilerOptions
 - package.json
 - Home.tsx
 - measure-bundle.mjs
-- PatientPortal.tsx
+- types/index.ts
 - scripts
-- useDashboardData.ts
+- Reports.tsx
 - dependencies
 - manifest.json
 - firestoreMeter.ts
@@ -44,20 +44,20 @@
 - 4. Etapas detalhadas
 - AuthContext.tsx
 - PatientProfile.tsx
+- App.tsx
+- foodService.ts
+- What You Must Do When Invoked
+- What You Must Do When Invoked
+- What You Must Do When Invoked
+- What You Must Do When Invoked
+- What You Must Do When Invoked
 - Patient
-- dietAlgorithmService.ts
-- What You Must Do When Invoked
-- What You Must Do When Invoked
-- What You Must Do When Invoked
-- What You Must Do When Invoked
-- What You Must Do When Invoked
-- Patients.test.tsx
 - graphify reference: extra exports and benchmark
 - graphify reference: extra exports and benchmark
 - graphify reference: extra exports and benchmark
 - graphify reference: extra exports and benchmark
 - graphify reference: extra exports and benchmark
-- ProfileHeader.tsx
+- useAuth
 - graphify reference: query, path, explain
 - graphify reference: query, path, explain
 - graphify reference: query, path, explain
@@ -102,31 +102,30 @@
 - .gemini/skills/graphify/references/extraction-spec.md
 - DietGenerator.tsx
 - Dashboard.tsx
-- getPatientDiets
+- 3.2 — i18n da UI: páginas e componentes ainda em PT ✅
 - NewPatientModal.tsx
-- dietService.test.ts
-- 🛠️ Detalhamento
-- react
-- dateTime.ts
-- appointmentService.ts
 - dietService.ts
+- 🛠️ Detalhamento
+- AppShell.tsx
+- Sidebar.tsx
+- Calendar.tsx
+- diet.ts
 - @playwright/test
-- types/index.ts
+- Step6LabExams.tsx
 - ui.tsx
-- ref_firebase_firestore
+- dietPersistence.integration.test.ts
 - Desempenho: consultas e carregamento
 - queryCost.test.ts
 - useDialog.ts
 - i18n.ts
-- 2. Roteiro de Avaliação Rápida (3 a 5 minutos)
-- Step4Nutritional.tsx
+- Index of Architectural Decisions
+- dietForm.types.ts
+- RecentActivityCard.tsx
+- ProfileAssessmentTab.tsx
 - PatientAccessModal.tsx
-- evaluationService.ts
-- invitationService.ts
-- patientMigrationService.ts
-- syntheticScenario.ts
+- PatientModal.tsx
+- NutritionLabel.tsx
 - Matriz de Baseline e Evidências — Storm Nutrition
-- SelfEvaluationForm.tsx
 
 ## God Nodes (most connected - your core abstractions)
 1. `react` - 106 edges
@@ -143,75 +142,75 @@
 ## Surprising Connections (you probably didn't know these)
 - `Gráficos (passo 5)` --references--> `ChartDataTable()`  [INFERRED]
   docs/accessibility.md → src/components/ChartDataTable.tsx
-- `1. Frontend Runtime & Strict Compiler Options` --references--> `ExportDietModal()`  [INFERRED]
-  README.md → src/components/modals/ExportDietModal.tsx
-- `Estados de interface (passo 7)` --references--> `ErrorState()`  [INFERRED]
-  docs/accessibility.md → src/components/ui.tsx
+- `Resultados: bundle de produção` --references--> `ExportDietModal()`  [INFERRED]
+  docs/performance.md → src/components/modals/ExportDietModal.tsx
 - `Baseline antes das mudanças` --references--> `usePatientProfile()`  [INFERRED]
   docs/accessibility.md → src/hooks/usePatientProfile.ts
+- `ADR-09: Safe Interception of Demo Emails and Multi-Layer Abuse Controls` --references--> `isDemoRecipient()`  [INFERRED]
+  docs/architecture-decisions.md → src/services/emailService.ts
 - `3.2 Identificadores de Correlação e Privacidade nos Logs` --references--> `safeLogError()`  [INFERRED]
   docs/deployment-and-config.md → src/utils/errors.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (111 total, 23 thin omitted)
+## Communities (110 total, 22 thin omitted)
 
 ### Community 0 - "icons.tsx"
-Cohesion: 0.09
-Nodes (22): EmailAdmin, Patients, AlertTriangleIcon(), BrainIcon(), ClipboardListIcon(), CloseIcon(), IconProps, LogInIcon() (+14 more)
+Cohesion: 0.16
+Nodes (12): Patients, EyeIcon(), EyeOffIcon(), HeartIcon(), IconProps, PlusIcon(), SearchIcon(), ShieldIcon() (+4 more)
 
-### Community 1 - "LabExamsModule.tsx"
-Cohesion: 0.14
-Nodes (19): ClinicalTagSelector(), Props, TagOption, tags, DietCalculations, DietFormData, MacroSplit, MealSlot (+11 more)
+### Community 1 - "Step4Nutritional.tsx"
+Cohesion: 0.11
+Nodes (24): ClinicalTagSelector(), Props, TagOption, tags, LabExamsModule(), Props, suggestionsByMode, suggestionsByTag (+16 more)
 
-### Community 2 - "react-i18next"
-Cohesion: 0.10
-Nodes (32): Diálogos (passos 1 e 2), react-dom, react-i18next, Dialog(), DialogProps, DietPlanDisplayProps, ExportDietModal, QuickCalculatorProps (+24 more)
+### Community 2 - "DietPlanDisplay.tsx"
+Cohesion: 0.13
+Nodes (16): DietPlanDisplayProps, ExportDietModal, DietPlanViewerProps, AlertTriangleIcon(), BrainIcon(), DownloadIcon(), ClinicalReviewModal(), ClinicalReviewModalProps (+8 more)
 
 ### Community 3 - "pdfExporter.ts"
-Cohesion: 0.09
-Nodes (24): Resultados: bundle de produção, html2canvas, jspdf, ExportDietModal(), AMBER, AMBER_TEXT, buildCustomLayoutPdfDocument(), CustomLayoutPdfOptions (+16 more)
+Cohesion: 0.08
+Nodes (25): html2canvas, jspdf, mealCalorieDistribution, Step3MealPlan(), PortalDietsSection(), r(), Meal, translateMealName() (+17 more)
 
 ### Community 4 - "MealOptionTable.tsx"
 Cohesion: 0.17
 Nodes (12): MealOptionTable(), OptionTable(), parseAmounts(), parseFoodNames(), Props, MealOption, MealOptionItem, src_types_index_mealoption (+4 more)
 
-### Community 5 - "ProgressBar.tsx"
-Cohesion: 0.40
-Nodes (3): ProgressBar(), ProgressBarProps, steps
+### Community 5 - "react"
+Cohesion: 0.17
+Nodes (10): react, ChartDataTable(), ProgressBar(), ProgressBarProps, steps, BiomarkerData, BiomarkerEvolutionChartProps, ProfileEvolutionTabProps (+2 more)
 
 ### Community 6 - "firebaseService.ts"
 Cohesion: 0.15
 Nodes (18): 🟢 Passo 6 — Robustez do Portal do Paciente (NOVO) ✅ (concluído), ref_firebase_storage, createPatientAccount(), createPatientPortalProfile(), setupPatientPortalAccess(), updatePatientPortalRef(), updateUserProfile(), uploadProfilePicture() (+10 more)
 
-### Community 7 - "useAuth"
-Cohesion: 0.07
-Nodes (60): 3.1 — Código e comentários em inglês ✅, 3.2 — i18n da UI: páginas e componentes ainda em PT ✅, 3.3 — Camadas de conteúdo (não são strings de UI — exigem abordagem própria) ✅, 🟡 Passo 2 — Testes Automatizados ⚠️ (parcial), 🟢 Passo 3 — Internacionalização ✅ (concluído), 13 — Reduzir responsabilidades das páginas grandes, @testing-library/react, vitest (+52 more)
+### Community 7 - "vitest"
+Cohesion: 0.09
+Nodes (46): @testing-library/react, vitest, DietPlanDisplay(), CreditCardIcon(), NewPatientModal(), BillingSection(), useDietTemplates(), SetValue (+38 more)
 
-### Community 8 - "metabolicCalculations.ts"
-Cohesion: 0.19
-Nodes (19): i18next, MetabolicCalculator, MetabolicCalculator(), ActivityLevel, activityMultipliers, calculateBMI(), calculateBMR(), calculateMacrosInGrams() (+11 more)
+### Community 8 - "DietPlanViewer.tsx"
+Cohesion: 0.15
+Nodes (23): i18next, MetabolicCalculator, DietPlanViewer(), isV2Plan(), PageHeader(), MetabolicCalculator(), ActivityLevel, activityMultipliers (+15 more)
 
-### Community 9 - "useLatestDiets.test.ts"
-Cohesion: 0.21
-Nodes (10): Sub, subs, useLatestDiets(), getDietCountSummary(), getDietsCollection(), handleSnapshotError(), saveDietPlan(), subscribeLatestDiet() (+2 more)
+### Community 9 - "dietAlgorithmService.ts"
+Cohesion: 0.24
+Nodes (20): createPrng(), dietTemplates, generateAlgorithmicDietPlan(), getGeneralObservations(), hashStringToSeed(), InfeasiblePlanError, validateDietPlan(), validateGenerationParams() (+12 more)
 
 ### Community 10 - "devDependencies"
 Cohesion: 0.08
 Nodes (26): devDependencies, @axe-core/playwright, eslint, @eslint/js, eslint-plugin-react-hooks, eslint-plugin-react-refresh, @firebase/rules-unit-testing, firebase-tools (+18 more)
 
-### Community 11 - "App.tsx"
-Cohesion: 0.09
-Nodes (28): react-router-dom, AcceptInvitation, DietGenerator, FoodDatabase, Home, Login, PatientProfile, Register (+20 more)
+### Community 11 - "Login.tsx"
+Cohesion: 0.13
+Nodes (18): ref_firebase_app, ref_firebase_auth, auth, fbApp, Login, GoogleIcon(), Input, getFriendlyErrorMessage() (+10 more)
 
-### Community 12 - "build-foods.mjs"
-Cohesion: 0.05
-Nodes (41): Acessibilidade e estados de interface, Baseline antes das mudanças, Como verificar, Contraste, mobile e movimento (passo 6), Custo no bundle, Estados de interface (passo 7), Formulários e anúncios (passo 3), Gráficos (passo 5) (+33 more)
+### Community 12 - "PatientActionsMenu.tsx"
+Cohesion: 0.07
+Nodes (30): Acessibilidade e estados de interface, Baseline antes das mudanças, Como verificar, Contraste, mobile e movimento (passo 6), Custo no bundle, Formulários e anúncios (passo 3), Gráficos (passo 5), Mudanças (+22 more)
 
 ### Community 13 - "patientService.ts"
-Cohesion: 0.18
-Nodes (18): Patients(), db, addPatient(), archivePatient(), CascadeDeletionResult, deletePatient, deletePatientCascade(), DeletionProgress (+10 more)
+Cohesion: 0.21
+Nodes (16): Patients(), addPatient(), archivePatient(), CascadeDeletionResult, deletePatientCascade(), DeletionProgress, getDietsCollection(), getPatientDoc() (+8 more)
 
 ### Community 14 - "compilerOptions"
 Cohesion: 0.11
@@ -221,21 +220,25 @@ Nodes (17): compilerOptions, allowImportingTsExtensions, allowJs, experimentalDe
 Cohesion: 0.09
 Nodes (24): engines, node, name, private, type, version, eslint, @eslint/js (+16 more)
 
+### Community 16 - "Home.tsx"
+Cohesion: 0.09
+Nodes (7): AuthLayout(), AuthLayoutProps, CheckCircleIcon(), LogoIcon(), StarIcon(), LanguageSelector(), showcaseFrames
+
 ### Community 17 - "measure-bundle.mjs"
 Cohesion: 0.10
 Nodes (24): ref_node_zlib, vite, assets, chunks, closure(), collectChunkGraph, composition, compositionSorted (+16 more)
 
-### Community 18 - "PatientPortal.tsx"
-Cohesion: 0.15
-Nodes (13): Decisões e trade-offs, PatientPortal, PortalPasswordModal(), Props, RangeFilter, WeightEvolutionChart(), UsePatientPortalDataReturn, defaultPatientData (+5 more)
+### Community 18 - "types/index.ts"
+Cohesion: 0.13
+Nodes (17): react-i18next, Dialog(), DialogProps, PortalPasswordModal(), PortalWeightModal(), SelfEvaluationForm(), Props, useFocusOnChange() (+9 more)
 
 ### Community 19 - "scripts"
 Cohesion: 0.10
 Nodes (20): scripts, build, demo:reset, demo:seed, dev, emulators, format, format:check (+12 more)
 
-### Community 20 - "useDashboardData.ts"
-Cohesion: 0.16
-Nodes (21): ActivityIconKey, ActivityItem, buildMonthlyDietBuckets(), buildRecentActivity(), formatRelative(), MonthBucket, RECENT_ACTIVITY_LIMIT, PerformanceSectionProps (+13 more)
+### Community 20 - "Reports.tsx"
+Cohesion: 0.08
+Nodes (28): buildMonthlyDietBuckets(), buildRecentActivity(), formatRelative(), MonthBucket, RECENT_ACTIVITY_LIMIT, PerformanceSection(), PerformanceSectionProps, Sub (+20 more)
 
 ### Community 21 - "dependencies"
 Cohesion: 0.20
@@ -258,20 +261,20 @@ Cohesion: 0.06
 Nodes (34): 01 — Estabelecer baseline e corrigir o controle de status, 02 — Tornar instalação, emuladores e CI reproduzíveis, 03 — Corrigir o contrato de persistência das dietas, 04 — Tratar autenticação como fluxo com estados explícitos, 05 — Isolar rascunhos e configurações por conta, 06 — Fortalecer autorização e validação de dados, 07 — Substituir envio de senha por convite seguro, 08 — Tornar restrições e dados alimentares explícitos (+26 more)
 
 ### Community 26 - "AuthContext.tsx"
-Cohesion: 0.12
-Nodes (22): PortalWeightModal(), AuthContext, AuthContextType, AuthProvider(), createNutritionistProfile(), firebaseSignOut(), getNutritionistProfile(), getPatientPortalProfile() (+14 more)
+Cohesion: 0.18
+Nodes (16): AuthContext, AuthContextType, AuthProvider(), firebaseSignOut(), getNutritionistProfile(), getPatientPortalProfile(), src_services_firebaseservice_onauthstatechanged, AuthError (+8 more)
 
 ### Community 27 - "PatientProfile.tsx"
-Cohesion: 0.18
-Nodes (11): LoadingState(), BiomarkerData, BiomarkerEvolutionChart(), BiomarkerEvolutionChartProps, DietComparisonModal(), ProfileDietsTab(), ProfileExamsTab(), ProfileTimelineTab() (+3 more)
+Cohesion: 0.29
+Nodes (6): react-router-dom, LoadingState(), DietComparisonModal(), ProfileEvolutionTab(), ProfileExamsTab(), TabId
 
-### Community 28 - "Patient"
-Cohesion: 0.13
-Nodes (13): DietSuccessCardProps, NewPatientModalProps, PatientDietHistoryModalProps, Step1Props, Step3Props, Step5Props, Step6Props, Step6Summary() (+5 more)
+### Community 28 - "App.tsx"
+Cohesion: 0.12
+Nodes (13): Calendar, DietGenerator, EmailAdmin, Home, PatientPortal, PatientProfile, Register, Reports (+5 more)
 
-### Community 29 - "dietAlgorithmService.ts"
-Cohesion: 0.08
-Nodes (53): NutritionLabel(), NutritionLabelProps, brazilianFoods, coreFoods, _seen, extraFoods, FoodDatabase(), createPrng() (+45 more)
+### Community 29 - "foodService.ts"
+Cohesion: 0.09
+Nodes (30): FoodDatabase, brazilianFoods, coreFoods, _seen, extraFoods, FoodDatabase(), foodCategories, getAvailableCarbs() (+22 more)
 
 ### Community 30 - "What You Must Do When Invoked"
 Cohesion: 0.08
@@ -293,9 +296,9 @@ Nodes (24): For /graphify add and --watch, For /graphify query, For the commit h
 Cohesion: 0.08
 Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
 
-### Community 35 - "Patients.test.tsx"
-Cohesion: 0.11
-Nodes (15): GlobalSearch(), DirectoryState, EMPTY, PatientDirectoryProvider(), auth, Consumer(), Listener, listeners (+7 more)
+### Community 35 - "Patient"
+Cohesion: 0.13
+Nodes (18): DietSuccessCardProps, NewPatientModalProps, PatientDietHistoryModalProps, Step1Props, Step3Props, Step5Props, BiomarkerEvolutionChart(), ProfileExamsTabProps (+10 more)
 
 ### Community 36 - "graphify reference: extra exports and benchmark"
 Cohesion: 0.22
@@ -317,9 +320,9 @@ Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only
 Cohesion: 0.22
 Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
 
-### Community 41 - "ProfileHeader.tsx"
-Cohesion: 0.43
-Nodes (5): modeTone, ProfileHeader(), ProfileHeaderProps, calcAge(), formatNumberWithLocale()
+### Community 41 - "useAuth"
+Cohesion: 0.25
+Nodes (13): EditIcon(), TrashIcon(), ExportDietModal(), ExportDietModal, PatientDietHistoryModal(), ExportDietModal, ProfileDietsTab(), useAuth() (+5 more)
 
 ### Community 42 - "graphify reference: query, path, explain"
 Cohesion: 0.33
@@ -406,64 +409,64 @@ Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
 ### Community 84 - "DietGenerator.tsx"
-Cohesion: 0.15
-Nodes (13): ClinicalContextCard(), ClinicalContextCardProps, modeTone, DietProgressBar(), DietProgressBarProps, Step3MealPlan(), DietSuccessCard(), DietTemplatesSection() (+5 more)
+Cohesion: 0.11
+Nodes (19): ClinicalContextCard(), ClinicalContextCardProps, modeTone, DietProgressBar(), DietProgressBarProps, DietSuccessCard(), DietTemplatesSection(), DietTemplatesSectionProps (+11 more)
 
 ### Community 85 - "Dashboard.tsx"
-Cohesion: 0.10
-Nodes (25): Dashboard, src_components_dashboard_index_monthsummarycard, src_components_dashboard_index_onboardingbanner, src_components_dashboard_index_performancesection, src_components_dashboard_index_quickactionssection, src_components_dashboard_index_recentactivitycard, src_components_dashboard_index_statcard, MonthSummaryCard() (+17 more)
+Cohesion: 0.11
+Nodes (20): Dashboard, src_components_dashboard_index_monthsummarycard, src_components_dashboard_index_onboardingbanner, src_components_dashboard_index_performancesection, src_components_dashboard_index_quickactionssection, src_components_dashboard_index_recentactivitycard, src_components_dashboard_index_statcard, MonthSummaryCard() (+12 more)
 
-### Community 86 - "getPatientDiets"
-Cohesion: 0.57
-Nodes (5): usePatientPortalData(), usePatientProfile(), byNewestFirst(), getPatientDiets(), getPatientById()
+### Community 86 - "3.2 — i18n da UI: páginas e componentes ainda em PT ✅"
+Cohesion: 0.33
+Nodes (9): 3.2 — i18n da UI: páginas e componentes ainda em PT ✅, 13 — Reduzir responsabilidades das páginas grandes, usePatientPortalData(), usePatientProfile(), PatientPortal(), PatientProfile(), byNewestFirst(), getPatientDiets() (+1 more)
 
 ### Community 87 - "NewPatientModal.tsx"
-Cohesion: 0.21
-Nodes (16): errBorder(), Step1Objectives(), Step1Props, Step2Nutrition(), initialFormData, Step1Personal(), errBorder(), errMsg() (+8 more)
+Cohesion: 0.19
+Nodes (15): Step2Nutrition(), initialFormData, Step1Personal(), errBorder(), errMsg(), Step2Contact(), Step2Props, Step3Professional() (+7 more)
 
-### Community 88 - "dietService.test.ts"
-Cohesion: 0.33
-Nodes (11): isFiniteNumber(), sanitizeMeal(), sanitizeMealOption(), sanitizeMealOptionItem(), sanitizeMicronutrients(), validateAndSerializeDietPlan(), validateAndSerializeDietUpdate(), assertNoUndefined() (+3 more)
+### Community 88 - "dietService.ts"
+Cohesion: 0.18
+Nodes (23): DietCountSummary, getDietDoc(), getDietsCollection(), handleSnapshotError(), isFiniteNumber(), sanitizeMeal(), sanitizeMealOption(), sanitizeMealOptionItem() (+15 more)
 
 ### Community 89 - "🛠️ Detalhamento"
-Cohesion: 0.22
-Nodes (8): ✅ Critério de "pronto para avaliação", 🛠️ Detalhamento, 🗺️ Ordem de Execução Sugerida (atualizada), 🟢 Passo 1 — TypeScript Strict ✅ (concluído), 🔵 Passo 4 — Segurança e CI/CD ✅ (concluído — revisar qualidade), 🟣 Passo 5 — Polimento, Organização e README ✅ (concluído), Plano de Preparação para Avaliação Tech Lead — Storm Nutrition V5, 📊 Status Verificado (resumo)
+Cohesion: 0.17
+Nodes (11): 3.1 — Código e comentários em inglês ✅, 3.3 — Camadas de conteúdo (não são strings de UI — exigem abordagem própria) ✅, ✅ Critério de "pronto para avaliação", 🛠️ Detalhamento, 🗺️ Ordem de Execução Sugerida (atualizada), 🟢 Passo 1 — TypeScript Strict ✅ (concluído), 🟢 Passo 3 — Internacionalização ✅ (concluído), 🔵 Passo 4 — Segurança e CI/CD ✅ (concluído — revisar qualidade) (+3 more)
 
-### Community 90 - "react"
-Cohesion: 0.20
-Nodes (12): react, AppShell(), Breadcrumbs(), BreadcrumbsProps, ChevronRightIcon(), HomeIcon(), SparklesIcon(), LanguageSelector() (+4 more)
-
-### Community 91 - "dateTime.ts"
-Cohesion: 0.33
-Nodes (12): AdherenceCheckIn(), logAdherence(), DEFAULT_CLINIC_TIMEZONE, formatCivilDate(), getCivilDateFromDate(), getCivilMonthRange(), getCivilToday(), getIntlCivilFormatter() (+4 more)
-
-### Community 92 - "appointmentService.ts"
-Cohesion: 0.16
-Nodes (22): Calendar(), addAppointment(), deleteAppointment(), findAppointmentConflict(), getAppointmentDoc(), getAppointmentsCollection(), getAppointmentsInRange(), getNextPatientAppointment() (+14 more)
-
-### Community 93 - "dietService.ts"
+### Community 90 - "AppShell.tsx"
 Cohesion: 0.13
-Nodes (20): GenerationResult, deleteDietPlan(), DietCountSummary, getDietDoc(), updateDietPlan(), CalculatedDietTotals, DecisionEntry, DietPlanFirestoreDto (+12 more)
+Nodes (16): Decisões e trade-offs, 🟡 Passo 2 — Testes Automatizados ⚠️ (parcial), AppShell(), Breadcrumbs(), BreadcrumbsProps, CloseIcon(), HomeIcon(), SparklesIcon() (+8 more)
 
-### Community 95 - "types/index.ts"
-Cohesion: 0.27
-Nodes (7): Step6LabExams(), Step6Props, interpretTest(), labCategories, LabCategory, EmailLog, src_types_index_labtest
+### Community 91 - "Sidebar.tsx"
+Cohesion: 0.16
+Nodes (9): ClipboardListIcon(), LogInIcon(), TargetIcon(), deriveNotifications(), GlobalSearch(), NavItemProps, NotificationBell(), NotifItem (+1 more)
+
+### Community 92 - "Calendar.tsx"
+Cohesion: 0.07
+Nodes (57): AdherenceCheckIn(), ApptModalProps, Calendar(), TYPE_DOT, TYPE_LIGHT, addAppointment(), deleteAppointment(), findAppointmentConflict() (+49 more)
+
+### Community 93 - "diet.ts"
+Cohesion: 0.20
+Nodes (10): GenerationResult, CalculatedDietTotals, DecisionEntry, DietPlanFirestoreDto, DietPlanUpdateDto, PlanValidationIssue, PlanValidationResult, PlanValidationStatus (+2 more)
+
+### Community 95 - "Step6LabExams.tsx"
+Cohesion: 0.39
+Nodes (6): Step6LabExams(), Step6Props, interpretTest(), labCategories, LabCategory, src_types_index_labtest
 
 ### Community 96 - "ui.tsx"
-Cohesion: 0.11
-Nodes (20): O que é verificado automaticamente, Calendar, Reports, ChartDataTable(), BadgeTone, ButtonProps, ButtonSize, buttonSizes (+12 more)
+Cohesion: 0.15
+Nodes (17): Estados de interface (passo 7), Badge(), BadgeTone, ButtonProps, ButtonSize, buttonSizes, ButtonVariant, buttonVariants (+9 more)
 
-### Community 97 - "ref_firebase_firestore"
-Cohesion: 0.19
-Nodes (11): ref_firebase_app, ref_firebase_firestore, @firebase/rules-unit-testing, ref_node_fs, ref_node_path, ref_node_url, auth, fbApp (+3 more)
+### Community 97 - "dietPersistence.integration.test.ts"
+Cohesion: 0.33
+Nodes (7): @firebase/rules-unit-testing, ref_node_fs, ref_node_path, ref_node_url, nutriDb(), __dirname, __dirname
 
 ### Community 98 - "Desempenho: consultas e carregamento"
-Cohesion: 0.18
-Nodes (10): Antes (plano do commit `99e72fa`), Bundle, Como reproduzir, Consultas ao Firestore, Depois, Desempenho: consultas e carregamento, Método, O que não foi medido (+2 more)
+Cohesion: 0.17
+Nodes (11): Antes (plano do commit `99e72fa`), Bundle, Como reproduzir, Consultas ao Firestore, Depois, Desempenho: consultas e carregamento, Método, O que não foi medido (+3 more)
 
 ### Community 99 - "queryCost.test.ts"
-Cohesion: 0.17
-Nodes (5): current, __dirname, holder, legacy, table()
+Cohesion: 0.15
+Nodes (13): current, __dirname, holder, legacy, buildDietTemplate(), buildPatient(), localWallTime(), pad() (+5 more)
 
 ### Community 100 - "useDialog.ts"
 Cohesion: 0.16
@@ -471,63 +474,59 @@ Nodes (15): DialogPanel(), FOCUSABLE, focusInitial(), getFocusable(), isVisible(
 
 ### Community 101 - "i18n.ts"
 Cohesion: 0.06
-Nodes (43): @emailjs/browser, ref_react_dom_client, App(), ErrorBoundary, ErrorBoundaryProps, ErrorBoundaryState, PortalDietsSection(), r() (+35 more)
+Nodes (46): @emailjs/browser, ref_react_dom_client, App(), ErrorBoundary, ErrorBoundaryProps, ErrorBoundaryState, ProfileTimelineTab(), normalizeLanguage() (+38 more)
 
-### Community 102 - "2. Roteiro de Avaliação Rápida (3 a 5 minutos)"
-Cohesion: 0.14
-Nodes (13): 1. Personas e Credenciais Sintéticas, 2. Roteiro de Avaliação Rápida (3 a 5 minutos), 3. Identificação Explícita de Simulações vs. Backend Real, 4. Comandos de Inicialização e Reset de Dados, Executar Testes E2E Emulados, Guia de Demonstração Sintética e Identificação de Simulações, Inicializar Emuladores Locais, Passo 1: Acesso com Perfil Clínico (+5 more)
+### Community 102 - "Index of Architectural Decisions"
+Cohesion: 0.05
+Nodes (38): ADR-01: React 19 SPA with Strict TypeScript and Code-Splitting, ADR-02: Native Compile-Time Tailwind CSS v4, ADR-03: Secondary Firebase Auth Instance for Non-Disruptive Patient Provisioning, ADR-04: Passwordless Tokenized Invitations with Patient-Defined Passwords, ADR-05: Multi-Tenant Isolation via Firestore Security Rules, ADR-06: Deterministic Constraint-Based Meal Generation over Generative AI, ADR-07: Vector-Based Editorial PDF Exporting, ADR-08: Architectural Decoupling of Local Billing Simulation (+30 more)
 
-### Community 103 - "Step4Nutritional.tsx"
-Cohesion: 0.20
-Nodes (11): ModeOption, modes, ModeSelector(), Props, dietaryOptions, dietaryOptionsMap, goalOptions, Step4Nutritional() (+3 more)
+### Community 103 - "dietForm.types.ts"
+Cohesion: 0.27
+Nodes (9): DietCalculations, DietFormData, MacroSplit, MealSlot, errBorder(), Step1Objectives(), Step1Props, Step2Props (+1 more)
 
-### Community 104 - "PatientAccessModal.tsx"
+### Community 104 - "RecentActivityCard.tsx"
 Cohesion: 0.29
-Nodes (7): PatientAccessModal(), Props, sendPortalPasswordReset(), getEmailConfig(), isEmailConfigured(), sendPortalAccessEmail(), src_types_index_patientinvitation
+Nodes (7): ActivityIconKey, ActivityItem, ACTIVITY_ICON, RecentActivityCard(), RecentActivityCardProps, ClockIcon(), ScaleIcon()
 
-### Community 105 - "evaluationService.ts"
-Cohesion: 0.13
-Nodes (20): ProfileAssessmentTab(), ProfileAssessmentTabProps, CompleteEvaluationOptions, LogAdherenceOptions, LogWeightOptions, requestSelfEvaluation(), updatePatientSettings(), src_services_firebaseservice_user (+12 more)
+### Community 105 - "ProfileAssessmentTab.tsx"
+Cohesion: 0.47
+Nodes (5): ProfileAssessmentTab(), ProfileAssessmentTabProps, requestSelfEvaluation(), updatePatientSettings(), src_services_firebaseservice_user
 
-### Community 106 - "invitationService.ts"
-Cohesion: 0.39
-Nodes (10): ref_firebase_auth, AcceptInvitation(), src_services_firebasecore_user, acceptInvitationWithExistingAccount(), acceptInvitationWithNewAccount(), computeInvitationStatus(), CreateInvitationParams, createOrGetPendingInvitation() (+2 more)
+### Community 106 - "PatientAccessModal.tsx"
+Cohesion: 0.21
+Nodes (16): ref_firebase_firestore, AcceptInvitation, PatientAccessModal(), Props, AcceptInvitation(), sendPortalPasswordReset(), src_services_firebasecore_user, acceptInvitationWithExistingAccount() (+8 more)
 
-### Community 107 - "patientMigrationService.ts"
-Cohesion: 0.57
-Nodes (6): generateDeterministicId(), normalizeAdherenceEntry(), normalizePatientHistories(), normalizeSelfEvaluation(), normalizeWeightRecord(), mockPatient
+### Community 107 - "PatientModal.tsx"
+Cohesion: 0.50
+Nodes (4): Diálogos (passos 1 e 2), ConfirmationModal(), ConfirmationModalProps, Modal()
 
-### Community 108 - "syntheticScenario.ts"
-Cohesion: 0.33
-Nodes (9): buildDietTemplate(), buildPatient(), localWallTime(), pad(), portalPatientId, SCENARIO, SeededAppointment, SeededDiet (+1 more)
+### Community 108 - "NutritionLabel.tsx"
+Cohesion: 0.50
+Nodes (4): NutritionLabel(), NutritionLabelProps, Micronutrients, src_types_index_micronutrients
 
 ### Community 109 - "Matriz de Baseline e Evidências — Storm Nutrition"
 Cohesion: 0.29
 Nodes (6): 1. Ambiente e Ferramentas Medidas, 2. Verificação da Nota Histórica do Prettier, 3. Matriz de Achados vs. Evidências no Código, 4. Estado da Integração Contínua (CI), Matriz de Baseline e Evidências — Storm Nutrition, db()
 
-### Community 110 - "SelfEvaluationForm.tsx"
-Cohesion: 0.53
-Nodes (3): SelfEvaluationForm(), useFocusOnChange(), completeSelfEvaluation()
-
 ## Knowledge Gaps
-- **554 isolated node(s):** `name`, `private`, `version`, `type`, `node` (+549 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 734 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **23 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **564 isolated node(s):** `name`, `private`, `version`, `type`, `node` (+559 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 742 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **22 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `react` to `icons.tsx`, `LabExamsModule.tsx`, `react-i18next`, `MealOptionTable.tsx`, `ProgressBar.tsx`, `useAuth`, `metabolicCalculations.ts`, `useLatestDiets.test.ts`, `App.tsx`, `package.json`, `Home.tsx`, `PatientPortal.tsx`, `useDashboardData.ts`, `AuthContext.tsx`, `PatientProfile.tsx`, `Patient`, `dietAlgorithmService.ts`, `Patients.test.tsx`, `ProfileHeader.tsx`, `DietGenerator.tsx`, `Dashboard.tsx`, `getPatientDiets`, `NewPatientModal.tsx`, `dateTime.ts`, `types/index.ts`, `ui.tsx`, `useDialog.ts`, `i18n.ts`, `Step4Nutritional.tsx`, `PatientAccessModal.tsx`, `evaluationService.ts`, `SelfEvaluationForm.tsx`?**
-  _High betweenness centrality (0.111) - this node is a cross-community bridge._
-- **Why does `react-i18next` connect `react-i18next` to `icons.tsx`, `LabExamsModule.tsx`, `MealOptionTable.tsx`, `ProgressBar.tsx`, `useAuth`, `metabolicCalculations.ts`, `App.tsx`, `package.json`, `Home.tsx`, `PatientPortal.tsx`, `useDashboardData.ts`, `AuthContext.tsx`, `PatientProfile.tsx`, `Patient`, `dietAlgorithmService.ts`, `ProfileHeader.tsx`, `DietGenerator.tsx`, `Dashboard.tsx`, `NewPatientModal.tsx`, `react`, `dateTime.ts`, `types/index.ts`, `ui.tsx`, `i18n.ts`, `Step4Nutritional.tsx`, `PatientAccessModal.tsx`, `evaluationService.ts`, `SelfEvaluationForm.tsx`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
-- **Why does `vitest` connect `useAuth` to `MealOptionTable.tsx`, `metabolicCalculations.ts`, `useLatestDiets.test.ts`, `patientService.ts`, `package.json`, `PatientPortal.tsx`, `AuthContext.tsx`, `dietAlgorithmService.ts`, `Patients.test.tsx`, `getPatientDiets`, `dietService.test.ts`, `react`, `dateTime.ts`, `appointmentService.ts`, `ui.tsx`, `ref_firebase_firestore`, `queryCost.test.ts`, `useDialog.ts`, `i18n.ts`, `evaluationService.ts`, `invitationService.ts`, `patientMigrationService.ts`?**
-  _High betweenness centrality (0.039) - this node is a cross-community bridge._
+- **Why does `react` connect `react` to `icons.tsx`, `Step4Nutritional.tsx`, `DietPlanDisplay.tsx`, `pdfExporter.ts`, `MealOptionTable.tsx`, `vitest`, `DietPlanViewer.tsx`, `Login.tsx`, `PatientActionsMenu.tsx`, `package.json`, `Home.tsx`, `types/index.ts`, `Reports.tsx`, `AuthContext.tsx`, `PatientProfile.tsx`, `App.tsx`, `foodService.ts`, `Patient`, `useAuth`, `DietGenerator.tsx`, `Dashboard.tsx`, `3.2 — i18n da UI: páginas e componentes ainda em PT ✅`, `NewPatientModal.tsx`, `AppShell.tsx`, `Sidebar.tsx`, `Calendar.tsx`, `Step6LabExams.tsx`, `ui.tsx`, `useDialog.ts`, `i18n.ts`, `dietForm.types.ts`, `RecentActivityCard.tsx`, `ProfileAssessmentTab.tsx`, `PatientAccessModal.tsx`, `PatientModal.tsx`, `NutritionLabel.tsx`?**
+  _High betweenness centrality (0.107) - this node is a cross-community bridge._
+- **Why does `react-i18next` connect `types/index.ts` to `icons.tsx`, `Step4Nutritional.tsx`, `DietPlanDisplay.tsx`, `pdfExporter.ts`, `MealOptionTable.tsx`, `react`, `vitest`, `DietPlanViewer.tsx`, `Login.tsx`, `PatientActionsMenu.tsx`, `package.json`, `Home.tsx`, `Reports.tsx`, `PatientProfile.tsx`, `App.tsx`, `foodService.ts`, `Patient`, `useAuth`, `DietGenerator.tsx`, `Dashboard.tsx`, `NewPatientModal.tsx`, `AppShell.tsx`, `Sidebar.tsx`, `Calendar.tsx`, `Step6LabExams.tsx`, `ui.tsx`, `i18n.ts`, `dietForm.types.ts`, `RecentActivityCard.tsx`, `ProfileAssessmentTab.tsx`, `PatientAccessModal.tsx`, `PatientModal.tsx`, `NutritionLabel.tsx`?**
+  _High betweenness centrality (0.046) - this node is a cross-community bridge._
+- **Why does `vitest` connect `vitest` to `MealOptionTable.tsx`, `DietPlanViewer.tsx`, `dietAlgorithmService.ts`, `PatientActionsMenu.tsx`, `patientService.ts`, `package.json`, `types/index.ts`, `Reports.tsx`, `Patient`, `3.2 — i18n da UI: páginas e componentes ainda em PT ✅`, `dietService.ts`, `AppShell.tsx`, `Calendar.tsx`, `ui.tsx`, `dietPersistence.integration.test.ts`, `queryCost.test.ts`, `useDialog.ts`, `i18n.ts`, `PatientAccessModal.tsx`?**
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **What connects `name`, `private`, `version` to the rest of the system?**
-  _554 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `icons.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.0855614973262032 - nodes in this community are weakly interconnected._
-- **Should `LabExamsModule.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.14333333333333334 - nodes in this community are weakly interconnected._
-- **Should `react-i18next` be split into smaller, more focused modules?**
-  _Cohesion score 0.09863945578231292 - nodes in this community are weakly interconnected._
+  _564 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Step4Nutritional.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.11330049261083744 - nodes in this community are weakly interconnected._
+- **Should `DietPlanDisplay.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.13450292397660818 - nodes in this community are weakly interconnected._
+- **Should `pdfExporter.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.08465608465608465 - nodes in this community are weakly interconnected._

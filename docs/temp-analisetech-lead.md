@@ -1,10 +1,12 @@
-# Plano de Preparação para Avaliação Tech Lead — Storm Nutrition V5
+# Plano de Preparação para Avaliação Tech Lead — Storm Nutrition V5 (Histórico Arquivado)
 
-Documento mestre das melhorias para elevar o projeto ao padrão de Tech Leads sêniores e processos de startups internacionais (EUA/Europa) e elite no Brasil.
-
-> **Atualizado em 09/06/2026** após verificação real do código. A versão anterior marcava tudo como concluído, mas a auditoria mostrou que **vários itens estão incompletos ou não foram feitos** (principalmente a internacionalização e o polimento). Os status abaixo refletem o que está **de fato** no repositório.
-
-**Legenda:** ✅ feito · ⚠️ parcial · ❌ não feito
+> [!NOTE]
+> **DOCUMENTO HISTÓRICO ARQUIVADO (Junho/2026):**
+> Este documento representa a análise preliminar histórica de Tech Lead realizada em 09/06/2026. Ele foi integralmente **superado e consolidado pelo plano de ação executivo em [o-que-precisa-ser-feito.md](file:///Users/hiltonneto/Desktop/Isanutri%20V5/o-que-precisa-ser-feito.md)** (Setembro/2026).
+> 
+> As worktrees antigas de desenvolvimento (como `.claude/worktrees/cool-jackson-deb092/`) são mantidas intactas como registro histórico do repositório, mas não refletem a arquitetura final nem os contratos da versão atual do produto.
+> 
+> Para especificações técnicas vigentes, consulte [README.md](file:///Users/hiltonneto/Desktop/Isanutri%20V5/README.md), [docs/architecture-decisions.md](file:///Users/hiltonneto/Desktop/Isanutri%20V5/docs/architecture-decisions.md) e [docs/demo-guide.md](file:///Users/hiltonneto/Desktop/Isanutri%20V5/docs/demo-guide.md).
 
 ---
 
