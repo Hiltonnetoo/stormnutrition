@@ -47,6 +47,7 @@ metadata.json
 # Testing and IDE
 test-results/
 playwright-report/
+diet-*.pdf
 .claude/worktrees/
 .replit
 coverage/

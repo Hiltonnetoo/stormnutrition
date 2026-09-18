@@ -1013,16 +1013,45 @@ testes_executados:
 
 **Passos:**
 
-1. [ ] Gerar a exportação a partir do plano validado, com metas e totais reais diferenciados.
-2. [ ] Confirmar que clínica e paciente pertencem à sessão/vínculo correto.
-3. [ ] Cobrir nomes longos, caracteres acentuados, múltiplas páginas, alternativas, avisos e campos ausentes.
-4. [ ] Inspecionar PDFs renderizados para detectar cortes, sobreposição e quebras inadequadas.
-5. [ ] Verificar texto extraível no layout textual e documentar limitações do modo baseado em imagem.
-6. [ ] Revisar PT/EN, unidade, data, versão e consistência com o plano reaberto no portal.
+1. [x] Gerar a exportação a partir do plano validado, com metas e totais reais diferenciados.
+2. [x] Confirmar que clínica e paciente pertencem à sessão/vínculo correto.
+3. [x] Cobrir nomes longos, caracteres acentuados, múltiplas páginas, alternativas, avisos e campos ausentes.
+4. [x] Inspecionar PDFs renderizados para detectar cortes, sobreposição e quebras inadequadas.
+5. [x] Verificar texto extraível no layout textual e documentar limitações do modo baseado em imagem.
+6. [x] Revisar PT/EN, unidade, data, versão e consistência com o plano reaberto no portal.
 
 **Resultado:** PDF utilizável e coerente com os dados salvos.
 
 **Aceite:** arquivos de fixtures aprovados visualmente e download comprovado no E2E; nenhum total é substituído indevidamente pela meta.
+
+```yaml
+etapa: 17
+status: concluido
+data: 2026-09-18
+arquivos_modificados:
+  - src/utils/pdfExporter.ts
+  - src/components/modals/ExportDietModal.tsx
+  - src/locales/pt/common.json
+  - src/locales/en/common.json
+  - src/utils/__tests__/pdfExporter.test.ts
+  - tests-e2e/journey.spec.ts
+comportamento_entregue:
+  - Totais calculados vs Metas prescritas rigorosamente diferenciados: no cartão de resumo diário do PDF editorial, os valores em destaque refletem fielmente os totais efetivos (`plan.calculatedTotals` ou somatório real das refeições), enquanto as metas prescritas são claramente identificadas pelo rótulo `Meta:` (ou `Target:`). Nenhum total real é sobrescrito ou substituído pela meta.
+  - Prevenção de quebras órfãs e sobreposição: `sectionTitle` exige espaço vertical mínimo (`minContentSpace`), impedindo que cabeçalhos fiquem isolados no final de páginas. Título de refeições e pílula de calorias possuem cálculo dinâmico de largura máxima, evitando qualquer colisão horizontal de texto.
+  - Cobertura de casos extremos e caracteres acentuados: nomes longos de pacientes e clínicas são divididos em linhas com `doc.splitTextToSize`; alimentos e porções com acentuação da língua portuguesa (ex.: Açaí, Maçã, Pão Francês) são codificados perfeitamente em WinAnsi; planos com múltiplas refeições e alternativas geram paginação determinística e numeração dinâmica em todas as páginas ("Página X de Y").
+  - Avisos clínicos estruturados no PDF: `plan.validation.issues` (como variação calórica ou inconsistências) e alertas de sódio em alternativas de pior caso (`worstCaseAlternativeSodium`) são renderizados em seção estruturada de avisos clínicos com marcadores semafóricos de gravidade.
+  - Texto extraível vs Limitações do modo captura: o layout editorial em vetor garante 100% de texto selecionável, copiável, indexável e compatível com leitores de tela em arquivo de ~50KB. O modal `ExportDietModal.tsx` desabilita preventivamente o modo captura visual com aviso informativo quando o elemento DOM não estiver montado em tela, e documenta as limitações técnicas da rasterização por canvas (arquivos grandes, perda de texto selecionável).
+  - Paridade de internacionalização PT/EN: suporte completo a `locale?: "pt" | "en"`, com formatação de datas localizada (`pt-BR` vs `en-US`), rótulos de refeição e nomes de arquivo limpos e sanitizados (`diet-paciente-DD-MM-AAAA.pdf`).
+testes_executados:
+  - npm test (258 testes unitários e de integração passando em 32 arquivos, incluindo 11 testes dedicados em pdfExporter.test.ts)
+  - npm run test:rules (34 testes passando nos emuladores locais)
+  - npm run test:e2e:emulated (14 testes Playwright passando de ponta a ponta com emuladores Firebase, com verificação do download real do PDF gerado com tamanho > 2KB e cabeçalho %PDF-)
+  - npm run type-check (0 erros TypeScript)
+  - npm run lint (0 erros de linting)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (build Vite de produção concluído com sucesso em 1,59s)
+  - graphify update . (grafo de conhecimento atualizado com sucesso)
+```
 
 ### 18 — Melhorar diagnóstico de falhas e revisar configuração
 

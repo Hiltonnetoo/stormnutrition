@@ -430,7 +430,11 @@
     "generated_by": "Gerado pelo Storm Nutrition",
     "page_of": "Página {{page}} de {{total}}",
     "target_label": "Meta",
-    "default_brand_footer": "Storm Nutrition · Gestão Nutricional"
+    "default_brand_footer": "Storm Nutrition · Gestão Nutricional",
+    "clinical_alerts_title": "Avisos e Diretrizes Clínicas",
+    "unnamed_patient": "Paciente",
+    "calculated_totals_badge": "Totais Calculados vs Metas",
+    "sodium_alert": "Atenção: Opções alternativas podem conter até {{sodium}}mg de sódio."
   },
   "patients": {
     "title": "Pacientes",
@@ -1274,6 +1278,7 @@
       "doc_pdf_desc": "Layout editorial com a identidade da sua clínica. Ideal para entregar ao paciente.",
       "screenshot": "Captura da Tela (PDF Visual)",
       "screenshot_desc": "Exporta o plano exatamente como você o vê na tela.",
+      "screenshot_unavailable": "A captura visual requer que a dieta esteja aberta e visível na tela.",
       "error": "Não foi possível gerar o PDF. Verifique sua conexão e tente novamente."
     },
     "patient_access": {

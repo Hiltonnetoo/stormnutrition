@@ -4,21 +4,37 @@ import i18n from "../i18n";
 import { translateMealName } from "./locale";
 import type { DietPlan, Meal, MealOption } from "../types";
 
+export interface ClinicInfo {
+  clinicName?: string;
+  clinicSpecialty?: string;
+  clinicPhone?: string;
+}
+
 export interface CustomLayoutPdfOptions {
   locale?: "pt" | "en" | string;
 }
 
-function formatFileName(plan: DietPlan, locale?: string): string {
-  const patientName = plan.patientName.replace(/\s+/g, "-").toLowerCase();
+export function formatFileName(plan: DietPlan, locale?: string): string {
+  const rawName = (plan.patientName || "paciente")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove accents for safe OS filename
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const patientSlug = rawName || "paciente";
+
   const dateLocale = (locale || i18n.language || "en")
     .toLowerCase()
     .startsWith("pt")
     ? "pt-BR"
     : "en-US";
-  const date = new Date(plan.createdAt)
+  const planDate = plan.createdAt ? new Date(plan.createdAt) : new Date();
+  const dateStr = (isNaN(planDate.getTime()) ? new Date() : planDate)
     .toLocaleDateString(dateLocale)
     .replace(/\//g, "-");
-  return `diet-${patientName}-${date}.pdf`;
+
+  return `diet-${patientSlug}-${dateStr}.pdf`;
 }
 
 // --- MODE 1: EDITORIAL LAYOUT (Storm Nutrition visual identity) ---
@@ -36,16 +52,23 @@ const SUBTLE: RGB = [100, 116, 139]; // slate-500
 const FAINT: RGB = [148, 163, 184]; // slate-400
 const HAIR: RGB = [226, 232, 240]; // slate-200
 const PAPER: RGB = [248, 250, 252]; // slate-50
+const ROSE_TEXT: RGB = [190, 18, 60]; // rose-700
+const AMBER_TEXT: RGB = [180, 83, 9]; // amber-700
 
-export const generateCustomLayoutPdf = async (
+/**
+ * Builds and returns a fully formatted, vector-based jsPDF document instance.
+ *
+ * Characteristics of Editorial Layout:
+ * - Native vector text: 100% extractable, searchable, accessible to screen readers.
+ * - Deterministic pagination: prevents orphaned headers and controls card placement.
+ * - Strictly differentiates effective calculated totals from prescribed clinical targets.
+ * - Lightweight footprint: ~40-70 KB per document (vs 2-10 MB in screenshot mode).
+ */
+export function buildCustomLayoutPdfDocument(
   plan: DietPlan,
-  clinicInfo?: {
-    clinicName?: string;
-    clinicSpecialty?: string;
-    clinicPhone?: string;
-  },
+  clinicInfo?: ClinicInfo,
   options?: CustomLayoutPdfOptions,
-) => {
+): jsPDF {
   const targetLocale = (options?.locale || i18n.language || "en")
     .toLowerCase()
     .startsWith("pt")
@@ -63,12 +86,12 @@ export const generateCustomLayoutPdf = async (
   let yPos = 0;
 
   // Clinic data passed explicitly or fallback
-  const clinicName = clinicInfo?.clinicName || "";
-  const clinicSpecialty = clinicInfo?.clinicSpecialty || "";
-  const clinicPhone = clinicInfo?.clinicPhone || "";
+  const clinicName = (clinicInfo?.clinicName || "").trim();
+  const clinicSpecialty = (clinicInfo?.clinicSpecialty || "").trim();
+  const clinicPhone = (clinicInfo?.clinicPhone || "").trim();
 
   const checkPageBreak = (need: number) => {
-    if (yPos + need > pageHeight - 16) {
+    if (yPos > 18 && yPos + need > pageHeight - 16) {
       doc.addPage();
       yPos = 18;
     }
@@ -87,16 +110,25 @@ export const generateCustomLayoutPdf = async (
   doc.text("STORM NUTRITION", margin, 15);
   doc.setCharSpace(0);
 
+  // Clinic name & specialty constrained to prevent collision with right header
+  const maxBannerLeftW = contentWidth - 65;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  doc.text(clinicName || t("pdf.personalized_plan"), margin, 23);
+  const clinicNameLines = doc.splitTextToSize(
+    clinicName || t("pdf.personalized_plan"),
+    maxBannerLeftW,
+  );
+  doc.text(clinicNameLines.slice(0, 2), margin, 23);
+
   if (clinicSpecialty) {
     doc.setFontSize(8);
     doc.setTextColor(...SAGE100);
-    doc.text(clinicSpecialty, margin, 28.5);
+    const specialtyLines = doc.splitTextToSize(clinicSpecialty, maxBannerLeftW);
+    doc.text(specialtyLines[0], margin, 28.5);
     doc.setTextColor(255, 255, 255);
   }
 
+  // Right banner block: Document title & issue date
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.text(t("pdf.nutritional_plan"), pageWidth - margin, 15, {
@@ -105,9 +137,14 @@ export const generateCustomLayoutPdf = async (
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...SAGE100);
+
+  const createdAtDate = plan.createdAt ? new Date(plan.createdAt) : new Date();
+  const validCreatedAt = isNaN(createdAtDate.getTime())
+    ? new Date()
+    : createdAtDate;
   doc.text(
     t("pdf.issued_on", {
-      date: new Date(plan.createdAt).toLocaleDateString(dateLocale),
+      date: validCreatedAt.toLocaleDateString(dateLocale),
     }),
     pageWidth - margin,
     22,
@@ -121,39 +158,43 @@ export const generateCustomLayoutPdf = async (
   doc.setTextColor(...INK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text(plan.patientName, margin, yPos);
-  yPos += 7;
-  const startD = new Date(plan.startDate + "T00:00:00").toLocaleDateString(
-    dateLocale,
+  const patientDisplayName =
+    plan.patientName || t("pdf.unnamed_patient", { defaultValue: "Paciente" });
+  const patientNameLines = doc.splitTextToSize(
+    patientDisplayName,
+    contentWidth,
   );
+  doc.text(patientNameLines, margin, yPos);
+  yPos += patientNameLines.length * 6.5 + 2;
+
+  let startD = "";
+  if (plan.startDate) {
+    const rawIso = plan.startDate.includes("T")
+      ? plan.startDate
+      : `${plan.startDate}T00:00:00`;
+    const parsedStart = new Date(rawIso);
+    startD = isNaN(parsedStart.getTime())
+      ? validCreatedAt.toLocaleDateString(dateLocale)
+      : parsedStart.toLocaleDateString(dateLocale);
+  } else {
+    startD = validCreatedAt.toLocaleDateString(dateLocale);
+  }
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(...SUBTLE);
-  doc.text(
-    t("pdf.plan_duration_start", {
-      duration: plan.durationDays,
-      startDate: startD,
-    }),
-    margin,
-    yPos,
-  );
-  yPos += 10;
+  const durationText = t("pdf.plan_duration_start", {
+    duration: plan.durationDays || 30,
+    startDate: startD,
+  });
+  const durationLines = doc.splitTextToSize(durationText, contentWidth);
+  doc.text(durationLines, margin, yPos);
+  yPos += durationLines.length * 4.5 + 5;
 
   /* -------------------------------------------------- Nutritional Summary */
-  const cardH = 38;
-  doc.setFillColor(...SAGE50);
-  doc.setDrawColor(...SAGE100);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(margin, yPos, contentWidth, cardH, 3, 3, "FD");
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(...SAGE700);
-  doc.setCharSpace(0.8);
-  doc.text(t("pdf.daily_summary"), margin + 6, yPos + 6.5);
-  doc.setCharSpace(0);
-
-  const actualTotals = plan.meals.reduce(
+  // Prioritize calculatedTotals from validated plan over meal summation
+  const meals = plan.meals || [];
+  const mealSum = meals.reduce(
     (acc, meal) => ({
       calories: acc.calories + (meal.calories || 0),
       protein: acc.protein + (meal.protein || 0),
@@ -163,41 +204,94 @@ export const generateCustomLayoutPdf = async (
     { calories: 0, protein: 0, carbs: 0, fat: 0 },
   );
 
-  const m = plan.macronutrients;
+  const calcCal =
+    plan.calculatedTotals?.calories ??
+    plan.validation?.calculatedTotals?.calories;
+  const calcProt =
+    plan.calculatedTotals?.protein ??
+    plan.validation?.calculatedTotals?.protein;
+  const calcCarbs =
+    plan.calculatedTotals?.carbs ?? plan.validation?.calculatedTotals?.carbs;
+  const calcFat =
+    plan.calculatedTotals?.fat ?? plan.validation?.calculatedTotals?.fat;
+
+  const actualTotals = {
+    calories: calcCal != null ? calcCal : mealSum.calories,
+    protein: calcProt != null ? calcProt : mealSum.protein,
+    carbs: calcCarbs != null ? calcCarbs : mealSum.carbs,
+    fat: calcFat != null ? calcFat : mealSum.fat,
+  };
+
+  const m = plan.macronutrients || {
+    proteinPercentage: 0,
+    carbsPercentage: 0,
+    fatPercentage: 0,
+    proteinGrams: 0,
+    carbsGrams: 0,
+    fatGrams: 0,
+  };
+  const targetCalories = plan.dailyCalories || 0;
   const targetPrefix = t("pdf.target_label", {
     defaultValue: targetLocale === "en" ? "Target" : "Meta",
   });
+
+  const cardH = 38;
+  doc.setFillColor(...SAGE50);
+  doc.setDrawColor(...SAGE100);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, yPos, contentWidth, cardH, 3, 3, "FD");
+
+  // Card header & badge
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(...SAGE700);
+  doc.setCharSpace(0.8);
+  doc.text(t("pdf.daily_summary"), margin + 6, yPos + 6.5);
+  doc.setCharSpace(0);
+
+  const totalsBadge = t("pdf.calculated_totals_badge", {
+    defaultValue:
+      targetLocale === "en"
+        ? "Calculated Totals vs Targets"
+        : "Totais Calculados vs Metas",
+  });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(...SUBTLE);
+  doc.text(totalsBadge, pageWidth - margin - 6, yPos + 6.5, { align: "right" });
+
   const cols: Array<{ v: string; sub: string; meta: string; c: RGB }> = [
     {
-      v: `${actualTotals.calories.toFixed(0)}`,
+      v: `${actualTotals.calories.toFixed(0)} kcal`,
       sub: t("pdf.calories_kcal"),
-      meta: `${targetPrefix}: ${plan.dailyCalories.toFixed(0)}`,
+      meta: `${targetPrefix}: ${targetCalories.toFixed(0)} kcal`,
       c: INK,
     },
     {
       v: `${actualTotals.protein.toFixed(0)}g`,
       sub: t("pdf.proteins_pct", { pct: m.proteinPercentage }),
-      meta: `${targetPrefix}: ${m.proteinGrams.toFixed(0)}g`,
+      meta: `${targetPrefix}: ${(m.proteinGrams || 0).toFixed(0)}g`,
       c: SAGE600,
     },
     {
       v: `${actualTotals.carbs.toFixed(0)}g`,
       sub: t("pdf.carbs_pct", { pct: m.carbsPercentage }),
-      meta: `${targetPrefix}: ${m.carbsGrams.toFixed(0)}g`,
+      meta: `${targetPrefix}: ${(m.carbsGrams || 0).toFixed(0)}g`,
       c: SKY,
     },
     {
       v: `${actualTotals.fat.toFixed(0)}g`,
       sub: t("pdf.fats_pct", { pct: m.fatPercentage }),
-      meta: `${targetPrefix}: ${m.fatGrams.toFixed(0)}g`,
+      meta: `${targetPrefix}: ${(m.fatGrams || 0).toFixed(0)}g`,
       c: AMBER,
     },
   ];
+
   const colW = contentWidth / 4;
   cols.forEach((col, i) => {
     const cx = margin + colW * i + colW / 2;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
+    doc.setFontSize(11);
     doc.setTextColor(...col.c);
     doc.text(col.v, cx, yPos + 16, { align: "center" });
     doc.setFont("helvetica", "normal");
@@ -229,11 +323,12 @@ export const generateCustomLayoutPdf = async (
     doc.rect(bx, barY, w, 2.4, "F");
     bx += w;
   });
-  yPos += cardH + 12;
+  yPos += cardH + 10;
 
-  /* ------------------------------------------------------ Meal Plan */
-  const sectionTitle = (title: string) => {
-    checkPageBreak(16);
+  /* ---------------------------------------------------- Section Title Helper */
+  // minSpace prevents orphaned headings by ensuring room for title + next block
+  const sectionTitle = (title: string, minContentSpace = 30) => {
+    checkPageBreak(16 + minContentSpace);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...INK);
@@ -245,24 +340,83 @@ export const generateCustomLayoutPdf = async (
     yPos += 7;
   };
 
-  sectionTitle(t("pdf.meal_plan"));
+  /* ----------------------- Clinical Warnings & Guidelines (Passo 17 item 3) */
+  const issues = plan.validation?.issues || [];
+  const hasSodiumAlert =
+    plan.validation?.worstCaseAlternativeSodium != null &&
+    plan.validation.worstCaseAlternativeSodium > 0;
+
+  if (issues.length > 0 || hasSodiumAlert) {
+    const alertHeading = t("pdf.clinical_alerts_title", {
+      defaultValue:
+        targetLocale === "en"
+          ? "Clinical Alerts & Guidelines"
+          : "Avisos e Diretrizes Clínicas",
+    });
+    sectionTitle(alertHeading, 20);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+
+    issues.forEach((issue) => {
+      const isError = issue.level === "error";
+      const bulletSymbol = isError ? "[!] " : "[*] ";
+      const issueLines = doc.splitTextToSize(
+        `${bulletSymbol}${issue.message}`,
+        contentWidth - 8,
+      );
+      checkPageBreak(issueLines.length * 4.2 + 2);
+      doc.setTextColor(...(isError ? ROSE_TEXT : AMBER_TEXT));
+      doc.text(issueLines, margin + 4, yPos);
+      yPos += issueLines.length * 4.2 + 2;
+    });
+
+    if (
+      hasSodiumAlert &&
+      !issues.some(
+        (i) => i.message.includes("sódio") || i.message.includes("sodium"),
+      )
+    ) {
+      const sodiumMsg = t("pdf.sodium_alert", {
+        sodium: plan.validation!.worstCaseAlternativeSodium,
+        defaultValue: `Atenção: Opções alternativas podem conter até ${plan.validation!.worstCaseAlternativeSodium}mg de sódio.`,
+      });
+      const sodiumLines = doc.splitTextToSize(
+        `[*] ${sodiumMsg}`,
+        contentWidth - 8,
+      );
+      checkPageBreak(sodiumLines.length * 4.2 + 2);
+      doc.setTextColor(...AMBER_TEXT);
+      doc.text(sodiumLines, margin + 4, yPos);
+      yPos += sodiumLines.length * 4.2 + 2;
+    }
+
+    yPos += 4;
+  }
+
+  /* ------------------------------------------------------ Meal Plan */
+  sectionTitle(t("pdf.meal_plan"), 35);
 
   const padX = 8;
   const innerW = contentWidth - padX * 2;
 
-  plan.meals.forEach((meal: Meal) => {
+  meals.forEach((meal: Meal) => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    const mainLines = doc.splitTextToSize(
-      `${meal.mainOption.name} — ${meal.mainOption.portion}`,
-      innerW,
-    );
+    const mainOptionText = meal.mainOption
+      ? `${meal.mainOption.name || ""}${meal.mainOption.portion ? ` — ${meal.mainOption.portion}` : ""}`
+      : "";
+    const mainLines = doc.splitTextToSize(mainOptionText, innerW);
+
     doc.setFontSize(9.5);
-    const altWrapped = meal.alternatives.map((alt: MealOption) =>
-      doc.splitTextToSize(`${alt.name} — ${alt.portion}`, innerW - 4),
-    );
+    const alternatives = meal.alternatives || [];
+    const altWrapped = alternatives.map((alt: MealOption) => {
+      const altText = `${alt.name || ""}${alt.portion ? ` — ${alt.portion}` : ""}`;
+      return doc.splitTextToSize(altText, innerW - 6);
+    });
     const altLineCount = altWrapped.reduce((s, l) => s + l.length, 0);
-    const hasAlts = meal.alternatives.length > 0;
+    const hasAlts = alternatives.length > 0;
+
     const blockH =
       19.5 +
       mainLines.length * 4.5 +
@@ -271,27 +425,16 @@ export const generateCustomLayoutPdf = async (
 
     checkPageBreak(blockH + 4);
 
-    // Meal card + accent on the left
+    // Meal card background + accent on the left
     doc.setFillColor(...PAPER);
     doc.roundedRect(margin, yPos, contentWidth, blockH, 3, 3, "F");
     doc.setFillColor(...SAGE600);
     doc.roundedRect(margin, yPos, 2.2, blockH, 1, 1, "F");
 
     let cy = yPos + 8;
-    // Name + time
-    const localizedMealName = translateMealName(meal.mealName, t);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(...INK);
-    doc.text(localizedMealName, margin + padX, cy);
-    const nameW = doc.getTextWidth(localizedMealName);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(...FAINT);
-    doc.text(`  ${meal.time}`, margin + padX + nameW, cy);
 
     // Kcal pill on the right
-    const kcalStr = `${meal.calories.toFixed(0)} kcal`;
+    const kcalStr = `${(meal.calories || 0).toFixed(0)} kcal`;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     const pillW = doc.getTextWidth(kcalStr) + 8;
@@ -301,7 +444,28 @@ export const generateCustomLayoutPdf = async (
     doc.setTextColor(...SAGE700);
     doc.text(kcalStr, pillX + pillW / 2, cy, { align: "center" });
 
+    // Meal Name + time (constrained to avoid pill overlap)
+    const maxMealNameW = pillX - (margin + padX) - 6;
+    const localizedMealName = translateMealName(meal.mealName || "", t);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(...INK);
+    const mealNameLines = doc.splitTextToSize(localizedMealName, maxMealNameW);
+    doc.text(mealNameLines[0], margin + padX, cy);
+
+    const nameW = doc.getTextWidth(mealNameLines[0]);
+    if (meal.time) {
+      const timeStr = `  ${meal.time}`;
+      if (nameW + doc.getTextWidth(timeStr) < maxMealNameW) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...FAINT);
+        doc.text(timeStr, margin + padX + nameW, cy);
+      }
+    }
+
     cy += 7;
+
     // Main option
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
@@ -348,14 +512,14 @@ export const generateCustomLayoutPdf = async (
   ];
   if (obs.length > 0) {
     yPos += 4;
-    sectionTitle(t("pdf.general_recommendations"));
+    sectionTitle(t("pdf.general_recommendations"), 25);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     obs.forEach((o) => {
-      const lines = doc.splitTextToSize(o, contentWidth - 6);
+      const lines = doc.splitTextToSize(o, contentWidth - 8);
       checkPageBreak(lines.length * 5 + 2);
       doc.setFillColor(...SAGE600);
-      doc.circle(margin + 1, yPos - 1.3, 0.7, "F");
+      doc.circle(margin + 1.5, yPos - 1.3, 0.7, "F");
       doc.setTextColor(...SUBTLE);
       doc.text(lines, margin + 5, yPos);
       yPos += lines.length * 5 + 2;
@@ -364,7 +528,7 @@ export const generateCustomLayoutPdf = async (
 
   /* ---------------------------------------------------- Footer (every page) */
   const pageCount = doc.getNumberOfPages();
-  const footerLeft = clinicName
+  const rawFooterLeft = clinicName
     ? `${clinicName}${clinicPhone ? "  ·  " + clinicPhone : ""}`
     : t("pdf.default_brand_footer", {
         defaultValue:
@@ -372,6 +536,9 @@ export const generateCustomLayoutPdf = async (
             ? "Storm Nutrition · Nutritional Management"
             : "Storm Nutrition · Gestão Nutricional",
       });
+
+  const maxFooterLeftW = pageWidth / 2 - margin - 8;
+
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setDrawColor(...HAIR);
@@ -380,6 +547,12 @@ export const generateCustomLayoutPdf = async (
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(...FAINT);
+
+    const footerLeft =
+      doc.getTextWidth(rawFooterLeft) > maxFooterLeftW
+        ? doc.splitTextToSize(rawFooterLeft, maxFooterLeftW)[0] + "..."
+        : rawFooterLeft;
+
     doc.text(footerLeft, margin, pageHeight - 7);
     doc.text(t("pdf.generated_by"), pageWidth / 2, pageHeight - 7, {
       align: "center",
@@ -392,10 +565,36 @@ export const generateCustomLayoutPdf = async (
     );
   }
 
+  return doc;
+}
+
+/**
+ * Generates and triggers browser download of the editorial custom layout PDF.
+ */
+export const generateCustomLayoutPdf = async (
+  plan: DietPlan,
+  clinicInfo?: ClinicInfo,
+  options?: CustomLayoutPdfOptions,
+): Promise<jsPDF> => {
+  const doc = buildCustomLayoutPdfDocument(plan, clinicInfo, options);
+  const targetLocale = options?.locale || i18n.language || "en";
   doc.save(formatFileName(plan, targetLocale));
+  return doc;
 };
 
 // --- MODE 2: SCREENSHOT CAPTURE ---
+/**
+ * Renders an HTML DOM node to canvas using html2canvas and exports it as a multi-page PDF.
+ *
+ * TECHNICAL LIMITATIONS OF SCREENSHOT MODE:
+ * 1. Text is rasterized into pixels: NOT searchable (Ctrl+F), NOT extractable, NOT accessible to screen readers.
+ * 2. File size is significantly larger (typically 2-10 MB vs ~50 KB for vector editorial layout).
+ * 3. Breakpoints cut directly through HTML elements at arbitrary vertical pixel lines.
+ * 4. Captures the current theme and viewport state of the user's browser.
+ *
+ * Use editorial mode (`generateCustomLayoutPdf`) as the primary deliverable for patients;
+ * use screenshot mode only as an occasional visual capture fallback when on-screen presentation is specifically needed.
+ */
 export const generateScreenshotPdf = async (
   element: HTMLElement,
   plan: DietPlan,
@@ -405,7 +604,7 @@ export const generateScreenshotPdf = async (
       scale: 2,
       useCORS: true,
       logging: false,
-      backgroundColor: window.getComputedStyle(document.body).backgroundColor, // Match dark/light mode
+      backgroundColor: window.getComputedStyle(document.body).backgroundColor,
     });
 
     const imgData = canvas.toDataURL("image/png");

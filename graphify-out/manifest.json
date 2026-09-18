@@ -180,9 +180,9 @@
     "semantic_hash": ""
   },
   "src/components/modals/ExportDietModal.tsx": {
-    "mtime": 1789739158.5112195,
-    "seen": 1789740013.124644,
-    "ast_hash": "ae15d87487f9a8986c78b95240674021",
+    "mtime": 1789740830.4232998,
+    "seen": 1789741108.820459,
+    "ast_hash": "207e3cb70750ed8204da623014877786",
     "semantic_hash": ""
   },
   "src/components/modals/NewPatientModal.tsx": {
@@ -342,15 +342,15 @@
     "semantic_hash": "fd41c1a8220a0a0c9b8ed933945b5966"
   },
   "src/locales/en/common.json": {
-    "mtime": 1789739760.2137072,
-    "seen": 1789740013.124665,
-    "ast_hash": "cd4761cf0a57d22b0c87ab74dfde3809",
+    "mtime": 1789740766.7288043,
+    "seen": 1789741108.820481,
+    "ast_hash": "51979d8948ffb363e7422eeb460df0d5",
     "semantic_hash": ""
   },
   "src/locales/pt/common.json": {
-    "mtime": 1789739748.780491,
-    "seen": 1789740013.124665,
-    "ast_hash": "e00b69fb479f068d1a63131e3d62ca54",
+    "mtime": 1789740750.485275,
+    "seen": 1789741108.820482,
+    "ast_hash": "405253f975a4438b6a8371108744ed42",
     "semantic_hash": ""
   },
   "src/pages/Calendar.tsx": {
@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "src/utils/pdfExporter.ts": {
-    "mtime": 1789739934.6415377,
-    "seen": 1789740013.124686,
-    "ast_hash": "f77f59df70a429a8322fc6df5dcf7026",
+    "mtime": 1789741090.6622007,
+    "seen": 1789741108.8205068,
+    "ast_hash": "f5dd1ff978e016f4ef17f3cac2aa1821",
     "semantic_hash": ""
   },
   "tests-e2e/critical-flow.spec.ts": {
@@ -618,9 +618,9 @@
     "semantic_hash": "7e033161d9afec3128fdaf507a2ce6de"
   },
   "tests-e2e/journey.spec.ts": {
-    "mtime": 1789693528.0006042,
-    "seen": 1789693635.91905,
-    "ast_hash": "19b3222a575a160919fb29ca45625d40",
+    "mtime": 1789740938.1449292,
+    "seen": 1789741108.820509,
+    "ast_hash": "ca94bd7a97f2156410d69f8ef27ab59a",
     "semantic_hash": ""
   },
   "tests-rules/firestore.rules.test.ts": {
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789738299.8727033,
-    "seen": 1789738357.6715388,
-    "ast_hash": "87cc93a3d87a0e11166dd62c90466c5f",
+    "mtime": 1789740066.6498792,
+    "seen": 1789741108.820535,
+    "ast_hash": "5491816d038a99a6e332d57dc71c50e2",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1503,6 +1503,18 @@
     "mtime": 1789739934.6213377,
     "seen": 1789740013.124686,
     "ast_hash": "4c10664123bb94dd9fbdae5f8499e593",
+    "semantic_hash": ""
+  },
+  "src/utils/__tests__/pdfExporter.test.ts": {
+    "mtime": 1789741063.905524,
+    "seen": 1789741108.820504,
+    "ast_hash": "ee9bfee7fc00f3208d9a3c606cffc567",
+    "semantic_hash": ""
+  },
+  "diet-ana-clara-dos-santos-18-09-2026.pdf": {
+    "mtime": 1789740946.8493106,
+    "seen": 1789741108.820535,
+    "ast_hash": "ed385340f658768b37c4a3cac2391cea",
     "semantic_hash": ""
   }
 }

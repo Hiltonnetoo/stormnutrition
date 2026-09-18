@@ -83,14 +83,16 @@ test.describe("Professional Journey (Nutri E2E Flow)", () => {
 
     const download = await downloadPromise;
     const filename = download.suggestedFilename();
-    expect(filename).toMatch(/\.pdf$/i);
+    expect(filename).toMatch(/^diet-ana-silva-.*\.pdf$/i);
 
-    // Verify file size is valid (> 0 bytes) without logging sensitive content
+    // Verify file size is valid (> 1KB) and file starts with %PDF- header
     const downloadPath = await download.path();
     expect(downloadPath).toBeTruthy();
     const fs = await import("node:fs");
     const stats = fs.statSync(downloadPath!);
-    expect(stats.size).toBeGreaterThan(1000); // Valid PDF file is at least 1KB
+    expect(stats.size).toBeGreaterThan(2000); // Valid generated PDF is > 2KB
+    const pdfBuffer = fs.readFileSync(downloadPath!);
+    expect(pdfBuffer.toString("ascii", 0, 5)).toBe("%PDF-");
 
     // 7. Save the generated plan to Firestore
     const saveBtn = page.getByRole("button", {

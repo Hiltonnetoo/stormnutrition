@@ -74,6 +74,10 @@ const ExportDietModal: React.FC<ExportDietModalProps> = ({
 
   const isLoading = exportingType !== null;
 
+  const isScreenshotAvailable =
+    typeof document !== "undefined" &&
+    !!document.getElementById(targetElementId);
+
   return (
     <Modal
       open={isOpen}
@@ -92,7 +96,7 @@ const ExportDietModal: React.FC<ExportDietModalProps> = ({
         <button
           onClick={() => handleExport("custom")}
           disabled={isLoading}
-          className="w-full flex items-center gap-4 text-left p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-sage-300 hover:bg-sage-50/40 transition-all disabled:opacity-50"
+          className="w-full flex items-center gap-4 text-left p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-sage-300 hover:bg-sage-50/40 transition-all disabled:opacity-50 cursor-pointer"
         >
           <DocumentTextIcon className="w-8 h-8 text-sage-500 shrink-0" />
           <div className="flex-1">
@@ -109,8 +113,17 @@ const ExportDietModal: React.FC<ExportDietModalProps> = ({
         </button>
         <button
           onClick={() => handleExport("screenshot")}
-          disabled={isLoading}
-          className="w-full flex items-center gap-4 text-left p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-sky-300 hover:bg-sky-50/40 transition-all disabled:opacity-50"
+          disabled={isLoading || !isScreenshotAvailable}
+          title={
+            !isScreenshotAvailable
+              ? t("modals.export_diet.screenshot_unavailable")
+              : undefined
+          }
+          className={`w-full flex items-center gap-4 text-left p-4 rounded-2xl border transition-all disabled:opacity-50 ${
+            !isScreenshotAvailable
+              ? "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/20 cursor-not-allowed"
+              : "border-slate-200 dark:border-slate-700 hover:border-sky-300 hover:bg-sky-50/40 cursor-pointer"
+          }`}
         >
           <DownloadIcon className="w-8 h-8 text-sky-500 shrink-0" />
           <div className="flex-1">
@@ -118,7 +131,9 @@ const ExportDietModal: React.FC<ExportDietModalProps> = ({
               {t("modals.export_diet.screenshot")}
             </p>
             <p className="text-xs text-slate-500">
-              {t("modals.export_diet.screenshot_desc")}
+              {isScreenshotAvailable
+                ? t("modals.export_diet.screenshot_desc")
+                : t("modals.export_diet.screenshot_unavailable")}
             </p>
           </div>
           {exportingType === "screenshot" && (
