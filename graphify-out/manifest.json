@@ -234,10 +234,10 @@
     "semantic_hash": "c6627da0dce52bbdc3f0e138664249e3"
   },
   "src/components/patient-form/Step4Nutritional.tsx": {
-    "mtime": 1781133786.08897,
-    "seen": 1789681967.256528,
-    "ast_hash": "db66ac4a1b1ee5988fa8b64ee78e1cd4",
-    "semantic_hash": "db66ac4a1b1ee5988fa8b64ee78e1cd4"
+    "mtime": 1789689352.6751237,
+    "seen": 1789689663.930215,
+    "ast_hash": "6711240e8b131f09a59e7bb9f2ffefa2",
+    "semantic_hash": ""
   },
   "src/components/patient-form/Step5Anthropometric.tsx": {
     "mtime": 1781134829.676923,
@@ -306,10 +306,10 @@
     "semantic_hash": ""
   },
   "src/data/foods.ts": {
-    "mtime": 1781133786.204837,
-    "seen": 1789681967.256531,
-    "ast_hash": "dcfbedd2198bde8c8d73d9d74836608e",
-    "semantic_hash": "dcfbedd2198bde8c8d73d9d74836608e"
+    "mtime": 1789689475.729234,
+    "seen": 1789689663.9302201,
+    "ast_hash": "74b4970e39496744f596740aaf64fa0c",
+    "semantic_hash": ""
   },
   "src/data/foodsExtra.ts": {
     "mtime": 1781133786.223921,
@@ -342,15 +342,15 @@
     "semantic_hash": "fd41c1a8220a0a0c9b8ed933945b5966"
   },
   "src/locales/en/common.json": {
-    "mtime": 1789688471.969331,
-    "seen": 1789688684.3786721,
-    "ast_hash": "3280b8781836dcee41c524cbe76506ba",
+    "mtime": 1789689414.302097,
+    "seen": 1789689663.930223,
+    "ast_hash": "1169d36c75cd7ad426c5c69ad05358c4",
     "semantic_hash": ""
   },
   "src/locales/pt/common.json": {
-    "mtime": 1789688459.5822237,
-    "seen": 1789688684.3786721,
-    "ast_hash": "abe727e8e2b09451e740e7bc16618085",
+    "mtime": 1789689390.8399882,
+    "seen": 1789689663.930223,
+    "ast_hash": "fc0857c818d12653ba349080311eecfc",
     "semantic_hash": ""
   },
   "src/pages/Calendar.tsx": {
@@ -444,16 +444,16 @@
     "semantic_hash": "23ab0fc70d88329bb54809ebcba28eb2"
   },
   "src/services/__tests__/dietAlgorithmService.test.ts": {
-    "mtime": 1781134814.2177086,
-    "seen": 1789681967.2565372,
-    "ast_hash": "5fac2dac1a302df6a1b679177dd3bda1",
-    "semantic_hash": "5fac2dac1a302df6a1b679177dd3bda1"
+    "mtime": 1789689636.7007265,
+    "seen": 1789689663.93023,
+    "ast_hash": "4dce6dd36376ebaca4f958a0fa325376",
+    "semantic_hash": ""
   },
   "src/services/__tests__/foodService.test.ts": {
-    "mtime": 1781061337.27073,
-    "seen": 1789681967.2565372,
-    "ast_hash": "0b80448d2b2643ac4d592c844a857a87",
-    "semantic_hash": "0b80448d2b2643ac4d592c844a857a87"
+    "mtime": 1789689636.7161682,
+    "seen": 1789689663.930231,
+    "ast_hash": "c019de84c8dd45b0f517047f644a1349",
+    "semantic_hash": ""
   },
   "src/services/__tests__/metabolicCalculations.test.ts": {
     "mtime": 1781133786.4842823,
@@ -480,9 +480,9 @@
     "semantic_hash": ""
   },
   "src/services/dietAlgorithmService.ts": {
-    "mtime": 1789686296.472249,
-    "seen": 1789686354.645778,
-    "ast_hash": "69fa7cb8856f1aa113d2e6730d29c5b4",
+    "mtime": 1789689636.753977,
+    "seen": 1789689663.930233,
+    "ast_hash": "178c22da72b936a0c75e188a4ec98b0a",
     "semantic_hash": ""
   },
   "src/services/dietService.ts": {
@@ -522,10 +522,10 @@
     "semantic_hash": ""
   },
   "src/services/foodService.ts": {
-    "mtime": 1781133786.5258067,
-    "seen": 1789681967.256542,
-    "ast_hash": "2c4cd6238d7aea437cfd49ea15b7be80",
-    "semantic_hash": "2c4cd6238d7aea437cfd49ea15b7be80"
+    "mtime": 1789689636.7961972,
+    "seen": 1789689663.930235,
+    "ast_hash": "5ed4021fc5fff2c158bb54f7082be3ab",
+    "semantic_hash": ""
   },
   "src/services/metabolicCalculations.ts": {
     "mtime": 1781133786.5300102,
@@ -564,10 +564,10 @@
     "semantic_hash": "1bb4595779b81c67c41e84f553ab0613"
   },
   "src/types/food.ts": {
-    "mtime": 1781133378.1853795,
-    "seen": 1789681967.256544,
-    "ast_hash": "737beba218d8d40187dbc377b9d4a3ca",
-    "semantic_hash": "737beba218d8d40187dbc377b9d4a3ca"
+    "mtime": 1789689636.8174098,
+    "seen": 1789689663.930239,
+    "ast_hash": "40ac88de8ab6cafa4a237565115335da",
+    "semantic_hash": ""
   },
   "src/types/index.ts": {
     "mtime": 1789686543.9339752,
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789688676.9390767,
-    "seen": 1789688684.3787131,
-    "ast_hash": "bb1574f1e9e2c7cbd581a7776661d181",
+    "mtime": 1789689657.5234704,
+    "seen": 1789689663.930264,
+    "ast_hash": "8184168903917c6b837416897222c9fe",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {

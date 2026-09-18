@@ -417,19 +417,43 @@ Limitações ou decisões pendentes: Decisão documentada conforme Passo 7.8: o 
 
 **Passos:**
 
-1. [ ] Inventariar todas as restrições e modos oferecidos na UI, classificando-os como implementados, informativos ou indisponíveis.
-2. [ ] Definir estrutura de alimento com ID estável, base de quantidade/unidade, restrições conhecidas, origem dos valores e versão do dataset.
-3. [ ] Representar desconhecido separadamente de ausência. Não assumir que metadado faltante significa alimento compatível.
-4. [ ] Implementar filtro sem glúten com metadados verificáveis e revisar o filtro de lactose. Não equiparar lactose a alergia à proteína do leite.
-5. [ ] Aplicar restrições a opções principais, alternativas e substituições manuais.
-6. [ ] Retirar estimativas genéricas de ferro/cálcio/vitamina C ou identificá-las claramente como estimativas; preferir valores rastreáveis ou informação indisponível.
-7. [ ] Identificar classificação NOVA explícita versus inferida. Documentar limites da heurística.
-8. [ ] Revisar pipeline de importação, unidades, duplicatas, nomes bilíngues e referências/licenças de dados antes de afirmar que a base é validada.
-9. [ ] Não alterar automaticamente valores nutricionais com base em suposição. Registrar fontes e critérios de revisão.
+1. [x] Inventariar todas as restrições e modos oferecidos na UI, classificando-os como implementados, informativos ou indisponíveis.
+2. [x] Definir estrutura de alimento com ID estável, base de quantidade/unidade, restrições conhecidas, origem dos valores e versão do dataset.
+3. [x] Representar desconhecido separadamente de ausência. Não assumir que metadado faltante significa alimento compatível.
+4. [x] Implementar filtro sem glúten com metadados verificáveis e revisar o filtro de lactose. Não equiparar lactose a alergia à proteína do leite.
+5. [x] Aplicar restrições a opções principais, alternativas e substituições manuais.
+6. [x] Retirar estimativas genéricas de ferro/cálcio/vitamina C ou identificá-las claramente como estimativas; preferir valores rastreáveis ou informação indisponível.
+7. [x] Identificar classificação NOVA explícita versus inferida. Documentar limites da heurística.
+8. [x] Revisar pipeline de importação, unidades, duplicatas, nomes bilíngues e referências/licenças de dados antes de afirmar que a base é validada.
+9. [x] Não alterar automaticamente valores nutricionais com base em suposição. Registrar fontes e critérios de revisão.
 
 **Resultado:** filtros sustentados por dados estruturados e conteúdo com origem identificável.
 
 **Aceite:** fixtures conhecidas provam exclusão de incompatíveis; dados desconhecidos seguem política explícita; nenhum nutriente indisponível aparece como zero medido.
+
+```yaml
+Etapa concluída: 08 — Tornar restrições e dados alimentares explícitos
+Data de conclusão: 2026-09-17
+Arquivos alterados:
+- src/types/food.ts
+- src/services/foodService.ts
+- src/services/dietAlgorithmService.ts
+- src/components/patient-form/Step4Nutritional.tsx
+- src/data/foods.ts
+- src/locales/pt/common.json
+- src/locales/en/common.json
+- src/services/__tests__/foodService.test.ts
+- src/services/__tests__/dietAlgorithmService.test.ts
+Comandos executados para validação:
+- npm test (132 de 132 testes unitários passando em Vitest, incluindo novos testes para NOVA explícito vs inferido, glúten, lactose, laticínios/APLV, vegetariano, vegano, política de metadados ausentes e micronutrientes reais)
+- npm run test:rules (24 de 24 testes no emulador Firestore passando com sucesso)
+- npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
+- npm run type-check (0 erros TypeScript com strict mode)
+- npm run format:check (100% dos arquivos validados pelo Prettier)
+- npm run build (Build Vite concluído com sucesso em 1.53s)
+Validação manual e ambiente: Verificação da geração de dietas com exclusão estrita de glúten, desacoplamento de lactose e laticínios (APLV), rastreabilidade de procedência (TACO 4ª edição e versão 2026.1), origem NOVA (explícita vs inferida) e eliminação de estimativas arbitrárias de micronutrientes.
+Limitações ou decisões pendentes: Alimentos não testados laboratorialmente para micronutrientes específicos mantêm os valores como undefined (sem falsos zeros medidos). Pronto para Etapa 09 (Validar o resultado final do gerador).
+```
 
 ### 09 — Validar o resultado final do gerador
 

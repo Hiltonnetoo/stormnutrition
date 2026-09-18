@@ -1,6 +1,14 @@
 import i18next from "i18next";
 import { brazilianFoods } from "../data/foods";
-import { getNovaGroup, getFoodName } from "./foodService";
+import {
+  getNovaGroup,
+  getFoodName,
+  foodContainsGluten,
+  foodContainsLactose,
+  foodContainsDairy,
+  foodIsVegetarian,
+  foodIsVegan,
+} from "./foodService";
 import type {
   Food,
   Meal,
@@ -8,6 +16,7 @@ import type {
   DietMode,
   ClinicalTag,
   DecisionEntry,
+  Micronutrients,
 } from "../types";
 import type { DietType } from "./metabolicCalculations";
 
@@ -217,17 +226,58 @@ export const generateAlgorithmicDietPlan = ({
 
   // --- RESTRICTION LOGIC ---
 
+  if (restrictions.includes("gluten_free")) {
+    applyExclusion(
+      (f) => !foodContainsGluten(f),
+      i18next.t(
+        "diet.log_remove_gluten",
+        "Removendo alimentos com glúten (Restrição: Sem Glúten)",
+      ),
+      "gluten_free",
+    );
+  }
+
   if (restrictions.includes("lactose_free")) {
     applyExclusion(
-      (f) =>
-        f.category !== "Leite e Derivados" &&
-        !f.name.toLowerCase().includes("leite") &&
-        !f.name.toLowerCase().includes("queijo"),
+      (f) => !foodContainsLactose(f),
       i18next.t(
-        "diet.log_remove_dairy",
-        "Removendo laticínios (Restrição: Sem Lactose)",
+        "diet.log_remove_lactose",
+        "Removendo alimentos com lactose (Restrição: Sem Lactose)",
       ),
       "lactose_free",
+    );
+  }
+
+  if (restrictions.includes("dairy_free")) {
+    applyExclusion(
+      (f) => !foodContainsDairy(f),
+      i18next.t(
+        "diet.log_remove_dairy",
+        "Removendo leite e derivados (Restrição: Sem Laticínios / APLV)",
+      ),
+      "dairy_free",
+    );
+  }
+
+  if (restrictions.includes("vegetarian")) {
+    applyExclusion(
+      (f) => foodIsVegetarian(f),
+      i18next.t(
+        "diet.log_remove_meat",
+        "Removendo carnes e pescados (Dieta Vegetariana)",
+      ),
+      "vegetarian",
+    );
+  }
+
+  if (restrictions.includes("vegan")) {
+    applyExclusion(
+      (f) => foodIsVegan(f),
+      i18next.t(
+        "diet.log_remove_animal_products",
+        "Removendo derivados de origem animal (Dieta Vegana)",
+      ),
+      "vegan",
     );
   }
 
@@ -362,24 +412,44 @@ export const generateAlgorithmicDietPlan = ({
       const calculateStats = (food: Food, portion: number) => {
         const portionSize = Number(food.portion) || 100;
         const f = portionSize > 0 ? portion / portionSize : 0;
+        const realMicros: Micronutrients = {
+          fiber:
+            food.fiber != null
+              ? parseFloat((food.fiber * f).toFixed(1))
+              : undefined,
+          sodium: food.sodium != null ? Math.round(food.sodium * f) : undefined,
+          iron:
+            food.micros?.iron != null
+              ? parseFloat((food.micros.iron * f).toFixed(1))
+              : undefined,
+          calcium:
+            food.micros?.calcium != null
+              ? Math.round(food.micros.calcium * f)
+              : undefined,
+          vitaminC:
+            food.micros?.vitaminC != null
+              ? Math.round(food.micros.vitaminC * f)
+              : undefined,
+          potassium:
+            food.micros?.potassium != null
+              ? Math.round(food.micros.potassium * f)
+              : undefined,
+          magnesium:
+            food.micros?.magnesium != null
+              ? Math.round(food.micros.magnesium * f)
+              : undefined,
+          zinc:
+            food.micros?.zinc != null
+              ? parseFloat((food.micros.zinc * f).toFixed(1))
+              : undefined,
+        };
+
         return {
           calories: Math.round(food.calories * f),
           protein: parseFloat((food.protein * f).toFixed(1)),
           carbs: parseFloat((food.carbs * f).toFixed(1)),
           fat: parseFloat((food.fat * f).toFixed(1)),
-          micros: {
-            fiber: parseFloat((food.fiber * f).toFixed(1)),
-            sodium: Math.round(food.sodium * f),
-            iron:
-              food.category === "Carnes e Derivados"
-                ? parseFloat((2.5 * f).toFixed(1))
-                : parseFloat((0.5 * f).toFixed(1)),
-            calcium:
-              food.category === "Leite e Derivados"
-                ? Math.round(240 * f)
-                : Math.round(10 * f),
-            vitaminC: food.category === "Frutas" ? Math.round(40 * f) : 0,
-          },
+          micros: realMicros,
         };
       };
 
@@ -414,7 +484,10 @@ export const generateAlgorithmicDietPlan = ({
         stats: ReturnType<typeof calculateStats>,
       ): string[] => {
         const warnings: string[] = [];
-        if (clinicalTags.includes("hypertension") && stats.micros.sodium > 400)
+        if (
+          clinicalTags.includes("hypertension") &&
+          (stats.micros.sodium ?? 0) > 400
+        )
           warnings.push(i18next.t("diet.warn_high_sodium", "Sódio elevado"));
         if (
           (clinicalTags.includes("diabetes_t1") ||
@@ -461,15 +534,44 @@ export const generateAlgorithmicDietPlan = ({
         details: i18next.t("diet.healthy_preparation", "preparação saudável"),
         micros: {
           fiber: parseFloat(
-            (pS.micros.fiber + cS.micros.fiber + fS.micros.fiber).toFixed(1),
+            (
+              (pS.micros.fiber ?? 0) +
+              (cS.micros.fiber ?? 0) +
+              (fS.micros.fiber ?? 0)
+            ).toFixed(1),
           ),
-          sodium: pS.micros.sodium + cS.micros.sodium + fS.micros.sodium,
-          iron: parseFloat(
-            (pS.micros.iron + cS.micros.iron + fS.micros.iron).toFixed(1),
-          ),
-          calcium: pS.micros.calcium + cS.micros.calcium + fS.micros.calcium,
+          sodium:
+            (pS.micros.sodium ?? 0) +
+            (cS.micros.sodium ?? 0) +
+            (fS.micros.sodium ?? 0),
+          iron:
+            pS.micros.iron != null ||
+            cS.micros.iron != null ||
+            fS.micros.iron != null
+              ? parseFloat(
+                  (
+                    (pS.micros.iron ?? 0) +
+                    (cS.micros.iron ?? 0) +
+                    (fS.micros.iron ?? 0)
+                  ).toFixed(1),
+                )
+              : undefined,
+          calcium:
+            pS.micros.calcium != null ||
+            cS.micros.calcium != null ||
+            fS.micros.calcium != null
+              ? (pS.micros.calcium ?? 0) +
+                (cS.micros.calcium ?? 0) +
+                (fS.micros.calcium ?? 0)
+              : undefined,
           vitaminC:
-            pS.micros.vitaminC + cS.micros.vitaminC + fS.micros.vitaminC,
+            pS.micros.vitaminC != null ||
+            cS.micros.vitaminC != null ||
+            fS.micros.vitaminC != null
+              ? (pS.micros.vitaminC ?? 0) +
+                (cS.micros.vitaminC ?? 0) +
+                (fS.micros.vitaminC ?? 0)
+              : undefined,
         },
       };
     };

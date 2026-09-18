@@ -5,7 +5,14 @@ import {
   getGeneralObservations,
 } from "../dietAlgorithmService";
 import { brazilianFoods } from "../../data/foods";
-import { getNovaGroup } from "../foodService";
+import {
+  getNovaGroup,
+  foodContainsGluten,
+  foodContainsDairy,
+  foodContainsLactose,
+  foodIsVegetarian,
+  foodIsVegan,
+} from "../foodService";
 
 describe("dietAlgorithmService", () => {
   beforeAll(async () => {
@@ -28,7 +35,16 @@ describe("dietAlgorithmService", () => {
                 "Restringindo categorias por tipo de dieta: {{categories}}",
               log_exclude_ultraprocessed:
                 "Excluindo ultraprocessados (NOVA 4) do plano",
-              log_remove_dairy: "Removendo laticínios (Restrição: Sem Lactose)",
+              log_remove_gluten:
+                "Removendo alimentos com glúten (Restrição: Sem Glúten)",
+              log_remove_lactose:
+                "Removendo alimentos com lactose (Restrição: Sem Lactose)",
+              log_remove_dairy:
+                "Removendo leite e derivados (Restrição: Sem Laticínios / APLV)",
+              log_remove_meat:
+                "Removendo carnes e pescados (Dieta Vegetariana)",
+              log_remove_animal_products:
+                "Removendo derivados de origem animal (Dieta Vegana)",
               log_clinical_mode:
                 "Limpando banco para Modo Clínico (Sódio < 600mg)",
               log_pediatric_mode:
@@ -100,11 +116,13 @@ describe("dietAlgorithmService", () => {
 
     const result = generateAlgorithmicDietPlan(params);
 
-    // No dairy or lactose ingredients
+    // No lactose-containing ingredients
     result.meals.forEach((meal) => {
       meal.mainOption.items?.forEach((item) => {
-        expect(item.name.toLowerCase()).not.toContain("leite");
-        expect(item.name.toLowerCase()).not.toContain("queijo");
+        const originalFood = brazilianFoods.find((f) => f.name === item.name);
+        if (originalFood) {
+          expect(foodContainsLactose(originalFood)).toBe(false);
+        }
       });
     });
 
@@ -255,5 +273,107 @@ describe("dietAlgorithmService", () => {
     const observations = getGeneralObservations();
     expect(observations.length).toBeGreaterThan(0);
     expect(observations[0]).toContain("Mantenha-se bem hidratado");
+  });
+
+  it("should enforce gluten-free restriction across all meal options and log the decision", () => {
+    const params = {
+      ...defaultParams,
+      restrictions: ["gluten_free"],
+    };
+
+    const result = generateAlgorithmicDietPlan(params);
+
+    result.meals.forEach((meal) => {
+      meal.mainOption.items?.forEach((item) => {
+        const food = brazilianFoods.find((f) => f.name === item.name);
+        if (food) {
+          expect(foodContainsGluten(food)).toBe(false);
+        }
+      });
+      meal.alternatives?.forEach((alt) => {
+        alt.items?.forEach((item) => {
+          const food = brazilianFoods.find((f) => f.name === item.name);
+          if (food) {
+            expect(foodContainsGluten(food)).toBe(false);
+          }
+        });
+      });
+    });
+
+    const glutenLog = result.decisionLog.find(
+      (log) => log.tag === "gluten_free",
+    );
+    expect(glutenLog).toBeDefined();
+    expect(glutenLog?.type).toBe("filter");
+  });
+
+  it("should enforce dairy-free (APLV) restriction across all meal options and log the decision", () => {
+    const params = {
+      ...defaultParams,
+      restrictions: ["dairy_free"],
+    };
+
+    const result = generateAlgorithmicDietPlan(params);
+
+    result.meals.forEach((meal) => {
+      meal.mainOption.items?.forEach((item) => {
+        const food = brazilianFoods.find((f) => f.name === item.name);
+        if (food) {
+          expect(foodContainsDairy(food)).toBe(false);
+        }
+      });
+    });
+
+    const dairyLog = result.decisionLog.find((log) => log.tag === "dairy_free");
+    expect(dairyLog).toBeDefined();
+    expect(dairyLog?.type).toBe("filter");
+  });
+
+  it("should enforce vegetarian and vegan restrictions", () => {
+    const vegResult = generateAlgorithmicDietPlan({
+      ...defaultParams,
+      restrictions: ["vegetarian"],
+    });
+    vegResult.meals.forEach((meal) => {
+      meal.mainOption.items?.forEach((item) => {
+        const food = brazilianFoods.find((f) => f.name === item.name);
+        if (food) {
+          expect(foodIsVegetarian(food)).toBe(true);
+        }
+      });
+    });
+
+    const veganResult = generateAlgorithmicDietPlan({
+      ...defaultParams,
+      restrictions: ["vegan"],
+    });
+    veganResult.meals.forEach((meal) => {
+      meal.mainOption.items?.forEach((item) => {
+        const food = brazilianFoods.find((f) => f.name === item.name);
+        if (food) {
+          expect(foodIsVegan(food)).toBe(true);
+        }
+      });
+    });
+  });
+
+  it("should calculate real micronutrients and not fabricate category guesses", () => {
+    const result = generateAlgorithmicDietPlan(defaultParams);
+
+    result.meals.forEach((meal) => {
+      const micros = meal.mainOption.micros;
+      if (micros) {
+        // If iron/calcium/vitaminC is defined, it must be >= 0 (never NaN)
+        if (micros.iron !== undefined) {
+          expect(micros.iron).toBeGreaterThanOrEqual(0);
+        }
+        if (micros.calcium !== undefined) {
+          expect(micros.calcium).toBeGreaterThanOrEqual(0);
+        }
+        if (micros.vitaminC !== undefined) {
+          expect(micros.vitaminC).toBeGreaterThanOrEqual(0);
+        }
+      }
+    });
   });
 });

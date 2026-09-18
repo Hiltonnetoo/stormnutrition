@@ -18,6 +18,15 @@ const coreFoods: Food[] = [
     sodium: 1,
     glycemicIndex: 70,
     micros: { potassium: 35, magnesium: 12, calcium: 10 },
+    source: "TACO 4ª ed.",
+    datasetVersion: "2026.1",
+    restrictions: {
+      containsGluten: false,
+      containsLactose: false,
+      containsDairy: false,
+      isVegetarian: true,
+      isVegan: true,
+    },
   },
   {
     id: "2",
@@ -34,6 +43,15 @@ const coreFoods: Food[] = [
     sodium: 310,
     glycemicIndex: 95,
     micros: { calcium: 15, iron: 0.5 },
+    source: "TACO 4ª ed.",
+    datasetVersion: "2026.1",
+    restrictions: {
+      containsGluten: true,
+      containsLactose: false,
+      containsDairy: false,
+      isVegetarian: true,
+      isVegan: true,
+    },
   },
   {
     id: "3",
@@ -50,6 +68,15 @@ const coreFoods: Food[] = [
     sodium: 1,
     glycemicIndex: 45,
     micros: { magnesium: 18 },
+    source: "TACO 4ª ed.",
+    datasetVersion: "2026.1",
+    restrictions: {
+      containsGluten: true,
+      containsLactose: false,
+      containsDairy: false,
+      isVegetarian: true,
+      isVegan: true,
+    },
   },
   {
     id: "4",
@@ -458,6 +485,13 @@ const coreFoods: Food[] = [
     fat: 3.6,
     fiber: 0,
     sodium: 74,
+    restrictions: {
+      containsGluten: false,
+      containsLactose: false,
+      containsDairy: false,
+      isVegetarian: false,
+      isVegan: false,
+    },
   },
   {
     id: "32",
@@ -600,6 +634,13 @@ const coreFoods: Food[] = [
     fat: 6.6,
     fiber: 0,
     sodium: 98,
+    restrictions: {
+      containsGluten: false,
+      containsLactose: true,
+      containsDairy: true,
+      isVegetarian: true,
+      isVegan: false,
+    },
   },
   {
     id: "42",
@@ -614,6 +655,13 @@ const coreFoods: Food[] = [
     fat: 5.4,
     fiber: 0,
     sodium: 180,
+    restrictions: {
+      containsGluten: false,
+      containsLactose: true,
+      containsDairy: true,
+      isVegetarian: true,
+      isVegan: false,
+    },
   },
   {
     id: "43",
@@ -742,6 +790,13 @@ const coreFoods: Food[] = [
     fat: 0.5,
     fiber: 8.5,
     sodium: 2,
+    restrictions: {
+      containsGluten: false,
+      containsLactose: false,
+      containsDairy: false,
+      isVegetarian: true,
+      isVegan: true,
+    },
   },
   {
     id: "52",
@@ -1476,11 +1531,15 @@ const coreFoods: Food[] = [
  * (foodsExtra), removendo duplicatas por nome (o núcleo tem prioridade).
  */
 const _seen = new Set<string>();
-export const brazilianFoods: Food[] = [...coreFoods, ...extraFoods].filter(
-  (f) => {
+export const brazilianFoods: Food[] = [...coreFoods, ...extraFoods]
+  .map((f) => ({
+    ...f,
+    source: f.source || "TACO 4ª ed.",
+    datasetVersion: f.datasetVersion || "2026.1",
+  }))
+  .filter((f) => {
     const key = f.name.trim().toLowerCase();
     if (_seen.has(key)) return false;
     _seen.add(key);
     return true;
-  },
-);
+  });

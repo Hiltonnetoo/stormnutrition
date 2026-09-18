@@ -2,11 +2,18 @@ import { describe, it, expect } from "vitest";
 import type { Food } from "../../types";
 import {
   getNovaGroup,
+  getNovaInfo,
   getAvailableCarbs,
   glycemicLoad,
   giLevel,
   glLevel,
   NOVA_LABELS,
+  foodContainsGluten,
+  foodContainsLactose,
+  foodContainsDairy,
+  foodIsVegetarian,
+  foodIsVegan,
+  isFoodCompatibleWithRestrictions,
 } from "../foodService";
 
 /** Builds a Food with sane defaults so each test only sets what it asserts. */
@@ -167,5 +174,154 @@ describe("foodService — glycemic load", () => {
     expect(glLevel(15)).toBe("medium");
     expect(glLevel(25)).toBe("high");
     expect(glLevel(undefined)).toBeNull();
+  });
+});
+
+describe("foodService — NOVA provenance (explicit vs inferred)", () => {
+  it("marks NOVA group origin as explicit when provided on food", () => {
+    const res = getNovaInfo(food({ novaGroup: 1, novaOrigin: "explicit" }));
+    expect(res.group).toBe(1);
+    expect(res.origin).toBe("explicit");
+  });
+
+  it("marks NOVA group origin as inferred when calculated from heuristics", () => {
+    const res = getNovaInfo(
+      food({ name: "Maçã", category: "Frutas", novaGroup: undefined }),
+    );
+    expect(res.group).toBe(1);
+    expect(res.origin).toBe("inferred");
+  });
+});
+
+describe("foodService — Dietary Restrictions Detection", () => {
+  it("detects gluten accurately with explicit overrides and heuristics", () => {
+    // Explicit override
+    expect(
+      foodContainsGluten(
+        food({
+          name: "Bolo especial",
+          restrictions: { containsGluten: false },
+        }),
+      ),
+    ).toBe(false);
+
+    // Heuristics
+    expect(foodContainsGluten(food({ name: "Pão de trigo" }))).toBe(true);
+    expect(foodContainsGluten(food({ name: "Macarrão espaguete" }))).toBe(true);
+    expect(foodContainsGluten(food({ name: "Cerveja pilsen" }))).toBe(true);
+    expect(foodContainsGluten(food({ name: "Arroz branco" }))).toBe(false);
+  });
+
+  it("detects lactose accurately with zero-lactose / plant exceptions", () => {
+    expect(
+      foodContainsLactose(
+        food({ name: "Leite desnatado", category: "Leite e Derivados" }),
+      ),
+    ).toBe(true);
+    expect(
+      foodContainsLactose(
+        food({ name: "Leite zero lactose", category: "Leite e Derivados" }),
+      ),
+    ).toBe(false);
+    expect(
+      foodContainsLactose(
+        food({ name: "Bebida de aveia", category: "Bebidas" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("distinguishes dairy (cow's milk protein / APLV) from lactose", () => {
+    // Zero lactose dairy still contains cow's milk protein
+    const zeroLactoseMilk = food({
+      name: "Leite zero lactose",
+      category: "Leite e Derivados",
+    });
+    expect(foodContainsLactose(zeroLactoseMilk)).toBe(false);
+    expect(foodContainsDairy(zeroLactoseMilk)).toBe(true);
+
+    // Plant based milk has neither lactose nor dairy
+    const soyMilk = food({
+      name: "Leite de soja",
+      category: "Bebidas",
+    });
+    expect(foodContainsLactose(soyMilk)).toBe(false);
+    expect(foodContainsDairy(soyMilk)).toBe(false);
+  });
+
+  it("detects vegetarian and vegan foods correctly", () => {
+    expect(
+      foodIsVegetarian(
+        food({ name: "Patinho grelhado", category: "Carnes e Derivados" }),
+      ),
+    ).toBe(false);
+    expect(
+      foodIsVegetarian(
+        food({ name: "Salmão assado", category: "Carnes e Derivados" }),
+      ),
+    ).toBe(false);
+    expect(
+      foodIsVegetarian(
+        food({ name: "Ovo mexido", category: "Carnes e Derivados" }),
+      ),
+    ).toBe(true);
+    expect(
+      foodIsVegetarian(
+        food({ name: "Queijo coalho", category: "Leite e Derivados" }),
+      ),
+    ).toBe(true);
+
+    // Vegan
+    expect(
+      foodIsVegan(food({ name: "Ovo mexido", category: "Carnes e Derivados" })),
+    ).toBe(false);
+    expect(
+      foodIsVegan(food({ name: "Iogurte", category: "Leite e Derivados" })),
+    ).toBe(false);
+    expect(
+      foodIsVegan(
+        food({ name: "Mel de abelha", category: "Açúcares e Doces" }),
+      ),
+    ).toBe(false);
+    expect(foodIsVegan(food({ name: "Tofu", category: "Leguminosas" }))).toBe(
+      true,
+    );
+    expect(
+      foodIsVegan(
+        food({ name: "Arroz integral", category: "Cereais e Derivados" }),
+      ),
+    ).toBe(true);
+  });
+
+  it("enforces conservative safety policy for unknown metadata in high-risk categories", () => {
+    // A food in Cereais without explicit containsGluten metadata must be rejected under gluten_free
+    const unknownCereal = food({
+      name: "Mingau misterioso",
+      category: "Cereais e Derivados",
+      restrictions: undefined,
+    });
+    expect(
+      isFoodCompatibleWithRestrictions(unknownCereal, ["gluten_free"])
+        .compatible,
+    ).toBe(false);
+
+    // But an explicit containsGluten: false cereal is accepted
+    const safeCereal = food({
+      name: "Arroz branco",
+      category: "Cereais e Derivados",
+      restrictions: { containsGluten: false },
+    });
+    expect(
+      isFoodCompatibleWithRestrictions(safeCereal, ["gluten_free"]).compatible,
+    ).toBe(true);
+
+    // An in-natura fruit without explicit metadata is safe by category nature
+    const banana = food({
+      name: "Banana prata",
+      category: "Frutas",
+      restrictions: undefined,
+    });
+    expect(
+      isFoodCompatibleWithRestrictions(banana, ["gluten_free"]).compatible,
+    ).toBe(true);
   });
 });

@@ -15,6 +15,7 @@ export const dietaryOptionsMap: Record<string, string> = {
   hypertension: "Hipertensão",
   gluten_free: "Sem Glúten",
   lactose_free: "Sem Lactose",
+  dairy_free: "Sem Laticínios (APLV)",
   vegetarian: "Vegetariano",
   vegan: "Vegano",
 };
@@ -39,6 +40,11 @@ const dietaryOptions = [
     id: "lactose_free",
     labelKey: "patient_form.nutritional.restrictions_lactose_free",
     label: "Sem Lactose",
+  },
+  {
+    id: "dairy_free",
+    labelKey: "patient_form.nutritional.restrictions_dairy_free",
+    label: "Sem Laticínios (APLV)",
   },
   {
     id: "vegetarian",
