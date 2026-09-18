@@ -513,17 +513,45 @@ Limitações ou decisões pendentes: Pronto para Etapa 10 (Corrigir concorrênci
 
 **Passos:**
 
-1. [ ] Definir eventos individuais de peso/adesão/avaliação, ou operações atômicas adequadas, evitando arrays crescentes e sobrescrita completa.
-2. [ ] Usar transação onde há invariantes entre leitura e atualização. Não usar `arrayUnion` como substituto automático para edição de registros existentes.
-3. [ ] Definir IDs/idempotência para impedir duplicação em retry e preservar autoria/origem.
-4. [ ] Diferenciar data civil, horário local e instante UTC. Documentar fuso da clínica e regra para o dia do check-in.
-5. [ ] Adotar timestamp confiável para auditoria quando necessário, sem converter aniversário/data civil em instante por acidente.
-6. [ ] Adaptar gráficos e portal para paginação de históricos e estados vazios.
-7. [ ] Planejar leitura de arrays antigos e migração idempotente, testada em dados sintéticos antes de qualquer base real.
+1. [x] Definir eventos individuais de peso/adesão/avaliação, ou operações atômicas adequadas, evitando arrays crescentes e sobrescrita completa.
+2. [x] Usar transação onde há invariantes entre leitura e atualização. Não usar `arrayUnion` como substituto automático para edição de registros existentes.
+3. [x] Definir IDs/idempotência para impedir duplicação em retry e preservar autoria/origem.
+4. [x] Diferenciar data civil, horário local e instante UTC. Documentar fuso da clínica e regra para o dia do check-in.
+5. [x] Adotar timestamp confiável para auditoria quando necessário, sem converter aniversário/data civil em instante por acidente.
+6. [x] Adaptar gráficos e portal para paginação de históricos e estados vazios.
+7. [x] Planejar leitura de arrays antigos e migração idempotente, testada em dados sintéticos antes de qualquer base real.
 
 **Resultado:** registros concorrentes são preservados e dias/horários têm semântica consistente.
 
 **Aceite:** gravações simultâneas não perdem eventos; retry não duplica; testes cobrem virada de dia em UTC e no fuso configurado.
+
+```yaml
+Etapa concluída: 10 — Corrigir concorrência, históricos e calendário
+Data de conclusão: 2026-09-17
+Arquivos alterados:
+- src/types/patient.ts
+- src/utils/dateTime.ts
+- src/services/evaluationService.ts
+- src/services/appointmentService.ts
+- src/services/patientMigrationService.ts
+- src/services/firebaseService.ts
+- src/components/patient-profile/WeightEvolutionChart.tsx
+- src/pages/PatientPortal.tsx
+- src/utils/validation.ts
+- src/utils/__tests__/dateTime.test.ts
+- src/services/__tests__/patientMigrationService.test.ts
+- src/services/__tests__/appointmentService.test.ts
+- src/services/__tests__/evaluationService.test.ts
+Comandos executados para validação:
+- npm test (169 de 169 testes unitários passando em 18 suítes Vitest, incluindo novos testes para conversão de fuso horário America/Sao_Paulo sem rollover prematuro de UTC, idempotência de migração de pacientes, detecção de sobreposição de consultas e transações atômicas de peso/adesão com deduplicação clientEventId)
+- npm run test:rules (24 de 24 testes no emulador Firestore passando com validação estrita de segurança e compatibilidade)
+- npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
+- npm run type-check (0 erros TypeScript com strict mode)
+- npm run format:check (100% dos arquivos validados pelo Prettier)
+- npm run build (Build Vite de produção concluído com sucesso em 1.62s)
+Validação manual e ambiente: Validação da proteção contra condições de corrida via runTransaction do Firestore, deduplicação em retries via clientEventId, timezone clínica padronizada America/Sao_Paulo protegendo check-in noturno contra atribuição ao dia civil seguinte, sanitização de histórico de pesos (20-350 kg) e paginação temporal e estados vazios no gráfico de evolução de peso.
+Limitações ou decisões pendentes: Pronto para Etapa 11 (Definir arquivamento, exclusão e revogação).
+```
 
 ### 11 — Definir arquivamento, exclusão e revogação
 

@@ -10,7 +10,8 @@ import {
   type FirestoreError,
 } from "firebase/firestore";
 import { db } from "./firebaseCore";
-import type { Appointment } from "../types";
+import type { Appointment, AppointmentType, AppointmentStatus } from "../types";
+import { parseLocalDateTime, toUtcIsoString } from "../utils/dateTime";
 
 // Helper for error handling
 const handleSnapshotError = (error: FirestoreError, context: string) => {
@@ -28,14 +29,128 @@ const getAppointmentsCollection = (userId: string) =>
 const getAppointmentDoc = (userId: string, apptId: string) =>
   doc(db, "users", userId, "appointments", apptId);
 
-export const addAppointment = (userId: string, data: Omit<Appointment, "id">) =>
-  addDoc(getAppointmentsCollection(userId), data);
+const VALID_TYPES: AppointmentType[] = [
+  "consultation",
+  "followup",
+  "assessment",
+  "other",
+];
+const VALID_STATUSES: AppointmentStatus[] = [
+  "scheduled",
+  "completed",
+  "cancelled",
+];
+
+export const validateAppointmentData = (data: Partial<Appointment>): void => {
+  if (!data || typeof data !== "object") {
+    throw new Error("Dados da consulta inválidos.");
+  }
+  if (
+    data.patientId !== undefined &&
+    (!data.patientId ||
+      typeof data.patientId !== "string" ||
+      !data.patientId.trim())
+  ) {
+    throw new Error("ID do paciente é obrigatório para agendamento.");
+  }
+  if (data.dateTime !== undefined) {
+    if (typeof data.dateTime !== "string" || !data.dateTime.trim()) {
+      throw new Error("Data e horário são obrigatórios.");
+    }
+    const parsed = parseLocalDateTime(data.dateTime);
+    if (isNaN(parsed.getTime())) {
+      throw new Error(`Data/horário inválido: "${data.dateTime}".`);
+    }
+  }
+  if (data.durationMinutes !== undefined) {
+    if (
+      typeof data.durationMinutes !== "number" ||
+      !Number.isFinite(data.durationMinutes) ||
+      data.durationMinutes < 10 ||
+      data.durationMinutes > 480
+    ) {
+      throw new Error("Duração da consulta deve estar entre 10 e 480 minutos.");
+    }
+  }
+  if (data.type !== undefined && !VALID_TYPES.includes(data.type)) {
+    throw new Error(`Tipo de consulta inválido: "${data.type}".`);
+  }
+  if (data.status !== undefined && !VALID_STATUSES.includes(data.status)) {
+    throw new Error(`Status de consulta inválido: "${data.status}".`);
+  }
+};
+
+/**
+ * Checks if a candidate appointment overlaps with any non-cancelled existing appointment.
+ */
+export const findAppointmentConflict = (
+  existing: Appointment[],
+  candidate: { dateTime: string; durationMinutes: number; id?: string },
+): Appointment | null => {
+  const candidateStart = parseLocalDateTime(candidate.dateTime).getTime();
+  const candidateEnd =
+    candidateStart + (candidate.durationMinutes || 60) * 60000;
+
+  if (isNaN(candidateStart)) return null;
+
+  for (const appt of existing) {
+    if (appt.id && candidate.id && appt.id === candidate.id) continue;
+    if (appt.status === "cancelled") continue;
+
+    const apptStart = parseLocalDateTime(appt.dateTime).getTime();
+    const apptEnd = apptStart + (appt.durationMinutes || 60) * 60000;
+
+    if (isNaN(apptStart)) continue;
+
+    // Overlap condition: startA < endB && endA > startB
+    if (candidateStart < apptEnd && candidateEnd > apptStart) {
+      return appt;
+    }
+  }
+
+  return null;
+};
+
+export const addAppointment = (
+  userId: string,
+  data: Omit<Appointment, "id">,
+) => {
+  validateAppointmentData(data);
+  const cleanData: Omit<Appointment, "id"> = {
+    patientId: data.patientId.trim(),
+    patientName: data.patientName.trim(),
+    dateTime: data.dateTime.trim(),
+    durationMinutes: Math.round(data.durationMinutes),
+    type: data.type,
+    status: data.status || "scheduled",
+    createdAt: data.createdAt || toUtcIsoString(),
+  };
+  if (typeof data.notes === "string" && data.notes.trim()) {
+    cleanData.notes = data.notes.trim();
+  }
+  return addDoc(getAppointmentsCollection(userId), cleanData);
+};
 
 export const updateAppointment = (
   userId: string,
   apptId: string,
   data: Partial<Appointment>,
-) => updateDoc(getAppointmentDoc(userId, apptId), data);
+) => {
+  validateAppointmentData(data);
+  const cleanData: Partial<Appointment> = {};
+
+  if (data.patientId !== undefined) cleanData.patientId = data.patientId.trim();
+  if (data.patientName !== undefined)
+    cleanData.patientName = data.patientName.trim();
+  if (data.dateTime !== undefined) cleanData.dateTime = data.dateTime.trim();
+  if (data.durationMinutes !== undefined)
+    cleanData.durationMinutes = Math.round(data.durationMinutes);
+  if (data.type !== undefined) cleanData.type = data.type;
+  if (data.status !== undefined) cleanData.status = data.status;
+  if (data.notes !== undefined) cleanData.notes = data.notes.trim();
+
+  return updateDoc(getAppointmentDoc(userId, apptId), cleanData);
+};
 
 export const deleteAppointment = (userId: string, apptId: string) =>
   deleteDoc(getAppointmentDoc(userId, apptId));
@@ -54,7 +169,8 @@ export const getAppointments = (
       );
       appts.sort(
         (a, b) =>
-          new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(),
+          parseLocalDateTime(a.dateTime).getTime() -
+          parseLocalDateTime(b.dateTime).getTime(),
       );
       callback(appts);
     },
@@ -83,7 +199,8 @@ export const getPatientAppointments = (
       );
       appts.sort(
         (a, b) =>
-          new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime(),
+          parseLocalDateTime(a.dateTime).getTime() -
+          parseLocalDateTime(b.dateTime).getTime(),
       );
       callback(appts);
     },

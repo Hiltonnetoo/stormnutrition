@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { updatePassword } from "firebase/auth";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -23,9 +23,15 @@ import type {
   PatientPortalProfile,
   WeightRecord,
   Patient,
+  AdherenceEntry,
 } from "../types";
 import { Modal, Button } from "../components/ui";
 import { LogoIcon } from "../components/icons";
+import {
+  DEFAULT_CLINIC_TIMEZONE,
+  getCivilToday,
+  toUtcIsoString,
+} from "../utils/dateTime";
 
 const r = (n: number) => Math.round(n);
 
@@ -47,11 +53,18 @@ const translateMealName = (name: string, t: TFunction) => {
 const AdherenceCheckIn: React.FC<{
   nutritionistId: string;
   patientId: string;
-  currentLog?: { date: string; followed: boolean }[];
-}> = ({ nutritionistId, patientId, currentLog }) => {
+  currentLog?: AdherenceEntry[];
+  onCheckInSuccess?: (entry: AdherenceEntry) => void;
+}> = ({ nutritionistId, patientId, currentLog, onCheckInSuccess }) => {
   const { t } = useTranslation();
-  const today = new Date().toISOString().split("T")[0];
-  const todayEntry = currentLog?.find((e) => e.date === today);
+  const today = getCivilToday(DEFAULT_CLINIC_TIMEZONE);
+  const [optimisticEntry, setOptimisticEntry] = useState<AdherenceEntry | null>(
+    null,
+  );
+  const todayEntry =
+    optimisticEntry?.date === today
+      ? optimisticEntry
+      : currentLog?.find((e) => e.date === today);
   const [loading, setLoading] = useState(false);
   const [checkError, setCheckError] = useState("");
 
@@ -59,8 +72,19 @@ const AdherenceCheckIn: React.FC<{
     setLoading(true);
     setCheckError("");
     try {
-      await logAdherence(nutritionistId, patientId, followed);
-      window.location.reload();
+      const clientEventId = `adh_${today}_${Date.now()}`;
+      await logAdherence(nutritionistId, patientId, followed, {
+        date: today,
+        clientEventId,
+      });
+      const newEntry: AdherenceEntry = {
+        date: today,
+        followed,
+        timestamp: toUtcIsoString(),
+        clientEventId,
+      };
+      setOptimisticEntry(newEntry);
+      onCheckInSuccess?.(newEntry);
     } catch (error) {
       console.error(error);
       setCheckError(t("patient_portal.adherence.error"));
@@ -354,14 +378,18 @@ const PatientPortal: React.FC = () => {
   const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false);
   const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
 
-  useEffect(() => {
+  const refreshPatient = useCallback(async () => {
     if (!patientProfile) return;
-    getPatientById(
+    const p = await getPatientById(
       patientProfile.nutritionistId,
       patientProfile.patientId,
-    ).then((p) => {
-      if (p) setPatient(p as Patient);
-    });
+    );
+    if (p) setPatient(p as Patient);
+  }, [patientProfile]);
+
+  useEffect(() => {
+    if (!patientProfile) return;
+    refreshPatient();
     const unsub1 = getPatientDiets(
       patientProfile.nutritionistId,
       patientProfile.patientId,
@@ -382,7 +410,7 @@ const PatientPortal: React.FC = () => {
       unsub1?.();
       unsub2?.();
     };
-  }, [patientProfile]);
+  }, [patientProfile, refreshPatient]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString(
@@ -398,25 +426,26 @@ const PatientPortal: React.FC = () => {
 
   const saveWeight = async () => {
     if (!newWeight || isSaving || !patientProfile) return;
-    const parsed = parseFloat(newWeight);
-    if (isNaN(parsed) || parsed < 20 || parsed > 300) {
+    const parsed = parseFloat(newWeight.replace(",", "."));
+    if (isNaN(parsed) || parsed < 20 || parsed > 350) {
       setWeightError(t("patient_portal.weight_modal.errors.invalid_weight"));
       return;
     }
     setWeightError("");
     setIsSaving(true);
     try {
-      await logPatientWeight(
+      const clientEventId = `portal_weight_${Date.now()}`;
+      const result = await logPatientWeight(
         patientProfile.nutritionistId,
         patientProfile.patientId,
         parsed,
         "self_reported",
+        {
+          clientEventId,
+          authorUid: patientProfile.uid,
+        },
       );
-      const newRecord = {
-        date: new Date().toISOString(),
-        weight: parsed,
-        origin: "self_reported" as const,
-      };
+      const newRecord: WeightRecord = result.record;
       setLocalWeightHistory([
         ...(localWeightHistory ?? patient?.weightHistory ?? []),
         newRecord,
@@ -426,6 +455,7 @@ const PatientPortal: React.FC = () => {
       setIsWeightModalOpen(false);
       setNewWeight("");
       setTimeout(() => setWeightSavedMsg(""), 4000);
+      refreshPatient();
     } catch (error) {
       console.error("Error logging weight:", error);
       setWeightError(t("patient_portal.self_eval.error"));
@@ -542,6 +572,7 @@ const PatientPortal: React.FC = () => {
             nutritionistId={patientProfile.nutritionistId}
             patientId={patientProfile.patientId}
             currentLog={patient?.adherenceLog}
+            onCheckInSuccess={refreshPatient}
           />
         )}
 
@@ -550,7 +581,7 @@ const PatientPortal: React.FC = () => {
             protocolId={patient.activeProtocolId}
             patientProfile={patientProfile}
             patient={patient}
-            onComplete={() => window.location.reload()}
+            onComplete={refreshPatient}
           />
         )}
 

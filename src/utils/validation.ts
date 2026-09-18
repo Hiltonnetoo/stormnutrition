@@ -3,7 +3,12 @@
  * Guarantees type safety at Firestore, Storage, and form inputs without relying on unsafe 'as Type' casts.
  */
 
-import type { Patient, WeightRecord, SelfEvaluation } from "../types";
+import type {
+  Patient,
+  WeightRecord,
+  SelfEvaluation,
+  AdherenceEntry,
+} from "../types";
 
 export const MAX_PROFILE_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 export const ALLOWED_IMAGE_MIME_TYPES = [
@@ -43,9 +48,9 @@ export const validateProfileImage = (
  */
 export const validateWeightNumber = (value: unknown): number => {
   const num = typeof value === "number" ? value : Number(value);
-  if (isNaN(num) || num < 10 || num > 500) {
+  if (isNaN(num) || num < 20 || num > 350) {
     throw new Error(
-      `Peso inválido: ${value}. Deve ser um número entre 10 kg e 500 kg.`,
+      `Peso inválido: ${value}. Deve ser um número entre 20 kg e 350 kg.`,
     );
   }
   return Number(num.toFixed(1));
@@ -83,11 +88,38 @@ export const validatePatient = (raw: unknown): Patient => {
 
   const weightHistory: WeightRecord[] = sanitizeArray<Record<string, unknown>>(
     obj.weightHistory,
-  ).map((record) => ({
-    date: sanitizeString(record.date, new Date().toISOString()),
-    weight: sanitizeNumber(record.weight, 0),
-    origin: sanitizeOrigin(record.origin),
-  }));
+  ).map((record) => {
+    const item: WeightRecord = {
+      date: sanitizeString(record.date, new Date().toISOString()),
+      weight: sanitizeNumber(record.weight, 0),
+      origin: sanitizeOrigin(record.origin),
+    };
+    if (typeof record.id === "string" && record.id.trim()) {
+      item.id = record.id.trim();
+    }
+    if (typeof record.authorUid === "string" && record.authorUid.trim()) {
+      item.authorUid = record.authorUid.trim();
+    }
+    if (
+      typeof record.clientEventId === "string" &&
+      record.clientEventId.trim()
+    ) {
+      item.clientEventId = record.clientEventId.trim();
+    }
+    if (
+      typeof record.fatPercentage === "number" &&
+      Number.isFinite(record.fatPercentage)
+    ) {
+      item.fatPercentage = record.fatPercentage;
+    }
+    if (
+      typeof record.muscleMassKg === "number" &&
+      Number.isFinite(record.muscleMassKg)
+    ) {
+      item.muscleMassKg = record.muscleMassKg;
+    }
+    return item;
+  });
 
   const selfEvaluations = sanitizeArray<SelfEvaluation>(obj.selfEvaluations);
 
@@ -216,9 +248,23 @@ export const validatePatient = (raw: unknown): Patient => {
               : undefined,
           }
         : undefined,
-    adherenceLog: sanitizeArray<{ date: string; followed: boolean }>(
-      obj.adherenceLog,
-    ),
+    adherenceLog: sanitizeArray<Record<string, unknown>>(obj.adherenceLog)
+      .map((raw) => {
+        const date = sanitizeString(raw.date);
+        if (!date) return null;
+        const entry: AdherenceEntry = {
+          date,
+          followed: Boolean(raw.followed),
+        };
+        if (typeof raw.timestamp === "string" && raw.timestamp.trim()) {
+          entry.timestamp = raw.timestamp.trim();
+        }
+        if (typeof raw.clientEventId === "string" && raw.clientEventId.trim()) {
+          entry.clientEventId = raw.clientEventId.trim();
+        }
+        return entry;
+      })
+      .filter((e): e is AdherenceEntry => Boolean(e)),
     dietNeedsReview: Boolean(obj.dietNeedsReview),
     termsAccepted: Boolean(obj.termsAccepted),
     pendingInvitationId: obj.pendingInvitationId

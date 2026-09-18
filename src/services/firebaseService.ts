@@ -68,6 +68,8 @@ export {
   deleteAppointment,
   getAppointments,
   getPatientAppointments,
+  findAppointmentConflict,
+  validateAppointmentData,
 } from "./appointmentService";
 
 // Import and re-export evaluation/tracking domain services

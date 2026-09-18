@@ -276,10 +276,10 @@
     "semantic_hash": "9f6737cbb7dbc7e6e9d36ae7753d694d"
   },
   "src/components/patient-profile/WeightEvolutionChart.tsx": {
-    "mtime": 1780612572.4895225,
-    "seen": 1789681967.2565298,
-    "ast_hash": "efed8281f117a15b8807447429a8eb0f",
-    "semantic_hash": "efed8281f117a15b8807447429a8eb0f"
+    "mtime": 1789691222.8215055,
+    "seen": 1789691250.085589,
+    "ast_hash": "cee277567c4479614b025ebf5d40615e",
+    "semantic_hash": ""
   },
   "src/components/settings/BillingSection.tsx": {
     "mtime": 1789687332.3350465,
@@ -402,9 +402,9 @@
     "semantic_hash": "53624a199a63178b0db2c582b6b0f327"
   },
   "src/pages/PatientPortal.tsx": {
-    "mtime": 1789685274.133368,
-    "seen": 1789685811.1668422,
-    "ast_hash": "3cdba37c16a4adf7310e1e4b991961a0",
+    "mtime": 1789691072.8333116,
+    "seen": 1789691250.085599,
+    "ast_hash": "6a43c27522ad2c516d0fe91ae4e3d779",
     "semantic_hash": ""
   },
   "src/pages/PatientProfile.tsx": {
@@ -462,10 +462,10 @@
     "semantic_hash": "bf5882c92cb24cf3bb856cd514f99fe1"
   },
   "src/services/appointmentService.ts": {
-    "mtime": 1780697686.0372822,
-    "seen": 1789681967.2565372,
-    "ast_hash": "6c9277959f81bd0c6dd1146c66717f89",
-    "semantic_hash": "6c9277959f81bd0c6dd1146c66717f89"
+    "mtime": 1789691223.258917,
+    "seen": 1789691250.0856059,
+    "ast_hash": "fcdd6a7cd2632336e594d81d90fb1092",
+    "semantic_hash": ""
   },
   "src/services/authService.ts": {
     "mtime": 1789687934.1829505,
@@ -498,9 +498,9 @@
     "semantic_hash": ""
   },
   "src/services/evaluationService.ts": {
-    "mtime": 1789688102.676787,
-    "seen": 1789688167.617142,
-    "ast_hash": "e79524d9e0931866d42a060a2ef554ea",
+    "mtime": 1789691223.3270016,
+    "seen": 1789691250.085608,
+    "ast_hash": "61f5b8303bfef88aed36217b58aa7425",
     "semantic_hash": ""
   },
   "src/services/firebase.config.ts": {
@@ -516,9 +516,9 @@
     "semantic_hash": ""
   },
   "src/services/firebaseService.ts": {
-    "mtime": 1789688643.1998541,
-    "seen": 1789688684.3786838,
-    "ast_hash": "81a556f3dc3cbe4529c0dade3d25b346",
+    "mtime": 1789690833.726303,
+    "seen": 1789691250.085609,
+    "ast_hash": "03186913a7d22674547f8409a3215c93",
     "semantic_hash": ""
   },
   "src/services/foodService.ts": {
@@ -576,9 +576,9 @@
     "semantic_hash": ""
   },
   "src/types/patient.ts": {
-    "mtime": 1789688539.4814403,
-    "seen": 1789688684.378688,
-    "ast_hash": "ec98ffb30049bb0e5cabe075cbe82e72",
+    "mtime": 1789690651.4907498,
+    "seen": 1789691250.085614,
+    "ast_hash": "b58f294d11a009a05d42f6586c492037",
     "semantic_hash": ""
   },
   "src/utils/calcAge.ts": {
@@ -588,10 +588,10 @@
     "semantic_hash": "92ce4246f995541599371bccde6bd7aa"
   },
   "src/utils/dateTime.ts": {
-    "mtime": 1781133362.967933,
-    "seen": 1789681967.256545,
-    "ast_hash": "753b166ffa06bb10248183725d19cdf4",
-    "semantic_hash": "753b166ffa06bb10248183725d19cdf4"
+    "mtime": 1789691223.3955436,
+    "seen": 1789691250.085616,
+    "ast_hash": "33c38c35e1f2d0d5f957e5c2a53f5d28",
+    "semantic_hash": ""
   },
   "src/utils/localStorage.ts": {
     "mtime": 1789687103.6702652,
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789690381.7844577,
-    "seen": 1789690389.1302311,
-    "ast_hash": "a03e33d1991afb3a3af56d205ddf5ca3",
+    "mtime": 1789691244.9506345,
+    "seen": 1789691250.085641,
+    "ast_hash": "eb129a072e5e20417a28e8a5cfda74e5",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1074,9 +1074,9 @@
     "semantic_hash": ""
   },
   "src/utils/validation.ts": {
-    "mtime": 1789688556.9688962,
-    "seen": 1789688684.378691,
-    "ast_hash": "c163072f3c4748b7b189fcd36a28e901",
+    "mtime": 1789691223.419076,
+    "seen": 1789691250.0856168,
+    "ast_hash": "851b12facac3a8da2c818b1930aacaaf",
     "semantic_hash": ""
   },
   "src/pages/AcceptInvitation.tsx": {
@@ -1095,6 +1095,36 @@
     "mtime": 1789688643.2130635,
     "seen": 1789688684.378685,
     "ast_hash": "6cf719fb0f4bf906e933bb0af23bf3a5",
+    "semantic_hash": ""
+  },
+  "src/services/__tests__/appointmentService.test.ts": {
+    "mtime": 1789691091.2515159,
+    "seen": 1789691250.085602,
+    "ast_hash": "2c7aac42c48d2dd40fb119009620f65a",
+    "semantic_hash": ""
+  },
+  "src/services/__tests__/evaluationService.test.ts": {
+    "mtime": 1789691223.2254045,
+    "seen": 1789691250.0856042,
+    "ast_hash": "b6e119e5b72f4724b89ec2abd4fb35b5",
+    "semantic_hash": ""
+  },
+  "src/services/__tests__/patientMigrationService.test.ts": {
+    "mtime": 1789691223.2526836,
+    "seen": 1789691250.0856059,
+    "ast_hash": "a073be9b054883e7553f23d63e9f9cf0",
+    "semantic_hash": ""
+  },
+  "src/services/patientMigrationService.ts": {
+    "mtime": 1789691223.3585346,
+    "seen": 1789691250.085611,
+    "ast_hash": "c39f079fce1f69d1c479ba358430c0c4",
+    "semantic_hash": ""
+  },
+  "src/utils/__tests__/dateTime.test.ts": {
+    "mtime": 1789690849.092721,
+    "seen": 1789691250.085614,
+    "ast_hash": "d1efc38830375917415f0797501d007e",
     "semantic_hash": ""
   }
 }

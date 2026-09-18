@@ -1,11 +1,21 @@
 import type { DietMode, ClinicalTag, LabTest } from "./diet";
 
 export interface WeightRecord {
+  id?: string;
   date: string;
   weight: number;
   fatPercentage?: number;
   muscleMassKg?: number;
   origin?: "clinical" | "remote_guided" | "self_reported";
+  authorUid?: string;
+  clientEventId?: string;
+}
+
+export interface AdherenceEntry {
+  date: string; // Civil date YYYY-MM-DD
+  followed: boolean;
+  timestamp?: string; // Audit UTC timestamp
+  clientEventId?: string;
 }
 
 export interface SelfEvaluation {
@@ -117,7 +127,7 @@ export interface Patient {
   weightHistory?: WeightRecord[];
   activeProtocolId?: string;
   selfEvaluations?: SelfEvaluation[];
-  adherenceLog?: { date: string; followed: boolean }[];
+  adherenceLog?: AdherenceEntry[];
   labExamHistory?: { date: string; exams: LabTest[] }[];
   automationSettings?: {
     autoRequestAssessment: boolean;
