@@ -237,7 +237,7 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
           <span className="badge badge-sky">
             {t("diet_generator.display.clinical_engine")}
           </span>
-          {plan.validation && (
+          {plan.validation ? (
             <span
               className={`badge font-bold ${
                 plan.validation.status === "valid"
@@ -252,6 +252,21 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
                 : plan.validation.status === "requires_review"
                   ? t("diet_generator.display.status_requires_review")
                   : t("diet_generator.display.status_infeasible")}
+            </span>
+          ) : (
+            <span className="badge badge-slate font-medium text-slate-600 dark:text-slate-400">
+              {t(
+                "diet_generator.display.status_legacy",
+                "Plano Legado / Não Revalidado",
+              )}
+            </span>
+          )}
+          {plan.isManuallyEdited && (
+            <span className="badge badge-amber font-medium">
+              {t(
+                "diet_generator.display.status_manually_edited",
+                "Edição Manual",
+              )}
             </span>
           )}
           {plan.mode && (

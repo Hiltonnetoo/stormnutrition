@@ -14,6 +14,7 @@ import {
   validateAndSerializeDietPlan,
   validateAndSerializeDietUpdate,
 } from "../src/services/dietService";
+import { buildCustomLayoutPdfDocument } from "../src/utils/pdfExporter";
 import type { DietPlan } from "../src/types";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -265,6 +266,198 @@ describe("Diet Persistence Contract - Firestore Integration", () => {
     // Original meals were preserved
     expect(data.meals).toHaveLength(1);
     expect(data.patientName).toBe("Carlos Edição");
+  });
+
+  it("Passo C05 regression: updates meals, totals, validation, and traceability together and produces consistent PDF", async () => {
+    const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+    const dietsCol = collection(nutriDb, "users", NUTRI_A, "diets");
+
+    // 1. Initial Plan A with 2000 kcal meals and metadata
+    const planA: DietPlan = {
+      version: 2,
+      patientId: "patient-c05",
+      patientName: "Paciente C05 Regressao",
+      mode: "general",
+      createdAt: new Date().toISOString(),
+      durationDays: 30,
+      startDate: "2026-09-18",
+      dailyCalories: 2000,
+      macronutrients: {
+        proteinGrams: 150,
+        proteinPercentage: 30,
+        carbsGrams: 200,
+        carbsPercentage: 40,
+        fatGrams: 67,
+        fatPercentage: 30,
+      },
+      meals: [
+        {
+          mealName: "Almoço Inicial",
+          time: "12:00",
+          calories: 1100,
+          protein: 80,
+          carbs: 110,
+          fat: 35,
+          mainOption: {
+            name: "Frango com Batata",
+            portion: "Prato cheio",
+            calories: 1100,
+            protein: 80,
+            carbs: 110,
+            fat: 35,
+          },
+          alternatives: [],
+        },
+        {
+          mealName: "Jantar Inicial",
+          time: "19:30",
+          calories: 900,
+          protein: 70,
+          carbs: 90,
+          fat: 32,
+          mainOption: {
+            name: "Carne com Arroz",
+            portion: "Prato médio",
+            calories: 900,
+            protein: 70,
+            carbs: 90,
+            fat: 32,
+          },
+          alternatives: [],
+        },
+      ],
+      calculatedTotals: {
+        calories: 2000,
+        protein: 150,
+        carbs: 200,
+        fat: 67,
+      },
+      validation: {
+        status: "valid",
+        isApproved: true,
+        issues: [],
+        calculatedTotals: {
+          calories: 2000,
+          protein: 150,
+          carbs: 200,
+          fat: 67,
+        },
+        deviations: {
+          caloriesDiff: 0,
+          caloriesPercent: 0,
+          proteinDiff: 0,
+          proteinPercent: 0,
+          carbsDiff: 0,
+          carbsPercent: 0,
+          fatDiff: 0,
+          fatPercent: 0,
+        },
+      },
+      algorithmVersion: "2.1.0",
+      datasetVersion: "tbca-2026.1",
+      seed: 98765,
+      waterRecommendationLiters: 2.5,
+      generalObservations: ["Plano inicial gerado pelo algoritmo"],
+      dietType: "traditional",
+    };
+
+    const docRef = await assertSucceeds(
+      addDoc(dietsCol, validateAndSerializeDietPlan(planA)),
+    );
+
+    // 2. Update to Plan B with new meals totaling 1400 kcal
+    const newMeals = [
+      {
+        mealName: "Café Leve",
+        time: "08:00",
+        calories: 500,
+        protein: 40,
+        carbs: 50,
+        fat: 15,
+        mainOption: {
+          name: "Ovos com Torrada",
+          portion: "2 ovos + 2 torradas",
+          calories: 500,
+          protein: 40,
+          carbs: 50,
+          fat: 15,
+        },
+        alternatives: [],
+      },
+      {
+        mealName: "Almoço Leve",
+        time: "12:30",
+        calories: 900,
+        protein: 70,
+        carbs: 90,
+        fat: 30,
+        mainOption: {
+          name: "Peixe com Legumes",
+          portion: "1 filé grande",
+          calories: 900,
+          protein: 70,
+          carbs: 90,
+          fat: 30,
+        },
+        alternatives: [],
+      },
+    ];
+
+    const updateDto = validateAndSerializeDietUpdate({
+      meals: newMeals,
+      dailyCalories: 2000,
+      macronutrients: planA.macronutrients,
+      algorithmVersion: planA.algorithmVersion,
+      datasetVersion: planA.datasetVersion,
+      seed: planA.seed,
+    });
+
+    await assertSucceeds(
+      updateDoc(doc(nutriDb, "users", NUTRI_A, "diets", docRef.id), updateDto),
+    );
+
+    // 3. Read back from Firestore and verify complete coherence
+    const updatedSnap = await getDoc(
+      doc(nutriDb, "users", NUTRI_A, "diets", docRef.id),
+    );
+    expect(updatedSnap.exists()).toBe(true);
+    const data = updatedSnap.data()!;
+
+    // Meals match Plan B
+    expect(data.meals).toHaveLength(2);
+    expect(data.meals[0].mealName).toBe("Café Leve");
+    expect(data.meals[1].mealName).toBe("Almoço Leve");
+
+    // Calculated totals match Plan B (1400 kcal, NOT the stale 2000 kcal)
+    expect(data.calculatedTotals).toBeDefined();
+    expect(data.calculatedTotals.calories).toBe(1400);
+    expect(data.calculatedTotals.protein).toBe(110);
+    expect(data.calculatedTotals.carbs).toBe(140);
+    expect(data.calculatedTotals.fat).toBe(45);
+
+    // Validation metadata recalculated against target (1400 - 2000 = -600 kcal)
+    expect(data.validation).toBeDefined();
+    expect(data.validation.calculatedTotals.calories).toBe(1400);
+    expect(data.validation.deviations.caloriesDiff).toBe(-600);
+
+    // Traceability metadata records manual edit truthfully
+    expect(data.isManuallyEdited).toBe(true);
+    expect(typeof data.editedAt).toBe("string");
+    expect(data.seed).toBe(98765);
+    expect(data.algorithmVersion).toBe("2.1.0");
+    expect(data.datasetVersion).toBe("tbca-2026.1");
+
+    // 4. Verify that exported PDF reflects Plan B (1400 kcal), not Plan A (2000 kcal)
+    const readPlan: DietPlan = {
+      ...data,
+      id: docRef.id,
+    } as DietPlan;
+    const pdfDoc = buildCustomLayoutPdfDocument(readPlan, undefined, {
+      locale: "pt",
+    });
+    const pdfText = pdfDoc.output();
+    expect(pdfText).toContain("1400 kcal");
+    expect(pdfText).toContain("Edi"); // "Edição Manual • Totais vs Metas"
   });
 
   it("forbids an unrelated nutritionist from reading or modifying another nutritionist's diet plans", async () => {

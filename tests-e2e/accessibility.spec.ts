@@ -68,11 +68,14 @@ test.describe("Accessibility — axe scan of the journey", () => {
     ] as const) {
       await page.goto(url);
       await page.waitForLoadState("networkidle");
+      // Never scan a blank page: a boot failure would otherwise "pass".
+      await expect(page.locator("h1").first()).toBeVisible();
       await expectNoViolations(page, name);
     }
   });
 
   test("professional screens and their dialogs", async ({ page }) => {
+    test.slow();
     await login(page, NUTRI);
     await expect(page).toHaveURL(/dashboard/);
 
@@ -222,6 +225,7 @@ test.describe("Accessibility — reflow at 320 CSS px", () => {
     ] as const) {
       await page.goto(url);
       await page.waitForLoadState("networkidle");
+      await expect(page.locator("h1").first()).toBeVisible();
       await expectNoHorizontalScroll(page, name);
     }
     await login(page, NUTRI);

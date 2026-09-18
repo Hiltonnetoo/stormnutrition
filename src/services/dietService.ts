@@ -32,7 +32,9 @@ import type {
   CalculatedDietTotals,
   PlanValidationResult,
   PlanValidationIssue,
+  PlanValidationStatus,
 } from "../types";
+import { validateDietPlan } from "./dietAlgorithmService";
 
 // Helper for error handling
 const handleSnapshotError = (error: FirestoreError, context: string) => {
@@ -249,6 +251,282 @@ export const sanitizeMeal = (meal: unknown, index: number): Meal => {
   return cleanMeal;
 };
 
+export const recalculateDietTotals = (meals: Meal[]): CalculatedDietTotals => {
+  const totals = {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    fiber: 0,
+    sodium: 0,
+  };
+
+  for (const meal of meals) {
+    totals.calories += isFiniteNumber(meal.mainOption?.calories)
+      ? meal.mainOption.calories
+      : isFiniteNumber(meal.calories)
+        ? meal.calories
+        : 0;
+    totals.protein += isFiniteNumber(meal.mainOption?.protein)
+      ? meal.mainOption.protein
+      : isFiniteNumber(meal.protein)
+        ? meal.protein
+        : 0;
+    totals.carbs += isFiniteNumber(meal.mainOption?.carbs)
+      ? meal.mainOption.carbs
+      : isFiniteNumber(meal.carbs)
+        ? meal.carbs
+        : 0;
+    totals.fat += isFiniteNumber(meal.mainOption?.fat)
+      ? meal.mainOption.fat
+      : isFiniteNumber(meal.fat)
+        ? meal.fat
+        : 0;
+    const fiber =
+      meal.mainOption?.micros?.fiber ?? meal.micros?.fiber ?? 0;
+    if (isFiniteNumber(fiber)) totals.fiber += fiber;
+    const sodium =
+      meal.mainOption?.micros?.sodium ?? meal.micros?.sodium ?? 0;
+    if (isFiniteNumber(sodium)) totals.sodium += sodium;
+  }
+
+  const result: CalculatedDietTotals = {
+    calories: Math.round(totals.calories),
+    protein: Number(totals.protein.toFixed(1)),
+    carbs: Number(totals.carbs.toFixed(1)),
+    fat: Number(totals.fat.toFixed(1)),
+  };
+
+  if (isFiniteNumber(totals.fiber) && totals.fiber > 0) {
+    result.fiber = Number(totals.fiber.toFixed(1));
+  }
+  if (isFiniteNumber(totals.sodium) && totals.sodium > 0) {
+    result.sodium = Math.round(totals.sodium);
+  }
+
+  return result;
+};
+
+export const sanitizeCalculatedTotals = (
+  raw: unknown,
+): CalculatedDietTotals | undefined => {
+  if (!raw || typeof raw !== "object") return undefined;
+  const t = raw as Record<string, unknown>;
+  const calories = isFiniteNumber(t.calories) ? Math.round(t.calories) : 0;
+  const protein = isFiniteNumber(t.protein) ? Number(t.protein.toFixed(1)) : 0;
+  const carbs = isFiniteNumber(t.carbs) ? Number(t.carbs.toFixed(1)) : 0;
+  const fat = isFiniteNumber(t.fat) ? Number(t.fat.toFixed(1)) : 0;
+
+  const result: CalculatedDietTotals = {
+    calories,
+    protein,
+    carbs,
+    fat,
+  };
+  if (isFiniteNumber(t.fiber)) {
+    result.fiber = Number(t.fiber.toFixed(1));
+  }
+  if (isFiniteNumber(t.sodium)) {
+    result.sodium = Math.round(t.sodium);
+  }
+  return result;
+};
+
+export const sanitizeValidation = (
+  raw: unknown,
+): PlanValidationResult | undefined => {
+  if (!raw || typeof raw !== "object") return undefined;
+  const v = raw as Record<string, unknown>;
+  const validStatuses: PlanValidationStatus[] = [
+    "valid",
+    "requires_review",
+    "infeasible",
+  ];
+  const status: PlanValidationStatus = validStatuses.includes(
+    v.status as PlanValidationStatus,
+  )
+    ? (v.status as PlanValidationStatus)
+    : "requires_review";
+
+  const isApproved = Boolean(v.isApproved);
+
+  const rawTotals = sanitizeCalculatedTotals(v.calculatedTotals);
+  const calculatedTotals: CalculatedDietTotals = rawTotals || {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  };
+
+  const dev = (v.deviations && typeof v.deviations === "object"
+    ? v.deviations
+    : {}) as Record<string, unknown>;
+
+  const deviations = {
+    caloriesDiff: isFiniteNumber(dev.caloriesDiff)
+      ? Number(dev.caloriesDiff.toFixed(1))
+      : 0,
+    caloriesPercent: isFiniteNumber(dev.caloriesPercent)
+      ? Number(dev.caloriesPercent.toFixed(1))
+      : 0,
+    proteinDiff: isFiniteNumber(dev.proteinDiff)
+      ? Number(dev.proteinDiff.toFixed(1))
+      : 0,
+    proteinPercent: isFiniteNumber(dev.proteinPercent)
+      ? Number(dev.proteinPercent.toFixed(1))
+      : 0,
+    carbsDiff: isFiniteNumber(dev.carbsDiff)
+      ? Number(dev.carbsDiff.toFixed(1))
+      : 0,
+    carbsPercent: isFiniteNumber(dev.carbsPercent)
+      ? Number(dev.carbsPercent.toFixed(1))
+      : 0,
+    fatDiff: isFiniteNumber(dev.fatDiff)
+      ? Number(dev.fatDiff.toFixed(1))
+      : 0,
+    fatPercent: isFiniteNumber(dev.fatPercent)
+      ? Number(dev.fatPercent.toFixed(1))
+      : 0,
+  };
+
+  const issues: PlanValidationIssue[] = Array.isArray(v.issues)
+    ? v.issues
+        .filter(
+          (issue): issue is Record<string, unknown> =>
+            Boolean(
+              issue &&
+                typeof issue === "object" &&
+                typeof issue.code === "string" &&
+                typeof issue.message === "string",
+            ),
+        )
+        .map((issue) => {
+          const cleanIssue: PlanValidationIssue = {
+            code: String(issue.code).trim(),
+            level:
+              issue.level === "error" || issue.level === "info"
+                ? issue.level
+                : "warning",
+            message: String(issue.message).trim(),
+          };
+          if (issue.details && typeof issue.details === "object") {
+            cleanIssue.details = issue.details as Record<string, unknown>;
+          }
+          return cleanIssue;
+        })
+    : [];
+
+  const result: PlanValidationResult = {
+    status,
+    isApproved,
+    issues,
+    calculatedTotals,
+    deviations,
+  };
+
+  if (isFiniteNumber(v.worstCaseAlternativeSodium)) {
+    result.worstCaseAlternativeSodium = Math.round(
+      v.worstCaseAlternativeSodium,
+    );
+  }
+
+  return result;
+};
+
+export const sanitizeLabExams = (raw: unknown): LabTest[] | undefined => {
+  if (!Array.isArray(raw)) return undefined;
+  const cleaned = raw
+    .filter(
+      (exam): exam is Record<string, unknown> =>
+        Boolean(
+          exam &&
+            typeof exam === "object" &&
+            typeof exam.name === "string" &&
+            exam.name.trim() &&
+            typeof exam.value === "string" &&
+            typeof exam.unit === "string",
+        ),
+    )
+    .map((exam) => {
+      const clean: LabTest = {
+        name: String(exam.name).trim(),
+        value: String(exam.value).trim(),
+        unit: String(exam.unit).trim(),
+      };
+      if (
+        typeof exam.referenceRange === "string" &&
+        exam.referenceRange.trim()
+      ) {
+        clean.referenceRange = exam.referenceRange.trim();
+      }
+      if (
+        exam.status === "normal" ||
+        exam.status === "alert" ||
+        exam.status === "critical"
+      ) {
+        clean.status = exam.status;
+      }
+      if (typeof exam.date === "string" && exam.date.trim()) {
+        clean.date = exam.date.trim();
+      }
+      if (typeof exam.category === "string" && exam.category.trim()) {
+        clean.category = exam.category.trim();
+      }
+      return clean;
+    });
+  return cleaned.length > 0 ? cleaned : undefined;
+};
+
+export const sanitizeDecisionLog = (
+  raw: unknown,
+): DecisionEntry[] | undefined => {
+  if (!Array.isArray(raw)) return undefined;
+  const cleaned = raw
+    .filter(
+      (entry): entry is Record<string, unknown> =>
+        Boolean(
+          entry &&
+            typeof entry === "object" &&
+            typeof entry.reason === "string" &&
+            entry.reason.trim() &&
+            (entry.type === "filter" ||
+              entry.type === "substitution" ||
+              entry.type === "warning"),
+        ),
+    )
+    .map((entry) => {
+      const cleanEntry: DecisionEntry = {
+        type: entry.type as "filter" | "substitution" | "warning",
+        reason: String(entry.reason).trim(),
+      };
+      if (typeof entry.code === "string" && entry.code.trim()) {
+        cleanEntry.code = entry.code.trim();
+      }
+      if (typeof entry.tag === "string" && entry.tag.trim()) {
+        cleanEntry.tag = entry.tag.trim();
+      }
+      if (typeof entry.timestamp === "string" && entry.timestamp.trim()) {
+        cleanEntry.timestamp = entry.timestamp.trim();
+      }
+      if (isFiniteNumber(entry.affectedCount)) {
+        cleanEntry.affectedCount = entry.affectedCount;
+      }
+      if (Array.isArray(entry.removedFoods)) {
+        const foods = entry.removedFoods.filter(
+          (f): f is string => typeof f === "string" && f.trim().length > 0,
+        );
+        if (foods.length > 0) {
+          cleanEntry.removedFoods = foods;
+        }
+      }
+      if (entry.params && typeof entry.params === "object") {
+        cleanEntry.params = entry.params as Record<string, unknown>;
+      }
+      return cleanEntry;
+    });
+  return cleaned.length > 0 ? cleaned : undefined;
+};
+
 export const validateAndSerializeDietPlan = (
   plan: DietPlan,
 ): DietPlanFirestoreDto => {
@@ -345,122 +623,24 @@ export const validateAndSerializeDietPlan = (
     dto.clinicalTags = plan.clinicalTags;
   }
 
-  if (Array.isArray(plan.labExams) && plan.labExams.length > 0) {
-    dto.labExams = plan.labExams.filter((exam): exam is LabTest =>
-      Boolean(
-        exam && typeof exam.name === "string" && typeof exam.value === "string",
-      ),
-    );
+  const cleanExams = sanitizeLabExams(plan.labExams);
+  if (cleanExams) {
+    dto.labExams = cleanExams;
   }
 
-  if (Array.isArray(plan.decisionLog) && plan.decisionLog.length > 0) {
-    dto.decisionLog = plan.decisionLog
-      .filter((entry): entry is DecisionEntry =>
-        Boolean(
-          entry &&
-          typeof entry.reason === "string" &&
-          typeof entry.type === "string",
-        ),
-      )
-      .map((entry) => {
-        const cleanEntry: DecisionEntry = {
-          type: entry.type,
-          reason: entry.reason,
-        };
-        if (typeof entry.code === "string" && entry.code.trim()) {
-          cleanEntry.code = entry.code.trim();
-        }
-        if (typeof entry.tag === "string" && entry.tag.trim()) {
-          cleanEntry.tag = entry.tag.trim();
-        }
-        if (typeof entry.timestamp === "string" && entry.timestamp.trim()) {
-          cleanEntry.timestamp = entry.timestamp.trim();
-        }
-        if (isFiniteNumber(entry.affectedCount)) {
-          cleanEntry.affectedCount = entry.affectedCount;
-        }
-        if (Array.isArray(entry.removedFoods)) {
-          cleanEntry.removedFoods = entry.removedFoods.filter(
-            (f): f is string => typeof f === "string" && f.trim().length > 0,
-          );
-        }
-        if (entry.params && typeof entry.params === "object") {
-          cleanEntry.params = entry.params;
-        }
-        return cleanEntry;
-      });
+  const cleanLog = sanitizeDecisionLog(plan.decisionLog);
+  if (cleanLog) {
+    dto.decisionLog = cleanLog;
   }
 
-  if (plan.calculatedTotals && typeof plan.calculatedTotals === "object") {
-    const calc: CalculatedDietTotals = {
-      calories: Math.round(plan.calculatedTotals.calories || 0),
-      protein: Number((plan.calculatedTotals.protein || 0).toFixed(1)),
-      carbs: Number((plan.calculatedTotals.carbs || 0).toFixed(1)),
-      fat: Number((plan.calculatedTotals.fat || 0).toFixed(1)),
-    };
-    if (isFiniteNumber(plan.calculatedTotals.fiber)) {
-      calc.fiber = Number(plan.calculatedTotals.fiber.toFixed(1));
-    }
-    if (isFiniteNumber(plan.calculatedTotals.sodium)) {
-      calc.sodium = Math.round(plan.calculatedTotals.sodium);
-    }
-    dto.calculatedTotals = calc;
+  const cleanTotals = sanitizeCalculatedTotals(plan.calculatedTotals);
+  if (cleanTotals) {
+    dto.calculatedTotals = cleanTotals;
   }
 
-  if (plan.validation && typeof plan.validation === "object") {
-    const val: PlanValidationResult = {
-      status: plan.validation.status,
-      isApproved: Boolean(plan.validation.isApproved),
-      issues: Array.isArray(plan.validation.issues)
-        ? plan.validation.issues.map((issue) => {
-            const cleanIssue: PlanValidationIssue = {
-              code: issue.code,
-              level: issue.level,
-              message: issue.message,
-            };
-            if (issue.details && typeof issue.details === "object") {
-              cleanIssue.details = issue.details;
-            }
-            return cleanIssue;
-          })
-        : [],
-      calculatedTotals: {
-        calories: Math.round(plan.validation.calculatedTotals?.calories || 0),
-        protein: Number(
-          (plan.validation.calculatedTotals?.protein || 0).toFixed(1),
-        ),
-        carbs: Number(
-          (plan.validation.calculatedTotals?.carbs || 0).toFixed(1),
-        ),
-        fat: Number((plan.validation.calculatedTotals?.fat || 0).toFixed(1)),
-      },
-      deviations: {
-        caloriesDiff: plan.validation.deviations?.caloriesDiff ?? 0,
-        caloriesPercent: plan.validation.deviations?.caloriesPercent ?? 0,
-        proteinDiff: plan.validation.deviations?.proteinDiff ?? 0,
-        proteinPercent: plan.validation.deviations?.proteinPercent ?? 0,
-        carbsDiff: plan.validation.deviations?.carbsDiff ?? 0,
-        carbsPercent: plan.validation.deviations?.carbsPercent ?? 0,
-        fatDiff: plan.validation.deviations?.fatDiff ?? 0,
-        fatPercent: plan.validation.deviations?.fatPercent ?? 0,
-      },
-    };
-    if (isFiniteNumber(plan.validation.calculatedTotals?.fiber)) {
-      val.calculatedTotals.fiber = Number(
-        plan.validation.calculatedTotals.fiber.toFixed(1),
-      );
-    }
-    if (isFiniteNumber(plan.validation.calculatedTotals?.sodium)) {
-      val.calculatedTotals.sodium = Math.round(
-        plan.validation.calculatedTotals.sodium,
-      );
-    }
-    if (isFiniteNumber(plan.validation.worstCaseAlternativeSodium)) {
-      val.worstCaseAlternativeSodium = Math.round(
-        plan.validation.worstCaseAlternativeSodium,
-      );
-    }
-    dto.validation = val;
+  const cleanValidation = sanitizeValidation(plan.validation);
+  if (cleanValidation) {
+    dto.validation = cleanValidation;
   }
 
   if (
@@ -476,6 +656,14 @@ export const validateAndSerializeDietPlan = (
 
   if (isFiniteNumber(plan.seed)) {
     dto.seed = plan.seed;
+  }
+
+  if (plan.isManuallyEdited !== undefined) {
+    dto.isManuallyEdited = Boolean(plan.isManuallyEdited);
+  }
+
+  if (typeof plan.editedAt === "string" && plan.editedAt.trim()) {
+    dto.editedAt = plan.editedAt.trim();
   }
 
   return dto;
@@ -553,15 +741,6 @@ export const validateAndSerializeDietUpdate = (
     };
   }
 
-  if (partial.meals !== undefined) {
-    if (!Array.isArray(partial.meals) || partial.meals.length === 0) {
-      throw new Error(
-        "meals deve conter pelo menos uma refeição na atualização.",
-      );
-    }
-    dto.meals = partial.meals.map((m, idx) => sanitizeMeal(m, idx));
-  }
-
   if (partial.waterRecommendationLiters !== undefined) {
     if (
       !isFiniteNumber(partial.waterRecommendationLiters) ||
@@ -607,16 +786,139 @@ export const validateAndSerializeDietUpdate = (
     dto.clinicalTags = partial.clinicalTags;
   }
 
-  if (partial.labExams !== undefined && Array.isArray(partial.labExams)) {
-    dto.labExams = partial.labExams.filter((e): e is LabTest =>
-      Boolean(e && typeof e.name === "string"),
-    );
+  if (partial.labExams !== undefined) {
+    const exams = sanitizeLabExams(partial.labExams);
+    if (exams) dto.labExams = exams;
   }
 
-  if (partial.decisionLog !== undefined && Array.isArray(partial.decisionLog)) {
-    dto.decisionLog = partial.decisionLog.filter((e): e is DecisionEntry =>
-      Boolean(e && typeof e.reason === "string"),
-    );
+  if (partial.decisionLog !== undefined) {
+    const log = sanitizeDecisionLog(partial.decisionLog);
+    if (log) dto.decisionLog = log;
+  }
+
+  if (partial.meals !== undefined) {
+    if (!Array.isArray(partial.meals) || partial.meals.length === 0) {
+      throw new Error(
+        "meals deve conter pelo menos uma refeição na atualização.",
+      );
+    }
+    dto.meals = partial.meals.map((m, idx) => sanitizeMeal(m, idx));
+
+    // Passo C05: Recalculate derived totals whenever meals change
+    const recalculatedTotals = recalculateDietTotals(dto.meals);
+    dto.calculatedTotals = recalculatedTotals;
+
+    // Determine target goals to recompute validation deviations
+    let targets: {
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    } | null = null;
+
+    if (dto.dailyCalories !== undefined && dto.macronutrients !== undefined) {
+      targets = {
+        calories: dto.dailyCalories,
+        protein: dto.macronutrients.proteinGrams,
+        carbs: dto.macronutrients.carbsGrams,
+        fat: dto.macronutrients.fatGrams,
+      };
+    } else if (
+      partial.validation?.calculatedTotals &&
+      partial.validation?.deviations
+    ) {
+      const prevCalc = partial.validation.calculatedTotals;
+      const prevDev = partial.validation.deviations;
+      targets = {
+        calories: Math.max(
+          1,
+          Math.round(prevCalc.calories - prevDev.caloriesDiff),
+        ),
+        protein: Math.max(
+          0,
+          Number((prevCalc.protein - prevDev.proteinDiff).toFixed(1)),
+        ),
+        carbs: Math.max(
+          0,
+          Number((prevCalc.carbs - prevDev.carbsDiff).toFixed(1)),
+        ),
+        fat: Math.max(
+          0,
+          Number((prevCalc.fat - prevDev.fatDiff).toFixed(1)),
+        ),
+      };
+    }
+
+    if (targets) {
+      const options = {
+        clinicalTags: dto.clinicalTags || partial.clinicalTags,
+        mode: dto.mode || partial.mode,
+      };
+      const revalidated = validateDietPlan(dto.meals, targets, options);
+      if (
+        partial.validation?.isApproved !== undefined &&
+        revalidated.status !== "infeasible"
+      ) {
+        revalidated.isApproved = Boolean(partial.validation.isApproved);
+      }
+      dto.validation = revalidated;
+    } else if (partial.validation) {
+      const cleanVal = sanitizeValidation(partial.validation);
+      if (cleanVal) {
+        cleanVal.calculatedTotals = recalculatedTotals;
+        dto.validation = cleanVal;
+      }
+    }
+
+    // Passo C05: Mark manual edit unless explicitly specified otherwise
+    if (partial.isManuallyEdited !== undefined) {
+      dto.isManuallyEdited = Boolean(partial.isManuallyEdited);
+    } else {
+      dto.isManuallyEdited = true;
+    }
+
+    if (typeof partial.editedAt === "string" && partial.editedAt.trim()) {
+      dto.editedAt = partial.editedAt.trim();
+    } else if (dto.isManuallyEdited) {
+      dto.editedAt = new Date().toISOString();
+    }
+  } else {
+    // Meals not being updated directly
+    if (partial.calculatedTotals !== undefined) {
+      const cleanTotals = sanitizeCalculatedTotals(partial.calculatedTotals);
+      if (cleanTotals) dto.calculatedTotals = cleanTotals;
+    }
+
+    if (partial.validation !== undefined) {
+      const cleanVal = sanitizeValidation(partial.validation);
+      if (cleanVal) dto.validation = cleanVal;
+    }
+
+    if (partial.isManuallyEdited !== undefined) {
+      dto.isManuallyEdited = Boolean(partial.isManuallyEdited);
+    }
+
+    if (typeof partial.editedAt === "string" && partial.editedAt.trim()) {
+      dto.editedAt = partial.editedAt.trim();
+    }
+  }
+
+  if (
+    typeof partial.algorithmVersion === "string" &&
+    partial.algorithmVersion.trim()
+  ) {
+    dto.algorithmVersion = partial.algorithmVersion.trim();
+  }
+
+  if (
+    typeof partial.datasetVersion === "string" &&
+    partial.datasetVersion.trim()
+  ) {
+    dto.datasetVersion = partial.datasetVersion.trim();
+  }
+
+  if (isFiniteNumber(partial.seed)) {
+    dto.seed = partial.seed;
   }
 
   return dto;
@@ -670,7 +972,38 @@ export const updateDietPlan = async (
       "ID de usuário e ID da dieta são obrigatórios para atualização.",
     );
   }
-  const updateDto = validateAndSerializeDietUpdate(dietPlan);
+
+  let fullPartial = { ...dietPlan };
+  const needsMerge =
+    (dietPlan.meals && (!dietPlan.dailyCalories || !dietPlan.macronutrients)) ||
+    (!dietPlan.meals && (dietPlan.dailyCalories || dietPlan.macronutrients));
+
+  if (needsMerge) {
+    try {
+      const existingSnap = await getDoc(getDietDoc(userId, dietId));
+      if (existingSnap.exists()) {
+        const existing = existingSnap.data() as DietPlan;
+        fullPartial = {
+          meals: existing.meals,
+          dailyCalories: existing.dailyCalories,
+          macronutrients: existing.macronutrients,
+          clinicalTags: existing.clinicalTags,
+          mode: existing.mode,
+          algorithmVersion: existing.algorithmVersion,
+          datasetVersion: existing.datasetVersion,
+          seed: existing.seed,
+          ...dietPlan,
+        };
+      }
+    } catch (err) {
+      console.warn(
+        "[dietService] Falha ao carregar dados do plano para sincronização de metas e validação:",
+        err,
+      );
+    }
+  }
+
+  const updateDto = validateAndSerializeDietUpdate(fullPartial);
   try {
     return await updateDoc(getDietDoc(userId, dietId), updateDto);
   } catch (error) {

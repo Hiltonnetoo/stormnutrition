@@ -504,6 +504,50 @@ describe("PDF Exporter — Passo 17: Verificação de Entrega Final", () => {
       const doc = buildCustomLayoutPdfDocument(minimalPlan);
       expect(doc.output().startsWith("%PDF-")).toBe(true);
     });
+
+    it("prioritizes mealSum when persisted calculatedTotals diverges from the actual meals", () => {
+      // Meal sum is 450 + 750 + 550 = 1750 kcal
+      // But stale calculatedTotals says 2500 kcal
+      const divergentPlan: DietPlan = {
+        ...mockValidPlan,
+        calculatedTotals: {
+          calories: 2500,
+          protein: 200,
+          carbs: 300,
+          fat: 90,
+        },
+      };
+
+      const doc = buildCustomLayoutPdfDocument(divergentPlan, undefined, {
+        locale: "pt",
+      });
+      const text = doc.output();
+      // Should include the actual meal summation 1750 kcal
+      expect(text).toContain("1750 kcal");
+      // Should not claim 2500 kcal
+      expect(text).not.toContain("2500 kcal");
+    });
+
+    it("displays appropriate badge for manually edited plans and legacy plans", () => {
+      const editedPlan: DietPlan = {
+        ...mockValidPlan,
+        isManuallyEdited: true,
+      };
+      const docEdited = buildCustomLayoutPdfDocument(editedPlan, undefined, {
+        locale: "pt",
+      });
+      expect(docEdited.output()).toContain("Edi"); // "Edição Manual • Totais vs Metas"
+
+      const legacyPlan: DietPlan = {
+        ...mockValidPlan,
+        validation: undefined,
+        calculatedTotals: undefined,
+      };
+      const docLegacy = buildCustomLayoutPdfDocument(legacyPlan, undefined, {
+        locale: "pt",
+      });
+      expect(docLegacy.output()).toContain("Plano Legado");
+    });
   });
 
   describe("generateCustomLayoutPdf Browser Trigger", () => {

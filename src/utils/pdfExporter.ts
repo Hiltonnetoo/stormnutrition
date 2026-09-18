@@ -192,7 +192,7 @@ export function buildCustomLayoutPdfDocument(
   yPos += durationLines.length * 4.5 + 5;
 
   /* -------------------------------------------------- Nutritional Summary */
-  // Prioritize calculatedTotals from validated plan over meal summation
+  // Passo C05: Sum meals directly to verify consistency with persisted calculatedTotals
   const meals = plan.meals || [];
   const mealSum = meals.reduce(
     (acc, meal) => ({
@@ -215,11 +215,20 @@ export function buildCustomLayoutPdfDocument(
   const calcFat =
     plan.calculatedTotals?.fat ?? plan.validation?.calculatedTotals?.fat;
 
+  // Use persisted totals if they match the sum of meals within rounding margin (2 kcal, 1g macro).
+  // If totals are missing or diverge (e.g. stale plan edit), strictly prefer mealSum so the PDF summary matches the meal tables.
+  const isTotalsConsistent =
+    calcCal != null &&
+    Math.abs(calcCal - mealSum.calories) <= 2 &&
+    (calcProt == null || Math.abs(calcProt - mealSum.protein) <= 1) &&
+    (calcCarbs == null || Math.abs(calcCarbs - mealSum.carbs) <= 1) &&
+    (calcFat == null || Math.abs(calcFat - mealSum.fat) <= 1);
+
   const actualTotals = {
-    calories: calcCal != null ? calcCal : mealSum.calories,
-    protein: calcProt != null ? calcProt : mealSum.protein,
-    carbs: calcCarbs != null ? calcCarbs : mealSum.carbs,
-    fat: calcFat != null ? calcFat : mealSum.fat,
+    calories: isTotalsConsistent ? calcCal : mealSum.calories,
+    protein: isTotalsConsistent && calcProt != null ? calcProt : mealSum.protein,
+    carbs: isTotalsConsistent && calcCarbs != null ? calcCarbs : mealSum.carbs,
+    fat: isTotalsConsistent && calcFat != null ? calcFat : mealSum.fat,
   };
 
   const m = plan.macronutrients || {
@@ -249,12 +258,28 @@ export function buildCustomLayoutPdfDocument(
   doc.text(t("pdf.daily_summary"), margin + 6, yPos + 6.5);
   doc.setCharSpace(0);
 
-  const totalsBadge = t("pdf.calculated_totals_badge", {
+  let totalsBadge = t("pdf.calculated_totals_badge", {
     defaultValue:
       targetLocale === "en"
         ? "Calculated Totals vs Targets"
         : "Totais Calculados vs Metas",
   });
+  if (plan.isManuallyEdited) {
+    totalsBadge = t("pdf.manually_edited_badge", {
+      defaultValue:
+        targetLocale === "en"
+          ? "Manual Edit • Totals vs Targets"
+          : "Edição Manual • Totais vs Metas",
+    });
+  } else if (!plan.validation && !plan.calculatedTotals) {
+    totalsBadge = t("pdf.legacy_plan_badge", {
+      defaultValue:
+        targetLocale === "en"
+          ? "Legacy Plan • Meal Totals vs Targets"
+          : "Plano Legado • Totais vs Metas",
+    });
+  }
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(...SUBTLE);

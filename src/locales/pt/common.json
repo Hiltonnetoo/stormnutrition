@@ -442,6 +442,8 @@
     "clinical_alerts_title": "Avisos e Diretrizes Clínicas",
     "unnamed_patient": "Paciente",
     "calculated_totals_badge": "Totais Calculados vs Metas",
+    "legacy_plan_badge": "Plano Legado • Totais vs Metas",
+    "manually_edited_badge": "Edição Manual • Totais vs Metas",
     "sodium_alert": "Atenção: Opções alternativas podem conter até {{sodium}}mg de sódio."
   },
   "patients": {
@@ -852,6 +854,8 @@
       "status_valid": "Plano Válido / Aprovado",
       "status_requires_review": "Requer Revisão Clínica",
       "status_infeasible": "Plano Inviável",
+      "status_legacy": "Plano Legado / Não Revalidado",
+      "status_manually_edited": "Edição Manual",
       "worst_case_sodium_warning": "Pior cenário de sódio nas alternativas: {{sodium}}mg/dia",
       "divergence_label": "Variação",
       "calories": "Calorias (kcal)",

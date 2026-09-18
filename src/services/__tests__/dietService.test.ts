@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateAndSerializeDietPlan,
   validateAndSerializeDietUpdate,
+  recalculateDietTotals,
   sanitizeMicronutrients,
   sanitizeMealOptionItem,
 } from "../dietService";
@@ -247,6 +248,30 @@ describe("dietService - Data Transfer Object and Validation", () => {
     });
   });
 
+  describe("recalculateDietTotals", () => {
+    it("should calculate exact nutritional totals from meals list with proper rounding", () => {
+      const meal1 = createValidMeal("Café");
+      const meal2 = createValidMeal("Almoço");
+      meal2.calories = 650;
+      meal2.protein = 45.4;
+      meal2.carbs = 70.3;
+      meal2.fat = 20.1;
+      meal2.mainOption.calories = 650;
+      meal2.mainOption.protein = 45.4;
+      meal2.mainOption.carbs = 70.3;
+      meal2.mainOption.fat = 20.1;
+      meal2.mainOption.micros = { fiber: 8.2, sodium: 320 };
+
+      const totals = recalculateDietTotals([meal1, meal2]);
+      expect(totals.calories).toBe(1050); // 400 + 650
+      expect(totals.protein).toBe(75.4); // 30 + 45.4
+      expect(totals.carbs).toBe(115.3); // 45 + 70.3
+      expect(totals.fat).toBe(30.1); // 10 + 20.1
+      expect(totals.fiber).toBe(13.2); // 5 + 8.2
+      expect(totals.sodium).toBe(470); // 150 + 320
+    });
+  });
+
   describe("validateAndSerializeDietUpdate", () => {
     it("should validate and clean partial update DTO", () => {
       const update = {
@@ -266,6 +291,105 @@ describe("dietService - Data Transfer Object and Validation", () => {
       expect(() =>
         validateAndSerializeDietUpdate({ durationDays: -5 }),
       ).toThrow("durationDays inválido");
+    });
+
+    it("should serialize calculatedTotals, validation, algorithmVersion, datasetVersion, seed, and manual edit metadata", () => {
+      const update = {
+        algorithmVersion: "2.1.0",
+        datasetVersion: "tbca-2026.1",
+        seed: 42,
+        isManuallyEdited: true,
+        editedAt: "2026-09-18T15:00:00.000Z",
+        calculatedTotals: {
+          calories: 1950,
+          protein: 145.5,
+          carbs: 190.2,
+          fat: 65.1,
+          fiber: 25.0,
+          sodium: 1800,
+        },
+        validation: {
+          status: "valid" as const,
+          isApproved: true,
+          issues: [],
+          calculatedTotals: {
+            calories: 1950,
+            protein: 145.5,
+            carbs: 190.2,
+            fat: 65.1,
+          },
+          deviations: {
+            caloriesDiff: -50,
+            caloriesPercent: -2.5,
+            proteinDiff: -4.5,
+            proteinPercent: -3.0,
+            carbsDiff: -9.8,
+            carbsPercent: -4.9,
+            fatDiff: -1.9,
+            fatPercent: -2.8,
+          },
+        },
+      };
+
+      const dto = validateAndSerializeDietUpdate(update);
+      expect(dto.algorithmVersion).toBe("2.1.0");
+      expect(dto.datasetVersion).toBe("tbca-2026.1");
+      expect(dto.seed).toBe(42);
+      expect(dto.isManuallyEdited).toBe(true);
+      expect(dto.editedAt).toBe("2026-09-18T15:00:00.000Z");
+      expect(dto.calculatedTotals?.calories).toBe(1950);
+      expect(dto.validation?.status).toBe("valid");
+      expect(dto.validation?.deviations.caloriesDiff).toBe(-50);
+      assertNoUndefined(dto);
+    });
+
+    it("automatically recalculates calculatedTotals and sets isManuallyEdited when updating meals", () => {
+      const newMeal = createValidMeal("Jantar Proteico");
+      newMeal.calories = 550;
+      newMeal.protein = 40;
+      newMeal.carbs = 50;
+      newMeal.fat = 15;
+      newMeal.mainOption.calories = 550;
+      newMeal.mainOption.protein = 40;
+      newMeal.mainOption.carbs = 50;
+      newMeal.mainOption.fat = 15;
+
+      const dto = validateAndSerializeDietUpdate({
+        meals: [newMeal],
+        dailyCalories: 2000,
+        macronutrients: {
+          proteinGrams: 150,
+          proteinPercentage: 30,
+          carbsGrams: 200,
+          carbsPercentage: 40,
+          fatGrams: 67,
+          fatPercentage: 30,
+        },
+      });
+
+      expect(dto.meals).toHaveLength(1);
+      expect(dto.calculatedTotals).toBeDefined();
+      expect(dto.calculatedTotals?.calories).toBe(550);
+      expect(dto.calculatedTotals?.protein).toBe(40);
+      expect(dto.calculatedTotals?.carbs).toBe(50);
+      expect(dto.calculatedTotals?.fat).toBe(15);
+      expect(dto.isManuallyEdited).toBe(true);
+      expect(typeof dto.editedAt).toBe("string");
+
+      // Validation deviations should be recomputed against target goals (550 - 2000 = -1450 kcal)
+      expect(dto.validation).toBeDefined();
+      expect(dto.validation?.calculatedTotals.calories).toBe(550);
+      expect(dto.validation?.deviations.caloriesDiff).toBe(-1450);
+      assertNoUndefined(dto);
+    });
+
+    it("respects explicit isManuallyEdited: false when passed", () => {
+      const meal = createValidMeal();
+      const dto = validateAndSerializeDietUpdate({
+        meals: [meal],
+        isManuallyEdited: false,
+      });
+      expect(dto.isManuallyEdited).toBe(false);
     });
   });
 });

@@ -1406,14 +1406,14 @@ Os dez achados da revisão foram desdobrados em doze entregas para facilitar imp
 
 **Passo a passo:**
 
-1. [ ] Criar regressão: salvar plano A com totais e metadados; atualizar para plano B com refeições diferentes; reler e comparar todos os campos relevantes.
-2. [ ] Centralizar sanitização dos campos compartilhados entre criação e atualização, mantendo a distinção entre campo ausente, removido e explicitamente nulo.
-3. [ ] Quando refeições, porções ou metas mudarem, recalcular os derivados usando o contrato da C06. Não confiar apenas no objeto `validation` enviado pela UI.
-4. [ ] Persistir refeições e seus totais/validação numa gravação coerente; evitar atualizar só uma parte do agregado.
-5. [ ] Definir como alterações manuais afetam seed/versão: não afirmar que a seed reproduz um plano que foi editado sem registrar a edição.
-6. [ ] Tratar planos antigos sem metadados sem inventar certificação de validade. Exibir estado legado/não revalidado quando necessário.
-7. [ ] Exportar o plano relido e garantir que o resumo corresponda às refeições, distinguindo metas de resultados efetivos.
-8. [ ] Revisar campos aninhados dos updates, como exames e decisões, para manter o contrato de ausência de `undefined` e números inválidos.
+1. [x] Criar regressão: salvar plano A com totais e metadados; atualizar para plano B com refeições diferentes; reler e comparar todos os campos relevantes.
+2. [x] Centralizar sanitização dos campos compartilhados entre criação e atualização, mantendo a distinção entre campo ausente, removido e explicitamente nulo.
+3. [x] Quando refeições, porções ou metas mudarem, recalcular os derivados usando o contrato da C06. Não confiar apenas no objeto `validation` enviado pela UI.
+4. [x] Persistir refeições e seus totais/validação numa gravação coerente; evitar atualizar só uma parte do agregado.
+5. [x] Definir como alterações manuais afetam seed/versão: não afirmar que a seed reproduz um plano que foi editado sem registrar a edição.
+6. [x] Tratar planos antigos sem metadados sem inventar certificação de validade. Exibir estado legado/não revalidado quando necessário.
+7. [x] Exportar o plano relido e garantir que o resumo corresponda às refeições, distinguindo metas de resultados efetivos.
+8. [x] Revisar campos aninhados dos updates, como exames e decisões, para manter o contrato de ausência de `undefined` e números inválidos.
 
 **Resultado esperado:** edição não produz documento com duas versões lógicas diferentes; PDF e portal mostram o plano realmente salvo.
 

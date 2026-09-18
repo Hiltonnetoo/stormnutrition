@@ -223,6 +223,8 @@ export interface DietPlan {
   dietType: string;
   labExams?: LabTest[];
   decisionLog?: DecisionEntry[];
+  isManuallyEdited?: boolean;
+  editedAt?: string;
 }
 
 // Combined type for use in listings and history

@@ -442,6 +442,8 @@
     "clinical_alerts_title": "Clinical Alerts & Guidelines",
     "unnamed_patient": "Patient",
     "calculated_totals_badge": "Calculated Totals vs Targets",
+    "legacy_plan_badge": "Legacy Plan • Totals vs Targets",
+    "manually_edited_badge": "Manual Edit • Totals vs Targets",
     "sodium_alert": "Attention: Alternative options may contain up to {{sodium}}mg of sodium."
   },
   "patients": {
@@ -852,6 +854,8 @@
       "status_valid": "Valid / Approved Plan",
       "status_requires_review": "Requires Clinical Review",
       "status_infeasible": "Infeasible Plan",
+      "status_legacy": "Legacy Plan / Not Revalidated",
+      "status_manually_edited": "Manual Edit",
       "worst_case_sodium_warning": "Worst-case sodium across alternatives: {{sodium}}mg/day",
       "divergence_label": "Variance",
       "calories": "Calories (kcal)",
