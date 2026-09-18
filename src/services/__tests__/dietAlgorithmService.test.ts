@@ -3,6 +3,8 @@ import i18next from "i18next";
 import {
   generateAlgorithmicDietPlan,
   getGeneralObservations,
+  validateDietPlan,
+  InfeasiblePlanError,
 } from "../dietAlgorithmService";
 import { brazilianFoods } from "../../data/foods";
 import {
@@ -375,5 +377,187 @@ describe("dietAlgorithmService", () => {
         }
       }
     });
+  });
+
+  it("should produce 100% deterministic identical diet plans when given the same seed", () => {
+    const run1 = generateAlgorithmicDietPlan({
+      ...defaultParams,
+      seed: 42,
+    });
+    const run2 = generateAlgorithmicDietPlan({
+      ...defaultParams,
+      seed: 42,
+    });
+
+    expect(run1.metadata.seed).toBe(42);
+    expect(run2.metadata.seed).toBe(42);
+    expect(run1.metadata.algorithmVersion).toBe("2026.1");
+
+    // All meals, items, portions and alternatives must match exactly
+    expect(run1.meals).toEqual(run2.meals);
+    expect(run1.decisionLog).toEqual(run2.decisionLog);
+    expect(run1.calculatedTotals).toEqual(run2.calculatedTotals);
+  });
+
+  it("should produce distinct valid variations when given different seeds", () => {
+    const runA = generateAlgorithmicDietPlan({
+      ...defaultParams,
+      seed: 101,
+    });
+    const runB = generateAlgorithmicDietPlan({
+      ...defaultParams,
+      seed: 999,
+    });
+
+    expect(runA.metadata.seed).not.toBe(runB.metadata.seed);
+    // Across 3 meals with alternatives, at least some food items will differ
+    const namesA = runA.meals.map((m) => m.mainOption.name).join("; ");
+    const namesB = runB.meals.map((m) => m.mainOption.name).join("; ");
+    expect(namesA).not.toBe(namesB);
+  });
+
+  it("should validate inputs and reject incoherent or non-finite parameters", () => {
+    // Non-positive calories
+    expect(() =>
+      generateAlgorithmicDietPlan({
+        ...defaultParams,
+        nutritionalTargets: {
+          ...defaultParams.nutritionalTargets,
+          calories: 0,
+        },
+      }),
+    ).toThrow(InfeasiblePlanError);
+
+    // Negative calories
+    expect(() =>
+      generateAlgorithmicDietPlan({
+        ...defaultParams,
+        nutritionalTargets: {
+          ...defaultParams.nutritionalTargets,
+          calories: -500,
+        },
+      }),
+    ).toThrow(InfeasiblePlanError);
+
+    // Empty meals array
+    expect(() =>
+      generateAlgorithmicDietPlan({
+        ...defaultParams,
+        mealPlanConfig: {
+          dietType: "traditional",
+          meals: [],
+        },
+      }),
+    ).toThrow(InfeasiblePlanError);
+
+    // Meal percentage sum way out of range (e.g. 50%)
+    expect(() =>
+      generateAlgorithmicDietPlan({
+        ...defaultParams,
+        mealPlanConfig: {
+          dietType: "traditional",
+          meals: [{ name: "Café", time: "08:00", caloriePercentage: 50 }],
+        },
+      }),
+    ).toThrow(InfeasiblePlanError);
+  });
+
+  it("should throw InfeasiblePlanError when filters eliminate all candidates and never select undefined", () => {
+    // Create an artificial catalog with 0 protein sources for the diet template
+    const foodWithoutProtein = brazilianFoods.filter(
+      (f) => f.category === "Frutas",
+    );
+
+    expect(() =>
+      generateAlgorithmicDietPlan({
+        ...defaultParams,
+        availableFoodsCatalog: foodWithoutProtein,
+      }),
+    ).toThrow(InfeasiblePlanError);
+  });
+
+  it("should populate stable foodId, numeric portionGrams and unit on all meal items", () => {
+    const result = generateAlgorithmicDietPlan({
+      ...defaultParams,
+      seed: 1234,
+    });
+
+    result.meals.forEach((meal) => {
+      // Main option items
+      meal.mainOption.items?.forEach((item) => {
+        expect(typeof item.foodId).toBe("string");
+        expect(item.foodId?.length).toBeGreaterThan(0);
+        expect(typeof item.portionGrams).toBe("number");
+        expect(item.portionGrams).toBeGreaterThan(0);
+        expect(typeof item.unit).toBe("string");
+      });
+
+      // Alternative items
+      meal.alternatives.forEach((alt) => {
+        alt.items?.forEach((item) => {
+          expect(typeof item.foodId).toBe("string");
+          expect(item.foodId?.length).toBeGreaterThan(0);
+          expect(typeof item.portionGrams).toBe("number");
+          expect(item.portionGrams).toBeGreaterThan(0);
+        });
+      });
+    });
+  });
+
+  it("should enforce realistic portion clamping (between 5g and 450g)", () => {
+    const result = generateAlgorithmicDietPlan({
+      ...defaultParams,
+      seed: 555,
+    });
+
+    result.meals.forEach((meal) => {
+      meal.mainOption.items?.forEach((item) => {
+        if (item.portionGrams !== undefined) {
+          expect(item.portionGrams).toBeGreaterThanOrEqual(5);
+          expect(item.portionGrams).toBeLessThanOrEqual(450);
+        }
+      });
+    });
+  });
+
+  it("should assign structured decision codes to decisionLog entries", () => {
+    const result = generateAlgorithmicDietPlan({
+      ...defaultParams,
+      restrictions: ["gluten_free", "dairy_free"],
+      clinicalTags: ["hypertension"],
+    });
+
+    const codes = result.decisionLog.map((entry) => entry.code);
+    expect(codes).toContain("EXCLUDE_ULTRAPROCESSED");
+    expect(codes).toContain("EXCLUDE_GLUTEN");
+    expect(codes).toContain("EXCLUDE_DAIRY");
+    expect(codes).toContain("LIMIT_SODIUM_HYPERTENSION");
+  });
+
+  it("should validate diet plans with validateDietPlan and detect worst-case sodium ceiling", () => {
+    const result = generateAlgorithmicDietPlan({
+      ...defaultParams,
+      clinicalTags: ["hypertension"],
+      seed: 777,
+    });
+
+    expect(result.validation).toBeDefined();
+    expect(result.validation.status).toBeDefined();
+    expect(result.validation.calculatedTotals.calories).toBeGreaterThan(0);
+    expect(result.validation.deviations).toBeDefined();
+
+    // Call standalone validateDietPlan
+    const revalidation = validateDietPlan(
+      result.meals,
+      defaultParams.nutritionalTargets,
+      {
+        clinicalTags: ["hypertension"],
+        restrictions: [],
+      },
+    );
+    expect(revalidation.status).toBe(result.validation.status);
+    expect(revalidation.worstCaseAlternativeSodium).toBeGreaterThanOrEqual(
+      revalidation.calculatedTotals.sodium || 0,
+    );
   });
 });

@@ -1,57 +1,57 @@
 # Graph Report - Isanutri V5  (2026-09-17)
 
 ## Corpus Check
-- 179 files · ~178,397 words
+- 179 files · ~180,768 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 15 file(s) not represented in the graph (top: (none) 9, .rules 2, .mdc 1)
 
 ## Summary
-- 1179 nodes · 2616 edges · 87 communities (63 shown, 24 thin omitted)
+- 1191 nodes · 2652 edges · 85 communities (61 shown, 24 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 50 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `62f54d0e`
+- Built from commit: `57c1fbec`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- LabExamsModule.tsx
-- dietForm.types.ts
-- PatientPortal.tsx
-- DietMode
-- dietService.ts
+- Sidebar.tsx
 - DietGenerator.tsx
+- react
+- patientService.ts
+- dietService.ts
+- emailService.ts
 - pdfExporter.ts
 - BillingSection.tsx
-- DietPlanViewer.tsx
-- 3.2 — i18n da UI: páginas e componentes ainda em PT ✅
+- metabolicCalculations.ts
+- 🛠️ Detalhamento
 - devDependencies
-- react
+- icons.tsx
 - build-foods.mjs
-- Step6Summary.tsx
+- Patients.tsx
 - compilerOptions
 - package.json
-- icons.tsx
+- react-i18next
 - firebaseService.ts
 - Dashboard.tsx
 - scripts
-- Step6LabExams.tsx
+- getAllDiets
 - dependencies
 - manifest.json
-- PatientDietHistoryModal.tsx
+- DietPlanDisplay.tsx
 - vite.config.ts
 - 4. Etapas detalhadas
 - @playwright/test
 - @testing-library/jest-dom
-- Patients.tsx
-- foodService.ts
+- ui.tsx
+- dietAlgorithmService.ts
 - What You Must Do When Invoked
 - What You Must Do When Invoked
 - What You Must Do When Invoked
 - What You Must Do When Invoked
 - What You Must Do When Invoked
-- Step2Contact.tsx
+- Reports.tsx
 - graphify reference: extra exports and benchmark
 - graphify reference: extra exports and benchmark
 - graphify reference: extra exports and benchmark
@@ -100,9 +100,7 @@
 - GEMINI.md
 - .gemini/skills/graphify/references/extraction-spec.md
 - index.ts
-- engines
 - App.tsx
-- PatientProfile.tsx
 
 ## God Nodes (most connected - your core abstractions)
 1. `react` - 62 edges
@@ -121,101 +119,101 @@
   README.md → src/components/modals/ExportDietModal.tsx
 - `⚙️ CI/CD Pipeline` --references--> `main()`  [INFERRED]
   README.md → scripts/build-foods.mjs
-- `3.2 — i18n da UI: páginas e componentes ainda em PT ✅` --references--> `LabExamsModule()`  [INFERRED]
-  docs/temp-analisetech-lead.md → src/components/diet-generator/LabExamsModule.tsx
 - `3.2 — i18n da UI: páginas e componentes ainda em PT ✅` --references--> `NutritionLabel()`  [INFERRED]
   docs/temp-analisetech-lead.md → src/components/diet-generator/NutritionLabel.tsx
 - `3.2 — i18n da UI: páginas e componentes ainda em PT ✅` --references--> `ClinicalReviewModal()`  [INFERRED]
   docs/temp-analisetech-lead.md → src/components/modals/ClinicalReviewModal.tsx
+- `3.2 — i18n da UI: páginas e componentes ainda em PT ✅` --references--> `ExportDietModal()`  [INFERRED]
+  docs/temp-analisetech-lead.md → src/components/modals/ExportDietModal.tsx
 
 ## Import Cycles
 - None detected.
 
-## Communities (87 total, 24 thin omitted)
+## Communities (85 total, 24 thin omitted)
 
-### Community 0 - "LabExamsModule.tsx"
-Cohesion: 0.32
-Nodes (7): LabExamsModule(), Props, suggestionsByMode, suggestionsByTag, translateExamName(), LabTest, src_types_index_clinicaltag
+### Community 0 - "Sidebar.tsx"
+Cohesion: 0.14
+Nodes (10): 🟡 Passo 2 — Testes Automatizados ⚠️ (parcial), LogInIcon(), TargetIcon(), deriveNotifications(), GlobalSearch(), NavItemProps, NotificationBell(), NotifItem (+2 more)
 
-### Community 1 - "dietForm.types.ts"
-Cohesion: 0.20
-Nodes (13): DietCalculations, DietFormData, MacroSplit, MealSlot, errBorder(), Step1Objectives(), Step1Props, Step2Nutrition() (+5 more)
+### Community 1 - "DietGenerator.tsx"
+Cohesion: 0.06
+Nodes (50): 3.1 — Código e comentários em inglês ✅, 3.2 — i18n da UI: páginas e componentes ainda em PT ✅, 3.3 — Camadas de conteúdo (não são strings de UI — exigem abordagem própria) ✅, 🟢 Passo 3 — Internacionalização ✅ (concluído), ClinicalTagSelector(), Props, TagOption, tags (+42 more)
 
-### Community 2 - "PatientPortal.tsx"
-Cohesion: 0.15
-Nodes (24): 13 — Reduzir responsabilidades das páginas grandes, Props, WeightEvolutionChart(), AdherenceCheckIn(), PatientPortal(), r(), SelfEvaluationForm(), translateMealName() (+16 more)
+### Community 2 - "react"
+Cohesion: 0.18
+Nodes (16): 13 — Reduzir responsabilidades das páginas grandes, react, LoadingState(), BiomarkerData, BiomarkerEvolutionChart(), BiomarkerEvolutionChartProps, WeightEvolutionChart(), useAuth() (+8 more)
 
-### Community 3 - "DietMode"
-Cohesion: 0.38
-Nodes (5): ModeOption, modes, Props, DietMode, src_types_index_dietmode
+### Community 3 - "patientService.ts"
+Cohesion: 0.33
+Nodes (12): 11 — Definir arquivamento, exclusão e revogação, Reports(), deletePatient(), getActivePatientsCount(), getCountClientSide(), getDietsCollection(), getNewPatientsThisMonthCount(), getPatientDoc() (+4 more)
 
 ### Community 4 - "dietService.ts"
 Cohesion: 0.07
-Nodes (47): @firebase/rules-unit-testing, ref_node_fs, ref_node_path, ref_node_url, vitest, NutritionLabel(), NutritionLabelProps, MealOptionTable() (+39 more)
+Nodes (48): ref_firebase_firestore, @firebase/rules-unit-testing, ref_node_fs, ref_node_path, ref_node_url, vitest, NutritionLabel(), NutritionLabelProps (+40 more)
 
-### Community 5 - "DietGenerator.tsx"
-Cohesion: 0.11
-Nodes (32): DietPlanDisplay(), DietProgressBar(), DietProgressBarProps, initialFormData, NewPatientModal(), ProgressBar(), ProgressBarProps, steps (+24 more)
+### Community 5 - "emailService.ts"
+Cohesion: 0.24
+Nodes (9): @emailjs/browser, EmailAdmin(), DietEmailParams, isEmailConfigured(), PortalAccessEmailParams, PUBLIC_KEY, sendDietEmail(), SERVICE_ID (+1 more)
 
 ### Community 6 - "pdfExporter.ts"
-Cohesion: 0.07
-Nodes (30): 3.1 — Código e comentários em inglês ✅, 3.3 — Camadas de conteúdo (não são strings de UI — exigem abordagem própria) ✅, ✅ Critério de "pronto para avaliação", 🛠️ Detalhamento, 🗺️ Ordem de Execução Sugerida (atualizada), 🟢 Passo 1 — TypeScript Strict ✅ (concluído), 🟢 Passo 3 — Internacionalização ✅ (concluído), 🔵 Passo 4 — Segurança e CI/CD ✅ (concluído — revisar qualidade) (+22 more)
+Cohesion: 0.12
+Nodes (19): html2canvas, jspdf, ExportDietModal(), AMBER, FAINT, formatFileName(), generateCustomLayoutPdf(), generateScreenshotPdf() (+11 more)
 
 ### Community 7 - "BillingSection.tsx"
-Cohesion: 0.20
-Nodes (20): CreditCardIcon(), BillingSection(), addMonths(), BillingState, buildDefaultState(), cancelSubscription(), changePlan(), formatBRL() (+12 more)
+Cohesion: 0.08
+Nodes (48): ref_react_dom_client, @testing-library/react, App(), DietPlanDisplay(), translateMealName(), CreditCardIcon(), BillingSection(), AuthProvider() (+40 more)
 
-### Community 8 - "DietPlanViewer.tsx"
-Cohesion: 0.15
-Nodes (24): i18next, MetabolicCalculator, DietPlanViewer(), isV2Plan(), translateMealName(), BarChart3Icon(), PageHeader(), MetabolicCalculator() (+16 more)
+### Community 8 - "metabolicCalculations.ts"
+Cohesion: 0.19
+Nodes (19): i18next, MetabolicCalculator, MetabolicCalculator(), ActivityLevel, activityMultipliers, calculateBMI(), calculateBMR(), calculateMacrosInGrams() (+11 more)
 
-### Community 9 - "3.2 — i18n da UI: páginas e componentes ainda em PT ✅"
-Cohesion: 0.20
-Nodes (12): 3.2 — i18n da UI: páginas e componentes ainda em PT ✅, ClinicalTagSelector(), Props, TagOption, tags, ModeSelector(), dietaryOptions, dietaryOptionsMap (+4 more)
+### Community 9 - "🛠️ Detalhamento"
+Cohesion: 0.22
+Nodes (8): ✅ Critério de "pronto para avaliação", 🛠️ Detalhamento, 🗺️ Ordem de Execução Sugerida (atualizada), 🟢 Passo 1 — TypeScript Strict ✅ (concluído), 🔵 Passo 4 — Segurança e CI/CD ✅ (concluído — revisar qualidade), 🟣 Passo 5 — Polimento, Organização e README ✅ (concluído), Plano de Preparação para Avaliação Tech Lead — Storm Nutrition V5, 📊 Status Verificado (resumo)
 
 ### Community 10 - "devDependencies"
 Cohesion: 0.08
 Nodes (25): devDependencies, eslint, @eslint/js, eslint-plugin-react-hooks, eslint-plugin-react-refresh, @firebase/rules-unit-testing, firebase-tools, globals (+17 more)
 
-### Community 11 - "react"
+### Community 11 - "icons.tsx"
 Cohesion: 0.13
-Nodes (23): react, react-i18next, react-router-dom, Login, Register, AuthLayout(), AuthLayoutProps, Breadcrumbs() (+15 more)
+Nodes (21): Login, Register, AuthLayout(), AuthLayoutProps, CheckCircleIcon(), ClockIcon(), EyeIcon(), EyeOffIcon() (+13 more)
 
 ### Community 12 - "build-foods.mjs"
 Cohesion: 0.09
 Nodes (28): 1. Frontend Runtime & Strict Compiler Options, 2. Native Tailwind CSS v4 Integration (Performance vs. CDN), 3. Isolated Patient Registration (Preventing Auth Session Hijacking), 4. Deterministic Clinical Constraints Engine vs. LLM Generation, 🏗️ Architecture Diagram, 🏗️ Architecture & Engineering Decisions, Basal Metabolic Rate (BMR) & Daily Expenditure, ⚙️ CI/CD Pipeline (+20 more)
 
-### Community 13 - "Step6Summary.tsx"
-Cohesion: 0.33
-Nodes (3): EditIcon(), Step6Props, Step6Summary()
+### Community 13 - "Patients.tsx"
+Cohesion: 0.17
+Nodes (9): Patients, CloseIcon(), EditIcon(), SearchIcon(), TrashIcon(), PatientDietHistoryModal(), ToastProps, deleteDietPlan() (+1 more)
 
 ### Community 14 - "compilerOptions"
 Cohesion: 0.11
 Nodes (17): compilerOptions, allowImportingTsExtensions, allowJs, experimentalDecorators, isolatedModules, jsx, lib, module (+9 more)
 
 ### Community 15 - "package.json"
-Cohesion: 0.10
-Nodes (22): name, private, type, version, eslint, @eslint/js, eslint-plugin-react-hooks, eslint-plugin-react-refresh (+14 more)
+Cohesion: 0.09
+Nodes (25): engines, node, name, private, type, version, eslint, @eslint/js (+17 more)
 
-### Community 16 - "icons.tsx"
-Cohesion: 0.08
-Nodes (12): ChevronRightIcon(), ClockIcon(), HeartIcon(), HomeIcon(), IconProps, PlusIcon(), ShieldIcon(), TargetIcon() (+4 more)
+### Community 16 - "react-i18next"
+Cohesion: 0.09
+Nodes (8): react-i18next, BreadcrumbsProps, routeNameMap, HeartIcon(), HomeIcon(), ZapIcon(), LanguageSelector(), showcaseFrames
 
 ### Community 17 - "firebaseService.ts"
-Cohesion: 0.06
-Nodes (66): 🟢 Passo 6 — Robustez do Portal do Paciente (NOVO) ✅ (concluído), @emailjs/browser, ref_firebase_app, ref_firebase_auth, ref_firebase_firestore, ref_firebase_storage, PatientAccessModal(), AuthContext (+58 more)
+Cohesion: 0.05
+Nodes (73): 1. Ambiente e Ferramentas Medidas, 2. Verificação da Nota Histórica do Prettier, 3. Matriz de Achados vs. Evidências no Código, 4. Estado da Integração Contínua (CI), Matriz de Baseline e Evidências — Storm Nutrition, 🟢 Passo 6 — Robustez do Portal do Paciente (NOVO) ✅ (concluído), ref_firebase_app, ref_firebase_auth (+65 more)
 
 ### Community 18 - "Dashboard.tsx"
-Cohesion: 0.05
-Nodes (48): 1. Ambiente e Ferramentas Medidas, 2. Verificação da Nota Histórica do Prettier, 3. Matriz de Achados vs. Evidências no Código, 4. Estado da Integração Contínua (CI), Matriz de Baseline e Evidências — Storm Nutrition, 🟡 Passo 2 — Testes Automatizados ⚠️ (parcial), 11 — Definir arquivamento, exclusão e revogação, @testing-library/react (+40 more)
+Cohesion: 0.17
+Nodes (12): ScaleIcon(), TrendingUpIcon(), UtensilsIcon(), ACTIVITY_ICON, ActivityIconKey, ActivityItem, buildMonthlyDietBuckets(), buildRecentActivity() (+4 more)
 
 ### Community 19 - "scripts"
 Cohesion: 0.12
 Nodes (16): scripts, build, dev, emulators, format, format:check, lint, preview (+8 more)
 
-### Community 20 - "Step6LabExams.tsx"
-Cohesion: 0.39
-Nodes (6): Step6LabExams(), Step6Props, interpretTest(), labCategories, LabCategory, src_types_index_labtest
+### Community 20 - "getAllDiets"
+Cohesion: 0.36
+Nodes (8): Patients(), getAllDiets(), getCountClientSide(), getDietPlansForPatient(), getDietsCollection(), getDietsCount(), getDietsThisMonthCount(), handleSnapshotError()
 
 ### Community 21 - "dependencies"
 Cohesion: 0.18
@@ -225,9 +223,9 @@ Nodes (11): dependencies, @emailjs/browser, firebase, @google/genai, html2canvas
 Cohesion: 0.20
 Nodes (9): background_color, description, display, icons, name, orientation, short_name, start_url (+1 more)
 
-### Community 23 - "PatientDietHistoryModal.tsx"
-Cohesion: 0.13
-Nodes (20): DietPlanDisplayProps, ExportDietModal, translateMealName(), DietPlanViewerProps, AlertTriangleIcon(), BrainIcon(), ClipboardListIcon(), CloseIcon() (+12 more)
+### Community 23 - "DietPlanDisplay.tsx"
+Cohesion: 0.14
+Nodes (20): DietPlanDisplayProps, ExportDietModal, DietPlanViewer(), DietPlanViewerProps, isV2Plan(), translateMealName(), AlertTriangleIcon(), BrainIcon() (+12 more)
 
 ### Community 24 - "vite.config.ts"
 Cohesion: 0.29
@@ -237,13 +235,13 @@ Nodes (5): ref_path, @tailwindcss/vite, vite, @vitejs/plugin-react, ref_vitest_c
 Cohesion: 0.06
 Nodes (33): 01 — Estabelecer baseline e corrigir o controle de status, 02 — Tornar instalação, emuladores e CI reproduzíveis, 03 — Corrigir o contrato de persistência das dietas, 04 — Tratar autenticação como fluxo com estados explícitos, 05 — Isolar rascunhos e configurações por conta, 06 — Fortalecer autorização e validação de dados, 07 — Substituir envio de senha por convite seguro, 08 — Tornar restrições e dados alimentares explícitos (+25 more)
 
-### Community 28 - "Patients.tsx"
-Cohesion: 0.12
-Nodes (20): react-dom, Patients, ConfirmationModal(), ConfirmationModalProps, LoadingState(), Badge(), BadgeTone, Button (+12 more)
+### Community 28 - "ui.tsx"
+Cohesion: 0.11
+Nodes (25): EmailAdmin, Settings, PaperAirplaneIcon(), XCircleIcon(), ConfirmationModalProps, Badge(), BadgeTone, Button (+17 more)
 
-### Community 29 - "foodService.ts"
-Cohesion: 0.08
-Nodes (48): brazilianFoods, coreFoods, _seen, extraFoods, FoodDatabase(), dietTemplates, generateAlgorithmicDietPlan(), GenerationParams (+40 more)
+### Community 29 - "dietAlgorithmService.ts"
+Cohesion: 0.09
+Nodes (48): brazilianFoods, coreFoods, _seen, extraFoods, FoodDatabase(), createPrng(), dietTemplates, generateAlgorithmicDietPlan() (+40 more)
 
 ### Community 30 - "What You Must Do When Invoked"
 Cohesion: 0.08
@@ -264,10 +262,6 @@ Nodes (24): For /graphify add and --watch, For /graphify query, For the commit h
 ### Community 34 - "What You Must Do When Invoked"
 Cohesion: 0.08
 Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
-
-### Community 35 - "Step2Contact.tsx"
-Cohesion: 0.60
-Nodes (4): errBorder(), errMsg(), Step2Contact(), Step2Props
 
 ### Community 36 - "graphify reference: extra exports and benchmark"
 Cohesion: 0.22
@@ -290,8 +284,8 @@ Cohesion: 0.22
 Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
 
 ### Community 41 - "Calendar.tsx"
-Cohesion: 0.15
-Nodes (19): Calendar, ApptModalProps, Calendar(), TYPE_DOT, TYPE_LIGHT, addAppointment(), deleteAppointment(), getAppointmentDoc() (+11 more)
+Cohesion: 0.20
+Nodes (9): ChevronRightIcon(), ConfirmationModal(), ApptModalProps, TYPE_DOT, TYPE_LIGHT, Appointment, src_types_index_appointment, src_types_index_appointmenttype (+1 more)
 
 ### Community 42 - "graphify reference: query, path, explain"
 Cohesion: 0.33
@@ -374,36 +368,32 @@ Cohesion: 0.50
 Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
 
 ### Community 87 - "index.ts"
-Cohesion: 0.13
-Nodes (13): NewPatientModalProps, Props, PatientDietHistoryModalProps, Step1Personal(), Step1Props, Step3Professional(), Step3Props, OriginType (+5 more)
+Cohesion: 0.05
+Nodes (50): initialFormData, NewPatientModal(), NewPatientModalProps, Props, PatientDietHistoryModalProps, ProgressBar(), ProgressBarProps, steps (+42 more)
 
 ### Community 91 - "App.tsx"
-Cohesion: 0.09
-Nodes (21): ref_react_dom_client, AcceptInvitation, App(), Dashboard, DietGenerator, EmailAdmin, FoodDatabase, Home (+13 more)
-
-### Community 92 - "PatientProfile.tsx"
-Cohesion: 0.24
-Nodes (9): PatientProfile, BiomarkerData, BiomarkerEvolutionChart(), BiomarkerEvolutionChartProps, AssessmentTab(), modeTone, TabId, requestSelfEvaluation() (+1 more)
+Cohesion: 0.15
+Nodes (12): react-router-dom, AcceptInvitation, Calendar, Dashboard, DietGenerator, FoodDatabase, Home, PatientPortal (+4 more)
 
 ## Knowledge Gaps
 - **450 isolated node(s):** `name`, `private`, `version`, `type`, `node` (+445 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 582 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 585 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **24 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `react` to `LabExamsModule.tsx`, `dietForm.types.ts`, `PatientPortal.tsx`, `DietMode`, `dietService.ts`, `DietGenerator.tsx`, `BillingSection.tsx`, `DietPlanViewer.tsx`, `3.2 — i18n da UI: páginas e componentes ainda em PT ✅`, `Step6Summary.tsx`, `package.json`, `icons.tsx`, `firebaseService.ts`, `Dashboard.tsx`, `Step6LabExams.tsx`, `PatientDietHistoryModal.tsx`, `Patients.tsx`, `foodService.ts`, `Step2Contact.tsx`, `Calendar.tsx`, `index.ts`, `App.tsx`, `PatientProfile.tsx`?**
-  _High betweenness centrality (0.073) - this node is a cross-community bridge._
-- **Why does `4. Etapas detalhadas` connect `4. Etapas detalhadas` to `Dashboard.tsx`, `PatientPortal.tsx`?**
-  _High betweenness centrality (0.048) - this node is a cross-community bridge._
-- **Why does `react-i18next` connect `react` to `LabExamsModule.tsx`, `dietForm.types.ts`, `PatientPortal.tsx`, `DietMode`, `dietService.ts`, `DietGenerator.tsx`, `BillingSection.tsx`, `DietPlanViewer.tsx`, `3.2 — i18n da UI: páginas e componentes ainda em PT ✅`, `Step6Summary.tsx`, `package.json`, `icons.tsx`, `firebaseService.ts`, `Dashboard.tsx`, `Step6LabExams.tsx`, `PatientDietHistoryModal.tsx`, `Patients.tsx`, `foodService.ts`, `Step2Contact.tsx`, `Calendar.tsx`, `index.ts`, `App.tsx`, `PatientProfile.tsx`?**
-  _High betweenness centrality (0.048) - this node is a cross-community bridge._
+- **Why does `react` connect `react` to `Sidebar.tsx`, `DietGenerator.tsx`, `Reports.tsx`, `dietService.ts`, `BillingSection.tsx`, `metabolicCalculations.ts`, `Calendar.tsx`, `icons.tsx`, `Patients.tsx`, `package.json`, `react-i18next`, `firebaseService.ts`, `Dashboard.tsx`, `index.ts`, `DietPlanDisplay.tsx`, `App.tsx`, `ui.tsx`, `dietAlgorithmService.ts`?**
+  _High betweenness centrality (0.080) - this node is a cross-community bridge._
+- **Why does `react-i18next` connect `react-i18next` to `Sidebar.tsx`, `DietGenerator.tsx`, `react`, `Reports.tsx`, `dietService.ts`, `BillingSection.tsx`, `metabolicCalculations.ts`, `Calendar.tsx`, `icons.tsx`, `Patients.tsx`, `package.json`, `firebaseService.ts`, `Dashboard.tsx`, `index.ts`, `DietPlanDisplay.tsx`, `ui.tsx`, `dietAlgorithmService.ts`?**
+  _High betweenness centrality (0.049) - this node is a cross-community bridge._
+- **Why does `4. Etapas detalhadas` connect `4. Etapas detalhadas` to `react`, `patientService.ts`?**
+  _High betweenness centrality (0.041) - this node is a cross-community bridge._
 - **What connects `name`, `private`, `version` to the rest of the system?**
   _450 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `PatientPortal.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.1471264367816092 - nodes in this community are weakly interconnected._
-- **Should `dietService.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.06954887218045112 - nodes in this community are weakly interconnected._
+- **Should `Sidebar.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.14166666666666666 - nodes in this community are weakly interconnected._
 - **Should `DietGenerator.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.11416490486257928 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.058173076923076925 - nodes in this community are weakly interconnected._
+- **Should `dietService.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.06715063520871144 - nodes in this community are weakly interconnected._

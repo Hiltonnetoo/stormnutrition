@@ -246,11 +246,28 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
           )}
         </div>
 
-        {/* Seals */}
-        <div className="mb-5 flex flex-wrap gap-2">
+        {/* Seals & Validation Badges */}
+        <div className="mb-5 flex flex-wrap items-center gap-2">
           <span className="badge badge-sky">
             {t("diet_generator.display.clinical_engine")}
           </span>
+          {plan.validation && (
+            <span
+              className={`badge font-bold ${
+                plan.validation.status === "valid"
+                  ? "badge-emerald"
+                  : plan.validation.status === "requires_review"
+                    ? "badge-amber"
+                    : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200"
+              }`}
+            >
+              {plan.validation.status === "valid"
+                ? t("diet_generator.display.status_valid")
+                : plan.validation.status === "requires_review"
+                  ? t("diet_generator.display.status_requires_review")
+                  : t("diet_generator.display.status_infeasible")}
+            </span>
+          )}
           {plan.mode && (
             <span className="badge badge-sage uppercase">
               {t("diet_generator.display.mode", {
@@ -276,43 +293,106 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
           )}
         </div>
 
-        {/* Summary */}
-        <div className="text-center bg-sage-50 dark:bg-sage-900/30 p-4 rounded-2xl mb-6">
-          <p className="text-sm text-sage-700 dark:text-sage-300 font-semibold">
-            {t("diet_generator.display.daily_summary")}
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-            {[
-              {
-                v: (plan.dailyCalories || 0).toFixed(0),
-                l: t("diet_generator.display.calories"),
-              },
-              {
-                v: `${(plan.macronutrients?.proteinGrams || 0).toFixed(0)}g`,
-                l: t("diet_generator.display.proteins_pct", {
-                  pct: plan.macronutrients?.proteinPercentage || 0,
-                }),
-              },
-              {
-                v: `${(plan.macronutrients?.carbsGrams || 0).toFixed(0)}g`,
-                l: t("diet_generator.display.carbs_pct", {
-                  pct: plan.macronutrients?.carbsPercentage || 0,
-                }),
-              },
-              {
-                v: `${(plan.macronutrients?.fatGrams || 0).toFixed(0)}g`,
-                l: t("diet_generator.display.fats_pct", {
-                  pct: plan.macronutrients?.fatPercentage || 0,
-                }),
-              },
-            ].map((s) => (
-              <div key={s.l}>
-                <p className="text-xl font-extrabold text-sage-800 dark:text-sage-100 stat-number">
-                  {s.v}
-                </p>
-                <p className="text-xs text-slate-500">{s.l}</p>
+        {/* Clinical Validation Issues (if any) */}
+        {plan.validation?.issues && plan.validation.issues.length > 0 && (
+          <div className="mb-5 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200 text-xs space-y-1.5 no-export">
+            {plan.validation.issues.map((issue, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                <span>{issue.level === "error" ? "⛔" : "⚠️"}</span>
+                <span className="font-medium">{issue.message}</span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Summary: Prescribed Targets vs Calculated Totals */}
+        <div className="bg-sage-50 dark:bg-sage-900/30 p-4 rounded-2xl mb-6 space-y-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-sage-200/60 dark:border-sage-800 pb-2">
+            <div>
+              <p className="text-xs font-bold text-sage-800 dark:text-sage-200 uppercase tracking-wider">
+                {t("diet_generator.display.effective_totals")}
+              </p>
+              <p className="text-[11px] text-slate-500">
+                {t("diet_generator.display.daily_summary")}
+              </p>
+            </div>
+            {plan.validation?.worstCaseAlternativeSodium != null &&
+              plan.validation.worstCaseAlternativeSodium > 0 && (
+                <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 mt-1 sm:mt-0">
+                  {t("diet_generator.display.worst_case_sodium_warning", {
+                    sodium: plan.validation.worstCaseAlternativeSodium,
+                  })}
+                </span>
+              )}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              {
+                label: t("diet_generator.display.calories"),
+                calculated: `${mealTotals.calories.toFixed(0)} kcal`,
+                target: `${(plan.dailyCalories || 0).toFixed(0)} kcal`,
+                diff: mealTotals.calories - plan.dailyCalories,
+              },
+              {
+                label: t("diet_generator.display.proteins_pct", {
+                  pct: plan.macronutrients?.proteinPercentage || 0,
+                }),
+                calculated: `${mealTotals.protein.toFixed(1)}g`,
+                target: `${(plan.macronutrients?.proteinGrams || 0).toFixed(1)}g`,
+                diff:
+                  mealTotals.protein - (plan.macronutrients?.proteinGrams || 0),
+              },
+              {
+                label: t("diet_generator.display.carbs_pct", {
+                  pct: plan.macronutrients?.carbsPercentage || 0,
+                }),
+                calculated: `${mealTotals.carbs.toFixed(1)}g`,
+                target: `${(plan.macronutrients?.carbsGrams || 0).toFixed(1)}g`,
+                diff: mealTotals.carbs - (plan.macronutrients?.carbsGrams || 0),
+              },
+              {
+                label: t("diet_generator.display.fats_pct", {
+                  pct: plan.macronutrients?.fatPercentage || 0,
+                }),
+                calculated: `${mealTotals.fat.toFixed(1)}g`,
+                target: `${(plan.macronutrients?.fatGrams || 0).toFixed(1)}g`,
+                diff: mealTotals.fat - (plan.macronutrients?.fatGrams || 0),
+              },
+            ].map((col) => {
+              const diffNum = Math.round(col.diff);
+              const isDiffZero = Math.abs(diffNum) <= 1;
+              return (
+                <div
+                  key={col.label}
+                  className="bg-white/80 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50"
+                >
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase">
+                    {col.label}
+                  </p>
+                  <p className="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5 stat-number">
+                    {col.calculated}
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {t("diet_generator.display.prescribed_targets")}:{" "}
+                    <span className="font-semibold text-slate-600 dark:text-slate-300">
+                      {col.target}
+                    </span>
+                    {!isDiffZero && (
+                      <span
+                        className={`ml-1 font-bold ${
+                          Math.abs(diffNum) > 50
+                            ? "text-amber-600"
+                            : "text-slate-500"
+                        }`}
+                      >
+                        ({diffNum > 0 ? `+${diffNum}` : diffNum})
+                      </span>
+                    )}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
 

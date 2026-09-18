@@ -24,6 +24,9 @@ import type {
   LabTest,
   DecisionEntry,
   DietMode,
+  CalculatedDietTotals,
+  PlanValidationResult,
+  PlanValidationIssue,
 } from "../types";
 
 // Helper for error handling
@@ -102,6 +105,16 @@ export const sanitizeMealOptionItem = (
     carbs: raw.carbs,
     fat: raw.fat,
   };
+
+  if (typeof raw.foodId === "string" && raw.foodId.trim()) {
+    cleanItem.foodId = raw.foodId.trim();
+  }
+  if (isFiniteNumber(raw.portionGrams) && raw.portionGrams > 0) {
+    cleanItem.portionGrams = raw.portionGrams;
+  }
+  if (typeof raw.unit === "string" && raw.unit.trim()) {
+    cleanItem.unit = raw.unit.trim();
+  }
 
   const cleanMicros = sanitizeMicronutrients(raw.micros as Micronutrients);
   if (cleanMicros) {
@@ -336,13 +349,128 @@ export const validateAndSerializeDietPlan = (
   }
 
   if (Array.isArray(plan.decisionLog) && plan.decisionLog.length > 0) {
-    dto.decisionLog = plan.decisionLog.filter((entry): entry is DecisionEntry =>
-      Boolean(
-        entry &&
-        typeof entry.reason === "string" &&
-        typeof entry.type === "string",
-      ),
-    );
+    dto.decisionLog = plan.decisionLog
+      .filter((entry): entry is DecisionEntry =>
+        Boolean(
+          entry &&
+          typeof entry.reason === "string" &&
+          typeof entry.type === "string",
+        ),
+      )
+      .map((entry) => {
+        const cleanEntry: DecisionEntry = {
+          type: entry.type,
+          reason: entry.reason,
+        };
+        if (typeof entry.code === "string" && entry.code.trim()) {
+          cleanEntry.code = entry.code.trim();
+        }
+        if (typeof entry.tag === "string" && entry.tag.trim()) {
+          cleanEntry.tag = entry.tag.trim();
+        }
+        if (typeof entry.timestamp === "string" && entry.timestamp.trim()) {
+          cleanEntry.timestamp = entry.timestamp.trim();
+        }
+        if (isFiniteNumber(entry.affectedCount)) {
+          cleanEntry.affectedCount = entry.affectedCount;
+        }
+        if (Array.isArray(entry.removedFoods)) {
+          cleanEntry.removedFoods = entry.removedFoods.filter(
+            (f): f is string => typeof f === "string" && f.trim().length > 0,
+          );
+        }
+        if (entry.params && typeof entry.params === "object") {
+          cleanEntry.params = entry.params;
+        }
+        return cleanEntry;
+      });
+  }
+
+  if (plan.calculatedTotals && typeof plan.calculatedTotals === "object") {
+    const calc: CalculatedDietTotals = {
+      calories: Math.round(plan.calculatedTotals.calories || 0),
+      protein: Number((plan.calculatedTotals.protein || 0).toFixed(1)),
+      carbs: Number((plan.calculatedTotals.carbs || 0).toFixed(1)),
+      fat: Number((plan.calculatedTotals.fat || 0).toFixed(1)),
+    };
+    if (isFiniteNumber(plan.calculatedTotals.fiber)) {
+      calc.fiber = Number(plan.calculatedTotals.fiber.toFixed(1));
+    }
+    if (isFiniteNumber(plan.calculatedTotals.sodium)) {
+      calc.sodium = Math.round(plan.calculatedTotals.sodium);
+    }
+    dto.calculatedTotals = calc;
+  }
+
+  if (plan.validation && typeof plan.validation === "object") {
+    const val: PlanValidationResult = {
+      status: plan.validation.status,
+      isApproved: Boolean(plan.validation.isApproved),
+      issues: Array.isArray(plan.validation.issues)
+        ? plan.validation.issues.map((issue) => {
+            const cleanIssue: PlanValidationIssue = {
+              code: issue.code,
+              level: issue.level,
+              message: issue.message,
+            };
+            if (issue.details && typeof issue.details === "object") {
+              cleanIssue.details = issue.details;
+            }
+            return cleanIssue;
+          })
+        : [],
+      calculatedTotals: {
+        calories: Math.round(plan.validation.calculatedTotals?.calories || 0),
+        protein: Number(
+          (plan.validation.calculatedTotals?.protein || 0).toFixed(1),
+        ),
+        carbs: Number(
+          (plan.validation.calculatedTotals?.carbs || 0).toFixed(1),
+        ),
+        fat: Number((plan.validation.calculatedTotals?.fat || 0).toFixed(1)),
+      },
+      deviations: {
+        caloriesDiff: plan.validation.deviations?.caloriesDiff ?? 0,
+        caloriesPercent: plan.validation.deviations?.caloriesPercent ?? 0,
+        proteinDiff: plan.validation.deviations?.proteinDiff ?? 0,
+        proteinPercent: plan.validation.deviations?.proteinPercent ?? 0,
+        carbsDiff: plan.validation.deviations?.carbsDiff ?? 0,
+        carbsPercent: plan.validation.deviations?.carbsPercent ?? 0,
+        fatDiff: plan.validation.deviations?.fatDiff ?? 0,
+        fatPercent: plan.validation.deviations?.fatPercent ?? 0,
+      },
+    };
+    if (isFiniteNumber(plan.validation.calculatedTotals?.fiber)) {
+      val.calculatedTotals.fiber = Number(
+        plan.validation.calculatedTotals.fiber.toFixed(1),
+      );
+    }
+    if (isFiniteNumber(plan.validation.calculatedTotals?.sodium)) {
+      val.calculatedTotals.sodium = Math.round(
+        plan.validation.calculatedTotals.sodium,
+      );
+    }
+    if (isFiniteNumber(plan.validation.worstCaseAlternativeSodium)) {
+      val.worstCaseAlternativeSodium = Math.round(
+        plan.validation.worstCaseAlternativeSodium,
+      );
+    }
+    dto.validation = val;
+  }
+
+  if (
+    typeof plan.algorithmVersion === "string" &&
+    plan.algorithmVersion.trim()
+  ) {
+    dto.algorithmVersion = plan.algorithmVersion.trim();
+  }
+
+  if (typeof plan.datasetVersion === "string" && plan.datasetVersion.trim()) {
+    dto.datasetVersion = plan.datasetVersion.trim();
+  }
+
+  if (isFiniteNumber(plan.seed)) {
+    dto.seed = plan.seed;
   }
 
   return dto;

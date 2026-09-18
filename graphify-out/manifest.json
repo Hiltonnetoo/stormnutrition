@@ -114,9 +114,9 @@
     "semantic_hash": "32d39fd41f3584e79294c38d6b34dbbc"
   },
   "src/components/diet-generator/DietPlanDisplay.tsx": {
-    "mtime": 1789687491.849117,
-    "seen": 1789687608.106935,
-    "ast_hash": "e581b232d1f0bade80ddde5eedc15fb4",
+    "mtime": 1789690358.8202195,
+    "seen": 1789690389.130174,
+    "ast_hash": "7615b10cde6adb8c3a8c612d3f175b7a",
     "semantic_hash": ""
   },
   "src/components/diet-generator/DietProgressBar.tsx": {
@@ -174,10 +174,10 @@
     "semantic_hash": ""
   },
   "src/components/modals/ClinicalReviewModal.tsx": {
-    "mtime": 1781133786.0219042,
-    "seen": 1789681967.256525,
-    "ast_hash": "b58b69ab0085c348980da5be635b6de3",
-    "semantic_hash": "b58b69ab0085c348980da5be635b6de3"
+    "mtime": 1789690358.904761,
+    "seen": 1789690389.130178,
+    "ast_hash": "52ed0e100df1aebea04320e4d2cdc600",
+    "semantic_hash": ""
   },
   "src/components/modals/ExportDietModal.tsx": {
     "mtime": 1789687420.2282195,
@@ -342,15 +342,15 @@
     "semantic_hash": "fd41c1a8220a0a0c9b8ed933945b5966"
   },
   "src/locales/en/common.json": {
-    "mtime": 1789689414.302097,
-    "seen": 1789689663.930223,
-    "ast_hash": "1169d36c75cd7ad426c5c69ad05358c4",
+    "mtime": 1789689995.8216636,
+    "seen": 1789690389.130189,
+    "ast_hash": "9157c5f462c5281ed4a94a5b767b48b4",
     "semantic_hash": ""
   },
   "src/locales/pt/common.json": {
-    "mtime": 1789689390.8399882,
-    "seen": 1789689663.930223,
-    "ast_hash": "fc0857c818d12653ba349080311eecfc",
+    "mtime": 1789689979.344077,
+    "seen": 1789690389.1301901,
+    "ast_hash": "f1e6a2de587a2394f134a84e9119eb73",
     "semantic_hash": ""
   },
   "src/pages/Calendar.tsx": {
@@ -366,9 +366,9 @@
     "semantic_hash": "1c917520e4c5dfddb704d3ae82308f41"
   },
   "src/pages/DietGenerator.tsx": {
-    "mtime": 1789687209.2863564,
-    "seen": 1789687608.106951,
-    "ast_hash": "5b8e5f30b9b38d514d372248f13c440e",
+    "mtime": 1789689949.2885015,
+    "seen": 1789690389.130191,
+    "ast_hash": "d386e2b0e272ef950c7390a754eb303e",
     "semantic_hash": ""
   },
   "src/pages/EmailAdmin.tsx": {
@@ -444,9 +444,9 @@
     "semantic_hash": "23ab0fc70d88329bb54809ebcba28eb2"
   },
   "src/services/__tests__/dietAlgorithmService.test.ts": {
-    "mtime": 1789689636.7007265,
-    "seen": 1789689663.93023,
-    "ast_hash": "4dce6dd36376ebaca4f958a0fa325376",
+    "mtime": 1789690359.3708508,
+    "seen": 1789690389.1301959,
+    "ast_hash": "94695cd97b2b85f421bb385c191015ea",
     "semantic_hash": ""
   },
   "src/services/__tests__/foodService.test.ts": {
@@ -480,15 +480,15 @@
     "semantic_hash": ""
   },
   "src/services/dietAlgorithmService.ts": {
-    "mtime": 1789689636.753977,
-    "seen": 1789689663.930233,
-    "ast_hash": "178c22da72b936a0c75e188a4ec98b0a",
+    "mtime": 1789690359.4344912,
+    "seen": 1789690389.130199,
+    "ast_hash": "e9ea2cb50e7c9254e929c7ccd1949166",
     "semantic_hash": ""
   },
   "src/services/dietService.ts": {
-    "mtime": 1789686279.759537,
-    "seen": 1789686354.645779,
-    "ast_hash": "404c14acd328fb28d210555fefd2d60d",
+    "mtime": 1789690359.4552636,
+    "seen": 1789690389.1302001,
+    "ast_hash": "67905a1d77636c9b13f4dbc7c4437851",
     "semantic_hash": ""
   },
   "src/services/emailService.ts": {
@@ -552,9 +552,9 @@
     "semantic_hash": "4bb6b8603fa01ada1120d800691e751c"
   },
   "src/types/diet.ts": {
-    "mtime": 1789686279.78756,
-    "seen": 1789686354.645782,
-    "ast_hash": "d1770753010632d220817cf111d13796",
+    "mtime": 1789690293.3162959,
+    "seen": 1789690389.130204,
+    "ast_hash": "e64736217e46065de4d504ffeba40810",
     "semantic_hash": ""
   },
   "src/types/email.ts": {
@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "src/utils/pdfExporter.ts": {
-    "mtime": 1789687408.2256687,
-    "seen": 1789687608.106966,
-    "ast_hash": "8f0a798fad687f51e1d4718ff65662c1",
+    "mtime": 1789690060.1289365,
+    "seen": 1789690389.130208,
+    "ast_hash": "a59bb4a70f2f990f5890eaa5c91a2244",
     "semantic_hash": ""
   },
   "tests-e2e/critical-flow.spec.ts": {
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789689657.5234704,
-    "seen": 1789689663.930264,
-    "ast_hash": "8184168903917c6b837416897222c9fe",
+    "mtime": 1789690381.7844577,
+    "seen": 1789690389.1302311,
+    "ast_hash": "a03e33d1991afb3a3af56d205ddf5ca3",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {

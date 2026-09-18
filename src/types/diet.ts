@@ -40,8 +40,11 @@ export interface Micronutrients {
 }
 
 export interface MealOptionItem {
+  foodId?: string;
   name: string;
   portion: string;
+  portionGrams?: number;
+  unit?: string;
   calories: number;
   protein: number;
   carbs: number;
@@ -133,12 +136,51 @@ export interface LabTest {
 }
 
 export interface DecisionEntry {
+  code?: string;
   type: "filter" | "substitution" | "warning";
   reason: string;
   affectedCount?: number;
   /** Names of the foods removed by this filter (displayed in the clinical log). */
   removedFoods?: string[];
   tag?: string;
+  timestamp?: string;
+  params?: Record<string, unknown>;
+}
+
+export type PlanValidationStatus = "valid" | "requires_review" | "infeasible";
+
+export interface PlanValidationIssue {
+  level: "error" | "warning" | "info";
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+export interface CalculatedDietTotals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  sodium?: number;
+}
+
+export interface PlanValidationResult {
+  status: PlanValidationStatus;
+  isApproved: boolean;
+  issues: PlanValidationIssue[];
+  calculatedTotals: CalculatedDietTotals;
+  deviations: {
+    caloriesDiff: number;
+    caloriesPercent: number;
+    proteinDiff: number;
+    proteinPercent: number;
+    carbsDiff: number;
+    carbsPercent: number;
+    fatDiff: number;
+    fatPercent: number;
+  };
+  worstCaseAlternativeSodium?: number;
 }
 
 /**
@@ -170,6 +212,11 @@ export interface DietPlan {
     fatGrams: number;
     fatPercentage: number;
   };
+  calculatedTotals?: CalculatedDietTotals;
+  validation?: PlanValidationResult;
+  algorithmVersion?: string;
+  datasetVersion?: string;
+  seed?: number;
   meals: Meal[];
   waterRecommendationLiters: number;
   generalObservations: string[];

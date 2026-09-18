@@ -463,22 +463,47 @@ Limitações ou decisões pendentes: Alimentos não testados laboratorialmente p
 
 **Passos:**
 
-1. [ ] Separar geração pura de tradução e persistência; receber dados, regras e fonte de aleatoriedade por parâmetros.
-2. [ ] Escolher seleção determinística ou aleatoriedade com semente injetável. Persistir versão do algoritmo, dataset e parâmetros necessários para rastreio.
-3. [ ] Validar entradas: números finitos, metas coerentes, refeições presentes e percentuais válidos.
-4. [ ] Retornar erro de domínio compreensível se filtros eliminarem todos os candidatos; não selecionar `undefined` nem ignorar restrições para completar a dieta.
-5. [ ] Definir limites de porção e tolerâncias explícitas de metas, separando requisitos de software de limites clínicos que exigem validação própria.
-6. [ ] Calcular totais a partir das quantidades finais, incluindo contribuições de todos os macros de cada alimento.
-7. [ ] Validar opções principais e alternativas. Para tetos diários, verificar as combinações permitidas ou aplicar uma estratégia conservadora demonstrável; validar cada refeição isolada não basta.
-8. [ ] Retornar resultado estruturado: válido, requer revisão ou inviável, com motivos e desvios. Impedir apresentação de resultado inválido como plano aprovado.
-9. [ ] Revalidar após alteração de porção, alimento ou alternativa e antes de salvar/exportar.
-10. [ ] Guardar ID do alimento e quantidade numérica; preservar um snapshot histórico. Não reconstruir domínio fazendo parsing de textos traduzidos.
-11. [ ] Separar metas prescritas de totais efetivos na UI e no PDF. Não exibir a meta como se fosse o resultado calculado.
-12. [ ] Armazenar códigos de decisão/parâmetros traduzíveis, evitando congelar toda a auditoria no idioma usado na geração.
+1. [x] Separar geração pura de tradução e persistência; receber dados, regras e fonte de aleatoriedade por parâmetros.
+2. [x] Escolher seleção determinística ou aleatoriedade com semente injetável. Persistir versão do algoritmo, dataset e parâmetros necessários para rastreio.
+3. [x] Validar entradas: números finitos, metas coerentes, refeições presentes e percentuais válidos.
+4. [x] Retornar erro de domínio compreensível se filtros eliminarem todos os candidatos; não selecionar `undefined` nem ignorar restrições para completar a dieta.
+5. [x] Definir limites de porção e tolerâncias explícitas de metas, separando requisitos de software de limites clínicos que exigem validação própria.
+6. [x] Calcular totais a partir das quantidades finais, incluindo contribuições de todos os macros de cada alimento.
+7. [x] Validar opções principais e alternativas. Para tetos diários, verificar as combinações permitidas ou aplicar uma estratégia conservadora demonstrável; validar cada refeição isolada não basta.
+8. [x] Retornar resultado estruturado: válido, requer revisão ou inviável, com motivos e desvios. Impedir apresentação de resultado inválido como plano aprovado.
+9. [x] Revalidar após alteração de porção, alimento ou alternativa e antes de salvar/exportar.
+10. [x] Guardar ID do alimento e quantidade numérica; preservar um snapshot histórico. Não reconstruir domínio fazendo parsing de textos traduzidos.
+11. [x] Separar metas prescritas de totais efetivos na UI e no PDF. Não exibir a meta como se fosse o resultado calculado.
+12. [x] Armazenar códigos de decisão/parâmetros traduzíveis, evitando congelar toda a auditoria no idioma usado na geração.
 
 **Resultado:** cada saída tem validade explícita, resultados reproduzíveis e histórico explicável.
 
 **Aceite:** mesma entrada/seed/versão produz mesmo resultado; cenários inviáveis são explícitos; toda opção aprovada passa nos invariantes definidos, sem depender da mediana de várias tentativas.
+
+```yaml
+Etapa concluída: 09 — Validar o resultado final do gerador
+Data de conclusão: 2026-09-17
+Arquivos alterados:
+- src/types/diet.ts
+- src/services/dietAlgorithmService.ts
+- src/services/dietService.ts
+- src/pages/DietGenerator.tsx
+- src/components/diet-generator/DietPlanDisplay.tsx
+- src/components/modals/ClinicalReviewModal.tsx
+- src/utils/pdfExporter.ts
+- src/locales/pt/common.json
+- src/locales/en/common.json
+- src/services/__tests__/dietAlgorithmService.test.ts
+Comandos executados para validação:
+- npm test (140 de 140 testes unitários passando em Vitest, incluindo novos testes para PRNG Mulberry32 determinístico, tolerâncias de porções 5g-450g, erro de catálogo exaurido InfeasiblePlanError, campos estruturados foodId/portionGrams/unit, cálculo de totais efetivos e teto de sódio no pior cenário de alternativas)
+- npm run test:rules (24 de 24 testes no emulador Firestore passando com persistência de planos gerados e integridade de DTOs sem valores undefined)
+- npm run lint (0 erros, 4 advertências de react-refresh/deps pré-existentes)
+- npm run type-check (0 erros TypeScript com strict mode)
+- npm run format:check (100% dos arquivos validados pelo Prettier)
+- npm run build (Build Vite de produção concluído com sucesso em 1.52s)
+Validação manual e ambiente: Verificação da exibição separada de metas prescritas vs totais efetivos calculados na UI e no PDF exportado, validação combinatória conservadora de tetos de sódio entre alternativas, e bloqueio de salvamento de planos inviáveis.
+Limitações ou decisões pendentes: Pronto para Etapa 10 (Corrigir concorrência, históricos e calendário).
+```
 
 ### 10 — Corrigir concorrência, históricos e calendário
 

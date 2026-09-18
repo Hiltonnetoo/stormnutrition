@@ -26,6 +26,12 @@ const ClinicalReviewModal: React.FC<ClinicalReviewModalProps> = ({
     0,
   );
 
+  const mealCalories = Math.round(
+    plan.meals.reduce((acc, meal) => acc + (meal.calories || 0), 0),
+  );
+  const targetCalories = Math.round(plan.dailyCalories || 0);
+  const isDivergent = Math.abs(mealCalories - targetCalories) > 5;
+
   return (
     <Modal
       open={isOpen}
@@ -61,12 +67,18 @@ const ClinicalReviewModal: React.FC<ClinicalReviewModalProps> = ({
             </h3>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-extrabold text-sage-600">
-                {(plan.dailyCalories || 0).toFixed(0)}
+                {mealCalories}
               </span>
               <span className="text-sm text-slate-500">
                 {t("modals.clinical_review.kcal_day")}
               </span>
             </div>
+            {isDivergent && (
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                Meta prescrita:{" "}
+                <span className="font-semibold">{targetCalories} kcal</span>
+              </p>
+            )}
             <div className="mt-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
               <div className="bg-sage-500 h-1.5 rounded-full w-full" />
             </div>

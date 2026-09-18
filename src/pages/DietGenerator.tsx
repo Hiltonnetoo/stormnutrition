@@ -547,6 +547,11 @@ const DietGenerator: React.FC = () => {
           fatGrams: calculations.macrosInGrams.fatGrams,
           fatPercentage: formData.macros?.fat ?? 0,
         },
+        calculatedTotals: result.calculatedTotals,
+        validation: result.validation,
+        algorithmVersion: result.metadata.algorithmVersion,
+        datasetVersion: result.metadata.datasetVersion,
+        seed: result.metadata.seed,
         meals: result.meals,
         decisionLog: result.decisionLog,
         waterRecommendationLiters: calculations.water,
@@ -568,6 +573,12 @@ const DietGenerator: React.FC = () => {
 
   const handleSave = async () => {
     if (saving || !generatedPlan || !currentUser) return;
+    if (generatedPlan.validation?.status === "infeasible") {
+      setApiError(
+        "Não é possível aprovar ou salvar um plano alimentar com status inviável. Corrija os itens incompatíveis.",
+      );
+      return;
+    }
     setSaving(true);
     setApiError(null);
     try {

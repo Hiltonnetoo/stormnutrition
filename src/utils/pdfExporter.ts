@@ -122,7 +122,7 @@ export const generateCustomLayoutPdf = async (
   yPos += 10;
 
   /* -------------------------------------------------- Nutritional Summary */
-  const cardH = 34;
+  const cardH = 38;
   doc.setFillColor(...SAGE50);
   doc.setDrawColor(...SAGE100);
   doc.setLineWidth(0.3);
@@ -132,29 +132,43 @@ export const generateCustomLayoutPdf = async (
   doc.setFontSize(8);
   doc.setTextColor(...SAGE700);
   doc.setCharSpace(0.8);
-  doc.text(i18n.t("pdf.daily_summary"), margin + 6, yPos + 7);
+  doc.text(i18n.t("pdf.daily_summary"), margin + 6, yPos + 6.5);
   doc.setCharSpace(0);
 
+  const actualTotals = plan.meals.reduce(
+    (acc, meal) => ({
+      calories: acc.calories + (meal.calories || 0),
+      protein: acc.protein + (meal.protein || 0),
+      carbs: acc.carbs + (meal.carbs || 0),
+      fat: acc.fat + (meal.fat || 0),
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
+  );
+
   const m = plan.macronutrients;
-  const cols: Array<{ v: string; sub: string; c: RGB }> = [
+  const cols: Array<{ v: string; sub: string; meta: string; c: RGB }> = [
     {
-      v: `${plan.dailyCalories.toFixed(0)}`,
+      v: `${actualTotals.calories.toFixed(0)}`,
       sub: i18n.t("pdf.calories_kcal"),
+      meta: `Meta: ${plan.dailyCalories.toFixed(0)}`,
       c: INK,
     },
     {
-      v: `${m.proteinGrams.toFixed(0)}g`,
+      v: `${actualTotals.protein.toFixed(0)}g`,
       sub: i18n.t("pdf.proteins_pct", { pct: m.proteinPercentage }),
+      meta: `Meta: ${m.proteinGrams.toFixed(0)}g`,
       c: SAGE600,
     },
     {
-      v: `${m.carbsGrams.toFixed(0)}g`,
+      v: `${actualTotals.carbs.toFixed(0)}g`,
       sub: i18n.t("pdf.carbs_pct", { pct: m.carbsPercentage }),
+      meta: `Meta: ${m.carbsGrams.toFixed(0)}g`,
       c: SKY,
     },
     {
-      v: `${m.fatGrams.toFixed(0)}g`,
+      v: `${actualTotals.fat.toFixed(0)}g`,
       sub: i18n.t("pdf.fats_pct", { pct: m.fatPercentage }),
+      meta: `Meta: ${m.fatGrams.toFixed(0)}g`,
       c: AMBER,
     },
   ];
@@ -162,22 +176,25 @@ export const generateCustomLayoutPdf = async (
   cols.forEach((col, i) => {
     const cx = margin + colW * i + colW / 2;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
+    doc.setFontSize(13);
     doc.setTextColor(...col.c);
-    doc.text(col.v, cx, yPos + 18, { align: "center" });
+    doc.text(col.v, cx, yPos + 16, { align: "center" });
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(...SUBTLE);
-    doc.text(col.sub, cx, yPos + 23, { align: "center" });
+    doc.text(col.sub, cx, yPos + 21, { align: "center" });
+    doc.setFontSize(6.5);
+    doc.setTextColor(...FAINT);
+    doc.text(col.meta, cx, yPos + 25.5, { align: "center" });
   });
 
   // Macro distribution bar (protein / carbs / fat by kcal)
-  const pK = m.proteinGrams * 4;
-  const cK = m.carbsGrams * 4;
-  const fK = m.fatGrams * 9;
+  const pK = actualTotals.protein * 4;
+  const cK = actualTotals.carbs * 4;
+  const fK = actualTotals.fat * 9;
   const totK = Math.max(1, pK + cK + fK);
   const barX = margin + 6;
-  const barY = yPos + 27.5;
+  const barY = yPos + 31.5;
   const barW = contentWidth - 12;
   const segs: Array<{ k: number; c: RGB }> = [
     { k: pK, c: SAGE600 },
