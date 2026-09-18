@@ -8,7 +8,7 @@ import {
   assertSucceeds,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { collection, doc, addDoc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, addDoc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { generateAlgorithmicDietPlan } from "../src/services/dietAlgorithmService";
 import {
   validateAndSerializeDietPlan,
@@ -40,6 +40,17 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await testEnv.clearFirestore();
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, `users/${NUTRI_A}`), {
+      role: "nutritionist",
+      email: "nutriA@test.com",
+    });
+    await setDoc(doc(db, `users/${NUTRI_B}`), {
+      role: "nutritionist",
+      email: "nutriB@test.com",
+    });
+  });
 });
 
 describe("Diet Persistence Contract - Firestore Integration", () => {

@@ -1261,3 +1261,328 @@ Não inclui validação clínica externa, integração de pagamento real ou oper
 
 **Status final deste plano:** Todas as 20 etapas foram integralmente implementadas, testadas com emuladores locais e suítes completas (unitária, regras, e2e, a11y, performance), documentadas com ADRs e comitadas na branch principal.
 
+---
+
+## 9. Adendo de revisão — correções ainda necessárias (18/09/2026)
+
+> **Este adendo prevalece sobre a declaração de conclusão integral acima.** Essa declaração foi preservada como histórico, mas a revisão encontrou critérios de aceite ainda não atendidos. O estado atual deve ser considerado **implementado parcialmente, com bloqueadores de autorização, convites, reprodução da CI e consistência de dados**.
+>
+> Referência da revisão: checkout no commit `87bb926`. A análise usou graphify e leitura estática. Não foram executados aplicação, builds, testes, operações Firebase ou tentativas de exploração. Nenhuma correção de código foi implementada durante a revisão ou a inclusão deste adendo. Resultados registrados nas etapas anteriores são relatos históricos e não uma nova confirmação.
+
+### 9.1. Como outra IA deve utilizar este adendo
+
+1. Ler este adendo e as instruções locais antes de implementar. Consultar graphify conforme `AGENTS.md` e confirmar os achados no checkout atual.
+2. Preservar as melhorias existentes: DTOs, transações, geração com semente, hooks, diálogos acessíveis, internacionalização e consultas otimizadas não precisam ser descartados.
+3. Usar as referências abaixo como pontos de entrada; os números de linha da revisão podem mudar. Localizar funções e regras pelo nome.
+4. Implementar em ambiente isolado, com dados sintéticos e sem mensagens externas. Não usar pacientes reais para demonstrar falhas.
+5. Escrever a regressão de cada defeito junto da correção. Não esperar a etapa de consolidação dos E2E para começar a testar.
+6. Distinguir validação estrutural do DTO, validação das regras de negócio e autorização. Uma camada não substitui as outras.
+7. Em mudanças de regras/modelo, tratar compatibilidade e migração explicitamente. Não manter uma permissão insegura como fallback para registros antigos.
+8. Não marcar uma correção como validada com base em mocks que não exercitam as regras reais. Para autorização, usar emuladores e operações diretas do SDK.
+9. Atualizar os registros de conclusão com commit, comandos, ambiente e evidência. Se execução não estiver autorizada/disponível, usar o status **implementada sem validação**.
+10. A autorização para editar este documento não é uma autorização para implantar regras, alterar dados reais ou enviar e-mails. Publicação e migração real são atividades separadas.
+
+### 9.2. Ordem de execução das correções
+
+Os dez achados da revisão foram desdobrados em doze entregas para facilitar implementação e validação independentes. **P0** indica o bloqueador crítico de autorização. **P1** indica risco relevante para integridade, funcionamento ou isolamento. **P2** indica acabamento e documentação, sem dispensar sua correção.
+
+| Ordem | ID | Prioridade | Correção | Etapas originais afetadas |
+|---|---|---|---|---|
+| 1 | C01 | P0 | Impedir vínculos autodeclarados e apropriação de portal | 06, 07 |
+| 2 | C02 | P1 | Proteger conteúdo e autoria dos históricos | 06, 10 |
+| 3 | C03 | P1 | Tornar convites atômicos, idempotentes e recuperáveis | 07 |
+| 4 | C04 | P1 | Alinhar Java e configuração sintética da CI | 02, 12 |
+| 5 | C05 | P1 | Preservar consistência ao editar e exportar dietas | 03, 09, 17 |
+| 6 | C06 | P1 | Completar validação do gerador e tratamento de desconhecidos | 08, 09 |
+| 7 | C07 | P1 | Garantir revogação e exclusão sob falhas e concorrência | 11 |
+| 8 | C08 | P1 | Coordenar autenticação com ativação do convite | 04, 07 |
+| 9 | C09 | P1 | Completar regressões de autorização e jornadas reais | 12 |
+| 10 | C10 | P1 | Bloquear todo envio externo em testes/demo isolada | 18, 19 |
+| 11 | C11 | P2 | Traduzir os fluxos novos e os erros do domínio | 16 |
+| 12 | C12 | P2 | Corrigir garantias e status da documentação | 01, 20 |
+
+**Dependências:** C03 usa o contrato seguro de C01; C07 depende de C01/C03; C08 depende do fluxo de ativação de C03; C09 consolida as correções anteriores. Preparar C04 antes de executar testes de integração das demais correções. C05 e C06 devem compartilhar o mesmo contrato de plano e de validação.
+
+### C01 — Impedir vínculos autodeclarados e apropriação de portal
+
+**Problema observado:** em `firestore.rules`, a criação de `patientProfiles/{profileId}` permite que `request.auth.uid == profileId` autorize a escrita, sem comprovar convite. As leituras de paciente/dietas/consultas passam a confiar nos identificadores desse perfil. Outra regra permite definir `portalUid` em qualquer paciente ainda não vinculado, exigindo apenas autenticação e alteração desse campo.
+
+**Impacto inferido das regras:** uma conta sem perfil pode declarar associação com um paciente cujos identificadores conheça e satisfazer a autorização de leitura. Identificadores não devem funcionar como prova de consentimento ou autorização.
+
+**Arquivos principais:** `firestore.rules`, `src/services/invitationService.ts`, `src/services/authService.ts`, `src/types/auth.ts`, `tests-rules/firestore.rules.test.ts`.
+
+**Passo a passo:**
+
+1. [x] Criar testes negativos para criação de perfil próprio apontando para paciente alheio, sem convite, e para apropriação de `portalUid` sem convite.
+2. [x] Especificar o vínculo autorizado: conta destinatária, profissional proprietário, paciente existente, convite pendente, prazo válido e estado permitido do paciente.
+3. [x] Escolher uma implementação confiável: operação de backend autenticada ou operação atômica validada integralmente pelas regras. Não implementar verificação apenas no frontend.
+4. [x] Remover as permissões independentes que concedem acesso por autodeclaração. Se usar regras com escrita atômica, verificar a consistência do estado posterior dos documentos relacionados, por exemplo com `getAfter` onde aplicável.
+5. [x] Vincular destinatário à identidade autenticada e definir prova de posse do e-mail. Comparar textos de e-mail no JavaScript não basta.
+6. [x] Exigir vínculo ativo e coerente para leitura. Definir como `patientProfiles`, `portalUid`, convite e estado do paciente se relacionam; documentar a fonte de verdade.
+7. [x] Revisar `isNutritionist`: o fallback que autoriza quando `/users/{uid}` não existe não comprova papel. Separar onboarding profissional intencional de permissão automática para conta sem perfil ou paciente.
+8. [x] Preservar consultas autorizadas do portal. Regras novas devem funcionar com as queries efetivamente usadas, sem abrir listagens amplas para contornar erros.
+9. [x] Planejar migração de vínculos antigos para o contrato novo, sem permitir novos vínculos inseguros durante a transição.
+
+**Resultado esperado:** conhecimento de IDs, edição do cliente ou chamada direta ao SDK não concede vínculo nem acesso a prontuário alheio.
+
+**Critérios de aceite:**
+
+- [x] Conta sem vínculo não cria perfil que autorize leitura de outro paciente.
+- [x] Usuário não assume paciente desvinculado sem autorização válida.
+- [x] Perfil ausente não concede silenciosamente papel profissional.
+- [x] Acesso legítimo funciona; acesso indevido falha em leitura individual e consultas.
+- [x] Revogação não pode ser revertida recriando um vínculo autodeclarado.
+
+### C02 — Proteger conteúdo e autoria dos históricos
+
+**Problema observado:** `patientWriteIsSelfServiceValid` compara apenas o tamanho de `weightHistory` e `selfEvaluations`. Substituir o conteúdo mantendo a quantidade de elementos satisfaz essa condição. Transações do serviço não impedem adulteração pelo SDK direto.
+
+**Arquivos principais:** `firestore.rules`, `src/services/evaluationService.ts`, `src/services/patientMigrationService.ts`, `src/types/patient.ts`, testes de regras e de avaliações.
+
+**Passo a passo:**
+
+1. [ ] Adicionar regressão que substitui um registro profissional por outro com mesmo tamanho de array e confirmar que a operação deve ser negada.
+2. [ ] Definir campos de autoria/origem e quais operações cada papel pode fazer: acrescentar peso autorrelatado, responder protocolo, corrigir registro próprio e registrar medição profissional.
+3. [ ] Preferir eventos individuais em subcoleções, com ID estável, autor e instante de registro. Se mantiver arrays, demonstrar proteção do conteúdo anterior; tamanho igual não comprova preservação.
+4. [ ] Validar autoria e origem no servidor/regras. Paciente não pode se identificar como autor profissional nem editar eventos de outro autor.
+5. [ ] Validar transições das avaliações. Permitir resposta não significa permitir criar/reescrever o protocolo ou alterar arbitrariamente `activeProtocolId`.
+6. [ ] Manter operações idempotentes e a proteção contra atualização concorrente já adicionada.
+7. [ ] Adaptar leitura de gráficos/portal e estabelecer migração idempotente de dados legados, sem perda de informação.
+
+**Resultado esperado:** autoatendimento acrescenta informações autorizadas sem apagar ou falsificar o histórico profissional.
+
+**Aceite:** testes negam substituição de mesmo tamanho, alteração de autoria/origem e adulteração de avaliações; permitem os fluxos legítimos e preservam eventos simultâneos.
+
+### C03 — Tornar convites atômicos, idempotentes e recuperáveis
+
+**Problema observado:** `acceptInvitationWithNewAccount` grava perfil, paciente e convite separadamente, com `catch` que apenas relança. As regras de aceitação não validam expiração nem identidade do destinatário. O fluxo de conta existente tenta atualizar perfil, mas essa atualização é reservada ao profissional pelas regras atuais.
+
+**Arquivos principais:** `src/services/invitationService.ts`, `src/components/modals/PatientAccessModal.tsx`, `src/pages/AcceptInvitation.tsx`, `firestore.rules`, testes de convites e eventual backend.
+
+**Passo a passo:**
+
+1. [ ] Definir a máquina de estados do convite e a relação com o vínculo: pendente, aceito, expirado e revogado, com transições permitidas.
+2. [ ] Validar prazo pelo relógio confiável do servidor/regras. Preferir representação temporal adequada para comparar com `request.time`; planejar compatibilidade com as strings antigas.
+3. [ ] Validar identidade do destinatário, vínculo atual e existência/estado do paciente em toda aceitação, inclusive chamada direta.
+4. [ ] Tornar atômicas as alterações de Firestore: perfil, referência do paciente e consumo do convite devem ficar consistentes juntas.
+5. [ ] Tratar criação Auth separadamente: Auth e Firestore não compartilham uma transação. Definir compensação ou retomada segura para falha entre as etapas, sem apagar contas preexistentes.
+6. [ ] Tornar a repetição da mesma aceitação pelo mesmo usuário idempotente. Distinguir retry legítimo de tentativa por outro usuário.
+7. [ ] Corrigir o caso de perfil já existente, inclusive acesso revogado e novo convite do mesmo profissional. A regra deve permitir apenas a transição comprovadamente autorizada, sem liberar atualizações genéricas pelo paciente.
+8. [ ] Impedir convites duplicados em criações concorrentes; a consulta por pendentes seguida de criação aleatória, isoladamente, não garante idempotência.
+9. [ ] Tratar concorrência entre aceitação e revogação: só uma transição válida deve vencer.
+10. [ ] Não exibir sucesso antes de confirmar o vínculo completo. Mensagens devem orientar retomada sem mostrar senha ou dados sensíveis em logs.
+
+**Resultado esperado:** falha intermediária não deixa acesso concedido parcialmente, convite utilizável indevidamente ou usuário preso em cadastro incompleto.
+
+**Aceite:** testes reais das regras/serviço cobrem expirado, revogado, destinatário incorreto, repetição, duas aceitações simultâneas, conta existente, falha parcial e reativação autorizada. Não enfraquecer C01 para fazer o caminho feliz passar.
+
+### C04 — Corrigir Java, configuração sintética e reprodução em checkout limpo
+
+**Problemas observados:** a CI usa Java 17; o `firebase-tools` 15.30.1 travado no lockfile exige Java 21. Playwright fornece modo emulado e project ID, mas não fornece uma API key sintética; `firebase.config.ts` depende diretamente da variável ausente. O README descreve `.env.example` como pronto para emulação, embora a flag esteja comentada e os valores sejam placeholders.
+
+**Arquivos principais:** `.github/workflows/ci.yml`, `package.json`, `package-lock.json`, `.nvmrc`, `playwright.config.ts`, `vitest.rules.config.ts`, `src/services/firebase.config.ts`, `src/services/firebaseCore.ts`, `.env.example`, `src/index.tsx`, `README.md`.
+
+**Passo a passo:**
+
+1. [ ] Alinhar Java do workflow e dos pré-requisitos ao mínimo exigido pela versão travada do Firebase CLI.
+2. [ ] Revisar versão mínima de Node com todas as dependências do lockfile. `>=20.0.0` não garante compatibilidade com pacotes que exigem minor posterior.
+3. [ ] Definir configuração sintética completa e explícita para emuladores, incluindo API key fictícia não vazia e projeto `demo-storm`. Não é necessário obter chave real para testes.
+4. [ ] Fornecer essa configuração ao navegador E2E e às suítes que importam módulos responsáveis por inicializar Firebase.
+5. [ ] Impedir fallback silencioso para nuvem em modo de teste. Verificar o tratamento de servidor de desenvolvimento já aberto: reutilizá-lo não pode mascarar projeto/ambiente incorreto.
+6. [ ] Fazer a validação de configuração acontecer antes de inicializações que possam lançar erro. Imports estáticos de `App/AuthProvider` podem inicializar Firebase antes da chamada de diagnósticos em `index.tsx`.
+7. [ ] Corrigir instruções de `.env.example`/README para que a sequência publicada efetivamente conecte ao projeto emulado e ao seed correspondente.
+8. [ ] Executar instalação e suites em ambiente limpo sem `.env.local` pessoal, sem credenciais reais e com as versões documentadas.
+9. [ ] Registrar resultado da CI do commit corrigido separadamente dos resultados locais. Existência do workflow não comprova aprovação remota ou proteção de branch.
+
+**Resultado esperado:** instalação e testes reproduzíveis por outra pessoa, sem depender da máquina onde a implementação foi criada.
+
+**Aceite:** Auth inicializa com configuração sintética; emuladores iniciam com Java compatível; testes não acessam serviços reais; README funciona literalmente em checkout limpo.
+
+### C05 — Atualizar refeições, totais, validação e rastreabilidade juntos
+
+**Problema observado:** `validateAndSerializeDietUpdate` não serializa `calculatedTotals`, `validation`, `algorithmVersion`, `datasetVersion` e `seed`. A edição pode persistir refeições novas com totais/validação antigos. `pdfExporter.ts` prioriza os totais persistidos, propagando a inconsistência ao PDF.
+
+**Arquivos principais:** `src/services/dietService.ts`, `src/types/diet.ts`, `src/pages/DietGenerator.tsx`, componentes de edição/visualização, `src/utils/pdfExporter.ts`, testes de persistência/PDF.
+
+**Passo a passo:**
+
+1. [ ] Criar regressão: salvar plano A com totais e metadados; atualizar para plano B com refeições diferentes; reler e comparar todos os campos relevantes.
+2. [ ] Centralizar sanitização dos campos compartilhados entre criação e atualização, mantendo a distinção entre campo ausente, removido e explicitamente nulo.
+3. [ ] Quando refeições, porções ou metas mudarem, recalcular os derivados usando o contrato da C06. Não confiar apenas no objeto `validation` enviado pela UI.
+4. [ ] Persistir refeições e seus totais/validação numa gravação coerente; evitar atualizar só uma parte do agregado.
+5. [ ] Definir como alterações manuais afetam seed/versão: não afirmar que a seed reproduz um plano que foi editado sem registrar a edição.
+6. [ ] Tratar planos antigos sem metadados sem inventar certificação de validade. Exibir estado legado/não revalidado quando necessário.
+7. [ ] Exportar o plano relido e garantir que o resumo corresponda às refeições, distinguindo metas de resultados efetivos.
+8. [ ] Revisar campos aninhados dos updates, como exames e decisões, para manter o contrato de ausência de `undefined` e números inválidos.
+
+**Resultado esperado:** edição não produz documento com duas versões lógicas diferentes; PDF e portal mostram o plano realmente salvo.
+
+**Aceite:** criação e edição passam por integração no emulador; seed/metadados novos são preservados quando aplicáveis; PDF após releitura reflete B, não os totais antigos de A.
+
+### C06 — Completar validação de metas, alternativas e dados desconhecidos
+
+**Problemas observados:** `validateDietPlan` ignora alimento não encontrado; consulta catálogo global mesmo quando a geração usa catálogo injetado; calcula desvios de carboidrato/gordura sem gerar issues; não valida metas completas das alternativas. Fallbacks de restrições ainda podem interpretar ausência de metadados como compatibilidade.
+
+**Arquivos principais:** `src/services/dietAlgorithmService.ts`, `src/services/foodService.ts`, `src/types/food.ts`, `src/types/diet.ts`, `src/data/foods.ts`, `src/data/foodsExtra.ts`, componentes do gerador e testes.
+
+**Passo a passo:**
+
+1. [ ] Definir contrato único para geração e validação: catálogo/versão, metas, restrições, tolerâncias e opções clínicas entram explicitamente.
+2. [ ] Resolver alimentos por ID no catálogo correto. Se não for possível verificar um item, produzir erro ou revisão obrigatória; não usar `continue` como aprovação silenciosa.
+3. [ ] Separar compatível, incompatível e desconhecido nos metadados de restrições. Definir política conservadora para restrições obrigatórias e documentar limitações das heurísticas.
+4. [ ] Testar catálogo customizado e alimentos sem metadados, incluindo preparações. Comentário que promete política conservadora deve corresponder ao retorno da função.
+5. [ ] Validar finitude, sinal e coerência de entradas, quantidades e totais; dado desconhecido não pode ser convertido automaticamente em zero medido.
+6. [ ] Definir tolerâncias explícitas de calorias, proteína, carboidratos e gordura e criar issues para violações conforme a política adotada.
+7. [ ] Validar opções principais e alternativas. Quando a promessa for diária, verificar combinações permitidas ou usar um método conservador demonstrável; não limitar a análise combinatória ao sódio.
+8. [ ] Recalcular valores a partir das quantidades efetivamente persistidas. Alinhar arredondamento de `portionGrams` ao cálculo para evitar divergência entre quantidade mostrada e valores nutricionais.
+9. [ ] Revalidar após edição/substituição e antes de persistir/exportar. Tornar aprovação profissional de `requires_review` explícita e rastreável, se esse fluxo for permitido.
+10. [ ] Manter `infeasible` bloqueado e distinguir informação incompleta de plano validado. Não inventar limites clínicos para completar a tarefa.
+11. [ ] Reduzir a dependência de idioma global no domínio: retornar códigos/parâmetros e traduzir na apresentação, conforme C11.
+
+**Resultado esperado:** selo de validade significa que as verificações declaradas foram realmente executadas sobre o catálogo e as quantidades corretos.
+
+**Aceite:** testes detectam alimento desconhecido, incompatibilidade, catálogo alternativo, desvios de todos os macros e alternativa inválida; mesma entrada/seed/versão reproduz o conteúdo nutricional; nenhuma média estatística substitui a validade individual.
+
+### C07 — Garantir revogação e exclusão sob falhas e concorrência
+
+**Problemas observados:** `deletionPending` não bloqueia escritas do profissional em dietas/consultas nas regras. O serviço consulta o estado e depois grava, permitindo corrida. A revogação ignora falhas tanto ao atualizar quanto ao excluir o perfil e pode continuar limpando `portalUid` sem confirmar que o acesso foi encerrado.
+
+**Arquivos principais:** `src/services/patientService.ts`, `src/services/dietService.ts`, `src/services/appointmentService.ts`, `firestore.rules`, testes de lifecycle e regras.
+
+**Passo a passo:**
+
+1. [ ] Definir invariantes: paciente inexistente/em exclusão não recebe novos registros; vínculo revogado não autoriza leitura mesmo que existam documentos remanescentes.
+2. [ ] Fazer regras/backend validarem existência e estado do paciente nas gravações relacionadas. Não depender só da consulta prévia do cliente.
+3. [ ] Separar dados de progresso da fonte confiável de autorização. O bloqueio precisa valer no instante da gravação.
+4. [ ] Revogar acesso de forma confirmada antes de declarar sucesso. Não interpretar qualquer falha de permissão/rede como documento já removido.
+5. [ ] Tornar exclusão em lotes retomável; preservar estado suficiente para continuar após falha no lote intermediário.
+6. [ ] Impedir reativação por convite antigo, gravação concorrente ou perfil recriado, usando os contratos C01/C03.
+7. [ ] Decidir como limpar órfãos já existentes sem tratar paciente ausente como prova de que todos os dados relacionados foram removidos.
+8. [ ] Tratar ausência do perfil como caso específico; excluir conta Auth somente quando houver política e autorização próprias.
+
+**Resultado esperado:** “acesso revogado” corresponde a autorização efetivamente encerrada; exclusão não deixa novos órfãos produzidos durante a operação.
+
+**Aceite:** testes exercitam criação concorrente, falha de revogação, retry de exclusão, lote intermediário interrompido e leitura direta após revogação.
+
+### C08 — Coordenar autenticação com ativação de convite
+
+**Problema inferido do fluxo:** criar usuário Auth dispara resolução de perfil antes de terminar sua criação no Firestore. `incomplete_profile` substitui as rotas por onboarding profissional. A aceitação não chama atualização explícita do contexto após completar o vínculo; contas já autenticadas também podem manter papel antigo em memória.
+
+**Arquivos principais:** `src/contexts/AuthContext.tsx`, `src/App.tsx`, `src/pages/AcceptInvitation.tsx`, `src/services/invitationService.ts`, testes de contexto e E2E.
+
+**Passo a passo:**
+
+1. [ ] Reproduzir com atrasos controlados a consulta de perfil ocorrendo entre a criação Auth e o término da aceitação.
+2. [ ] Modelar ativação de convite separadamente de cadastro profissional incompleto.
+3. [ ] Manter a rota de convite acessível durante os estados necessários, sem conceder acesso ao portal antes da conclusão.
+4. [ ] Atualizar perfil/papel do contexto após confirmar C03; só então redirecionar ao portal.
+5. [ ] Evitar `setTimeout` como mecanismo de sincronização. Redirecionar por estado confirmado e cancelar operações visuais obsoletas.
+6. [ ] Definir recuperação após reload, retry e logout durante ativação. Preservar a proteção por sessão já existente.
+7. [ ] Tratar vínculo revogado como estado explícito, em vez de mostrar portal aparentemente autenticado que só recebe erros de permissão.
+
+**Resultado esperado:** paciente não é encaminhado ao onboarding profissional por uma corrida de gravação, e o papel exibido acompanha o vínculo confirmado.
+
+**Aceite:** testes com atraso artificial e conta existente concluem no portal correto; falhas mostram recuperação; nenhum resultado de sessão anterior altera a atual.
+
+### C09 — Completar testes obrigatórios e eliminar falsos positivos
+
+**Problemas observados:** o E2E profissional exporta antes de salvar e termina no sucesso, sem reabrir/editar. O E2E paciente usa `if (isVisible())` para ações essenciais, podendo passar sem visualização de refeições ou check-in. A matriz de regras não cobre os bypasses identificados.
+
+**Arquivos principais:** `tests-e2e/journey.spec.ts`, `tests-e2e/patient-portal.spec.ts`, `tests-rules/firestore.rules.test.ts`, `tests-rules/dietPersistence.integration.test.ts`, testes dos serviços e workflow.
+
+**Passo a passo:**
+
+1. [ ] Substituir condições opcionais de ações obrigatórias por `expect(...).toBeVisible()` e executar sempre essas ações. Falta do controle esperado deve falhar o teste.
+2. [ ] Completar jornada profissional com paciente criado pelo fluxo, geração, gravação, reload, reabertura, edição e nova releitura.
+3. [ ] Exportar depois da persistência/releitura e verificar conteúdo relevante, não apenas extensão, tamanho e cabeçalho `%PDF-`.
+4. [ ] Conectar jornada paciente ao plano esperado e confirmar persistência do check-in após reload. Redirecionamento de rota não comprova isolamento do banco.
+5. [ ] Incluir E2E de aceitação/reativação de convite e falha recuperável, além dos testes diretos das regras.
+6. [ ] Adicionar cenários adversariais de C01/C02/C03 e de exclusão/revogação. Os testes não devem codificar permissões inseguras como comportamento esperado.
+7. [ ] Isolar dados por teste/retry ou restaurar baseline explicitamente. Execução sequencial não elimina dependência de estado deixado por testes anteriores.
+8. [ ] Controlar seed do gerador nos cenários que dependem de resultados específicos; não usar retries para esconder variabilidade de domínio.
+9. [ ] Demonstrar que as regressões falham com o defeito correspondente e passam após a correção, em ambiente isolado.
+10. [ ] Registrar as suites realmente executadas no commit final. Mocks unitários, emuladores, E2E e revisão visual são evidências diferentes.
+
+**Resultado esperado:** CI falha quando o comportamento principal não acontece ou quando existe acesso indevido, em vez de apenas validar presença de telas.
+
+**Aceite:** save → reopen → edit → export e check-in persistido são obrigatórios; todos os bypasses desta revisão têm regressões; execução não depende de credenciais pessoais.
+
+### C10 — Bloquear todo envio externo em testes e demo isolada
+
+**Problema observado:** `isDemoRecipient` só intercepta todos os destinatários com `VITE_DEMO_MODE=true`. No modo emulado, a interceptação depende de o domínio pertencer à lista. Um destinatário real pode chegar ao EmailJS se a integração estiver configurada.
+
+**Arquivos principais:** `src/services/emailService.ts`, testes de e-mail, configuração E2E/demo, `.env.example`, `docs/demo-guide.md`.
+
+**Passo a passo:**
+
+1. [ ] Separar modo de transporte (simulado/real) de classificação do domínio do destinatário.
+2. [ ] Fazer emuladores, testes e demo isolada usarem transporte simulado para qualquer endereço, independentemente de chaves reais presentes por engano.
+3. [ ] Exigir modo real explícito no ambiente apropriado. Não fazer fallback para envio real quando a simulação estiver incompleta.
+4. [ ] Identificar envio simulado na UI sem afirmar entrega real.
+5. [ ] Testar que um destinatário fora da lista não aciona rede em modo isolado, mesmo com EmailJS configurado.
+6. [ ] Revisar outros canais, como reset de senha, para garantir que testes estejam conectados ao Auth emulado.
+7. [ ] Descrever limites corretamente: rate limit em memória do navegador é uma proteção de UX, não controle confiável contra abuso por cliente modificado. Para envio real, exigir controles do provedor/backend e registrar o que foi verificado.
+
+**Resultado esperado:** testes e demonstrações não enviam mensagens a terceiros inadvertidamente.
+
+**Aceite:** spy/interceptação de transporte prova ausência de chamada externa para qualquer domínio no ambiente isolado; UI diferencia simulação de entrega real.
+
+### C11 — Finalizar tradução dos fluxos novos e erros do domínio
+
+**Problemas observados:** `AcceptInvitation.tsx` ainda contém textos fixos como “Verificando convite...” e “Acessando portal...”. Validadores/serviços retornam mensagens em português, e algumas telas mostram `err.message` diretamente.
+
+**Arquivos principais:** `src/pages/AcceptInvitation.tsx`, `src/services/dietAlgorithmService.ts`, `src/services/invitationService.ts`, `src/contexts/AuthContext.tsx`, locales, utilitários de erro e exportador.
+
+**Passo a passo:**
+
+1. [ ] Inventariar strings visíveis nos estados de carregamento, sucesso e falha dos fluxos novos, incluindo respostas do domínio.
+2. [ ] Retornar códigos estáveis e parâmetros dos serviços; traduzir na apresentação em vez de depender de mensagens literais.
+3. [ ] Mapear erros externos para mensagens seguras/localizadas. Não exibir código técnico bruto como principal orientação ao usuário.
+4. [ ] Traduzir status, avisos de validação, convites e textos acessíveis nos dois idiomas.
+5. [ ] Manter paridade de chaves e acrescentar testes de estados reais; paridade sozinha não encontra textos que nunca viraram chaves.
+6. [ ] Revisar planos históricos e decisões persistidas sem reescrever conteúdo clínico silenciosamente ao trocar idioma.
+
+**Resultado esperado:** PT/EN inclui situações de erro e ativação, não apenas a jornada feliz.
+
+**Aceite:** convite válido/expirado/revogado, falha de perfil e plano inviável têm mensagens coerentes nos dois idiomas, sem strings técnicas ou português involuntário na interface inglesa.
+
+### C12 — Corrigir status, garantias e evidências da documentação
+
+**Problema observado:** o plano está marcado integralmente concluído; ADRs afirmam aceitação atômica de convites e garantias amplas de privacidade não sustentadas pela implementação. O guia local contradiz a configuração do ambiente e existem métricas de diferentes momentos sem delimitação uniforme.
+
+**Arquivos principais:** `o-que-precisa-ser-feito.md`, `README.md`, `docs/architecture-decisions.md`, `docs/deployment-and-config.md`, `docs/baseline-matriz.md`, `docs/performance.md`, `docs/accessibility.md`, `docs/demo-guide.md`.
+
+**Passo a passo:**
+
+1. [ ] Ao implementar as correções, reclassificar os itens afetados como parciais/pendentes até seus critérios passarem. Preservar os registros antigos como históricos datados.
+2. [ ] Separar decisão arquitetural pretendida de implementação presente. Atualizar ADRs para o contrato efetivamente entregue por C01/C03.
+3. [ ] Remover afirmações de conformidade integral de privacidade/validade clínica e outras garantias não demonstradas.
+4. [ ] Corrigir requisitos Java/Node, configuração sintética, versão React e instruções de emulação/publicação.
+5. [ ] Verificar que comandos de hosting documentados possuem configuração correspondente. Não declarar publicação reproduzível apenas por listar um comando.
+6. [ ] Vincular números de testes, cobertura e bundle a commit, data, comando e cenário; não combinar métricas históricas como se fossem uma medição única.
+7. [ ] Descrever quais comportamentos são simulados e quais controles existem apenas no cliente.
+8. [ ] Registrar separadamente verificações locais, CI remota, proteção de branch, regras/índices implantados e revisão visual. Não assumir que uma confirma as outras.
+9. [ ] Somente após validar as correções, escrever nova conclusão de prontidão com limitações restantes. Evitar a expressão “tudo correto” sem delimitar escopo.
+
+**Resultado esperado:** outra IA e um tech lead conseguem distinguir intenção, implementação e evidência sem depender do histórico da conversa.
+
+**Aceite:** nenhuma afirmação contradiz os fluxos corrigidos; setup funciona conforme descrito; status e métricas têm evidência identificável.
+
+### 9.3. Checklist de encerramento deste adendo
+
+- [ ] C01 — Vínculos e papéis protegidos contra autodeclaração.
+- [ ] C02 — Históricos protegidos contra substituição de mesmo tamanho e falsificação de autoria.
+- [ ] C03 — Convites validados no lado confiável, atômicos no Firestore e recuperáveis entre Auth/Firestore.
+- [ ] C04 — Java, Node e configuração de testes alinhados; checkout limpo reproduzido.
+- [ ] C05 — Edição e PDF preservam consistência de refeições, totais e validação.
+- [ ] C06 — Metas, alternativas e dados desconhecidos seguem regras explícitas e testadas.
+- [ ] C07 — Revogação confirmada e exclusão protegida contra concorrência.
+- [ ] C08 — Ativação de convite e contexto de autenticação sincronizados.
+- [ ] C09 — Jornadas completas obrigatórias e regressões adversariais presentes.
+- [ ] C10 — Ambiente isolado impede envio externo para qualquer destinatário.
+- [ ] C11 — Traduções incluem novos fluxos e erros.
+- [ ] C12 — Documentação e status correspondem às evidências do commit final.
+
+**Registro por correção:** usar o modelo da seção 2, incluindo a regressão que comprova a resolução. Após alterações de código, seguir também a atualização do grafo prevista no `AGENTS.md`; não atualizar o grafo como substituto para testes.
+
+**Status deste adendo:** pendente de implementação e validação. A inclusão destas instruções altera apenas a documentação e não resolve os defeitos identificados.

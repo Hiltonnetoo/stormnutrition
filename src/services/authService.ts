@@ -139,6 +139,7 @@ export const setupPatientPortalAccess = async (
       nutritionistName,
       nutritionistEmail,
       role: "patient",
+      status: "active",
       createdAt: new Date().toISOString(),
     });
     profileCreated = true;
@@ -146,6 +147,7 @@ export const setupPatientPortalAccess = async (
     // 2. Update patient reference with portalUid
     await updateDoc(doc(db, "users", nutritionistId, "patients", patientId), {
       portalUid: createdUser.uid,
+      portalStatus: "active",
     });
 
     return createdUser.uid;

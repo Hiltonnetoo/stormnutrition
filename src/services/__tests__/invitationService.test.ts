@@ -11,6 +11,12 @@ import * as firestore from "firebase/firestore";
 import * as firebaseAuth from "firebase/auth";
 import type { User } from "../firebaseCore";
 
+const mockBatch = {
+  set: vi.fn(),
+  update: vi.fn(),
+  commit: vi.fn().mockResolvedValue(undefined),
+};
+
 vi.mock("firebase/firestore", () => ({
   doc: vi.fn((_db, coll, id) => ({ path: `${coll}/${id || "auto_id"}` })),
   collection: vi.fn((_db, coll) => ({ path: coll })),
@@ -20,6 +26,13 @@ vi.mock("firebase/firestore", () => ({
   getDocs: vi.fn(),
   setDoc: vi.fn(),
   updateDoc: vi.fn(),
+  writeBatch: vi.fn(() => mockBatch),
+  Timestamp: {
+    fromDate: vi.fn((d: Date) => ({
+      seconds: Math.floor(d.getTime() / 1000),
+      nanoseconds: 0,
+    })),
+  },
 }));
 
 vi.mock("firebase/auth", () => ({
@@ -34,6 +47,9 @@ vi.mock("../firebaseCore", () => ({
 describe("invitationService - Secure Invitation Lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockBatch.set.mockClear();
+    mockBatch.update.mockClear();
+    mockBatch.commit.mockClear();
   });
 
   describe("computeInvitationStatus", () => {
@@ -284,30 +300,34 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
 
       await acceptInvitationWithExistingAccount("invite-100", mockCurrentUser);
 
-      // Should set patientProfile with role patient
-      expect(firestore.setDoc).toHaveBeenCalledWith(
+      // Should set patientProfile with role patient and invitationId via batch
+      expect(mockBatch.set).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           role: "patient",
           patientId: "pat-1",
           nutritionistId: "nutri-1",
+          invitationId: "invite-100",
         }),
         { merge: true },
       );
 
-      // Should link portalUid on patient doc
-      expect(firestore.updateDoc).toHaveBeenCalledWith(expect.anything(), {
+      // Should link portalUid on patient doc via batch
+      expect(mockBatch.update).toHaveBeenCalledWith(expect.anything(), {
         portalUid: "user-patient-existing",
+        portalStatus: "active",
       });
 
-      // Should mark invitation as accepted
-      expect(firestore.updateDoc).toHaveBeenCalledWith(
+      // Should mark invitation as accepted via batch
+      expect(mockBatch.update).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           status: "accepted",
           acceptedByUid: "user-patient-existing",
         }),
       );
+
+      expect(mockBatch.commit).toHaveBeenCalled();
     });
 
     it("rejects explicit link if current user email does not match invitation email", async () => {
@@ -395,14 +415,20 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
         "novo@test.com",
         "minhaSenhaSuperSecreta123!",
       );
-      expect(firestore.setDoc).toHaveBeenCalledWith(
+      expect(mockBatch.set).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           role: "patient",
           patientId: "pat-1",
           nutritionistId: "nutri-1",
+          invitationId: "token-new",
         }),
       );
+      expect(mockBatch.update).toHaveBeenCalledWith(expect.anything(), {
+        portalUid: "new-patient-uid",
+        portalStatus: "active",
+      });
+      expect(mockBatch.commit).toHaveBeenCalled();
     });
   });
 });

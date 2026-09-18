@@ -7,6 +7,8 @@ import {
   query,
   where,
   getDocs,
+  writeBatch,
+  Timestamp,
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { db, auth } from "./firebaseCore";
@@ -70,9 +72,10 @@ export const createOrGetPendingInvitation = async (
 
   // 2. Create new invitation
   const newDocRef = doc(collection(db, "invitations"));
-  const expiresAt = new Date(
+  const expiresAtDate = new Date(
     now.getTime() + validityDays * 24 * 60 * 60 * 1000,
-  ).toISOString();
+  );
+  const expiresAt = expiresAtDate.toISOString();
 
   const invitation: PatientInvitation = {
     id: newDocRef.id,
@@ -97,6 +100,7 @@ export const createOrGetPendingInvitation = async (
     status: invitation.status,
     createdAt: invitation.createdAt,
     expiresAt: invitation.expiresAt,
+    expiresAtTimestamp: Timestamp.fromDate(expiresAtDate),
   });
 
   // Link pendingInvitationId to patient doc
@@ -175,28 +179,38 @@ export const acceptInvitationWithNewAccount = async (
   const uid = userCred.user.uid;
 
   try {
-    // 1. Create patient portal profile
-    await setDoc(doc(db, "patientProfiles", uid), {
+    const batch = writeBatch(db);
+    const nowIso = new Date().toISOString();
+
+    // 1. Create patient portal profile with invitationId
+    batch.set(doc(db, "patientProfiles", uid), {
       patientId: inv.patientId,
       nutritionistId: inv.nutritionistId,
       nutritionistName: inv.nutritionistName,
       nutritionistEmail: inv.nutritionistEmail,
+      invitationId: token,
       role: "patient",
-      createdAt: new Date().toISOString(),
+      status: "active",
+      createdAt: nowIso,
     });
 
     // 2. Link portalUid on patient doc
-    await updateDoc(
+    batch.update(
       doc(db, "users", inv.nutritionistId, "patients", inv.patientId),
-      { portalUid: uid },
+      {
+        portalUid: uid,
+        portalStatus: "active",
+      },
     );
 
     // 3. Mark invitation as accepted
-    await updateDoc(doc(db, "invitations", token), {
+    batch.update(doc(db, "invitations", token), {
       status: "accepted",
-      acceptedAt: new Date().toISOString(),
+      acceptedAt: nowIso,
       acceptedByUid: uid,
     });
+
+    await batch.commit();
 
     return { uid };
   } catch (err) {
@@ -244,31 +258,40 @@ export const acceptInvitationWithExistingAccount = async (
   }
 
   const uid = currentUser.uid;
+  const batch = writeBatch(db);
+  const nowIso = new Date().toISOString();
 
-  // 1. Create/Update patient profile
-  await setDoc(
+  // 1. Create/Update patient profile with invitationId
+  batch.set(
     doc(db, "patientProfiles", uid),
     {
       patientId: inv.patientId,
       nutritionistId: inv.nutritionistId,
       nutritionistName: inv.nutritionistName,
       nutritionistEmail: inv.nutritionistEmail,
+      invitationId: token,
       role: "patient",
-      createdAt: new Date().toISOString(),
+      status: "active",
+      createdAt: nowIso,
     },
     { merge: true },
   );
 
   // 2. Link portalUid on patient doc
-  await updateDoc(
+  batch.update(
     doc(db, "users", inv.nutritionistId, "patients", inv.patientId),
-    { portalUid: uid },
+    {
+      portalUid: uid,
+      portalStatus: "active",
+    },
   );
 
   // 3. Mark invitation as accepted
-  await updateDoc(doc(db, "invitations", token), {
+  batch.update(doc(db, "invitations", token), {
     status: "accepted",
-    acceptedAt: new Date().toISOString(),
+    acceptedAt: nowIso,
     acceptedByUid: uid,
   });
+
+  await batch.commit();
 };

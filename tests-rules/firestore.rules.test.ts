@@ -8,7 +8,14 @@ import {
   assertSucceeds,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  writeBatch,
+  Timestamp,
+} from "firebase/firestore";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -367,30 +374,26 @@ describe("Firestore security rules - Authorization Matrix", () => {
         });
       });
 
-      const patientDb = testEnv.authenticatedContext(newPatientUid).firestore();
-      // Patient accepts invitation
-      await assertSucceeds(
-        updateDoc(doc(patientDb, "invitations/inv-accept"), {
-          status: "accepted",
-          acceptedByUid: newPatientUid,
-        }),
-      );
-
-      // Patient claims portalUid on the unlinked patient doc
-      await assertSucceeds(
-        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p_unlinked`), {
-          portalUid: newPatientUid,
-        }),
-      );
-
-      // Patient creates their patientProfile
-      await assertSucceeds(
-        setDoc(doc(patientDb, `patientProfiles/${newPatientUid}`), {
-          nutritionistId: NUTRI_A,
-          patientId: "p_unlinked",
-          role: "patient",
-        }),
-      );
+      const patientDb = testEnv
+        .authenticatedContext(newPatientUid, { email: "novo@test.com" })
+        .firestore();
+      // Patient accepts invitation via atomic batch
+      const batch = writeBatch(patientDb);
+      batch.update(doc(patientDb, "invitations/inv-accept"), {
+        status: "accepted",
+        acceptedByUid: newPatientUid,
+      });
+      batch.update(doc(patientDb, `users/${NUTRI_A}/patients/p_unlinked`), {
+        portalUid: newPatientUid,
+        portalStatus: "active",
+      });
+      batch.set(doc(patientDb, `patientProfiles/${newPatientUid}`), {
+        nutritionistId: NUTRI_A,
+        patientId: "p_unlinked",
+        invitationId: "inv-accept",
+        role: "patient",
+      });
+      await assertSucceeds(batch.commit());
     });
   });
 
@@ -593,6 +596,258 @@ describe("Firestore security rules - Authorization Matrix", () => {
           patientId: "p1",
         }),
       );
+    });
+  });
+
+  describe("10. Passo C01 - Anti-Self-Declared Links & Portal Appropriation Regressions", () => {
+    const ATTACKER_UID = "attackerUser123";
+
+    it("FORBIDS creating self-declared patientProfiles pointing to another nutritionist/patient without an invitation", async () => {
+      const attackerDb = testEnv.authenticatedContext(ATTACKER_UID).firestore();
+
+      // Attacker tries to declare themselves linked to Nutri A's patient p1
+      await assertFails(
+        setDoc(doc(attackerDb, `patientProfiles/${ATTACKER_UID}`), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1",
+          role: "patient",
+        }),
+      );
+
+      // Attacker tries to declare themselves linked to an unlinked patient
+      await assertFails(
+        setDoc(doc(attackerDb, `patientProfiles/${ATTACKER_UID}`), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_unlinked",
+          role: "patient",
+        }),
+      );
+    });
+
+    it("FORBIDS arbitrary user from appropriating portalUid on an unlinked patient without an atomic invitation batch", async () => {
+      // Seed unlinked patient
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_target`), {
+          firstName: "Target",
+          portalUid: null,
+        });
+      });
+
+      const attackerDb = testEnv.authenticatedContext(ATTACKER_UID).firestore();
+
+      // Attacker tries direct updateDoc to set portalUid
+      await assertFails(
+        updateDoc(doc(attackerDb, `users/${NUTRI_A}/patients/p_target`), {
+          portalUid: ATTACKER_UID,
+        }),
+      );
+    });
+
+    it("FORBIDS creating patientProfile referencing non-existent or fake invitation token", async () => {
+      const attackerDb = testEnv.authenticatedContext(ATTACKER_UID).firestore();
+
+      await assertFails(
+        setDoc(doc(attackerDb, `patientProfiles/${ATTACKER_UID}`), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1",
+          invitationId: "fake-non-existent-token",
+          role: "patient",
+        }),
+      );
+    });
+
+    it("FORBIDS user with mismatched email from accepting an invitation", async () => {
+      // Seed invitation targeted at legitimate email
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_alice`), {
+          firstName: "Alice",
+        });
+        await setDoc(doc(ctx.firestore(), "invitations/inv-alice"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_alice",
+          patientEmail: "alice@legitimate.com",
+          status: "pending",
+          expiresAt: "2026-12-01T00:00:00Z",
+        });
+      });
+
+      // Attacker Eve has eve@attacker.com
+      const eveDb = testEnv
+        .authenticatedContext(ATTACKER_UID, { email: "eve@attacker.com" })
+        .firestore();
+
+      const batch = writeBatch(eveDb);
+      batch.update(doc(eveDb, "invitations/inv-alice"), {
+        status: "accepted",
+        acceptedByUid: ATTACKER_UID,
+      });
+      batch.update(doc(eveDb, `users/${NUTRI_A}/patients/p_alice`), {
+        portalUid: ATTACKER_UID,
+        portalStatus: "active",
+      });
+      batch.set(doc(eveDb, `patientProfiles/${ATTACKER_UID}`), {
+        nutritionistId: NUTRI_A,
+        patientId: "p_alice",
+        invitationId: "inv-alice",
+        role: "patient",
+      });
+
+      // Must FAIL because eve's email does not match alice@legitimate.com
+      await assertFails(batch.commit());
+    });
+
+    it("FORBIDS user from accepting an expired invitation", async () => {
+      // Seed expired invitation with past expiresAtTimestamp
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_expired`), {
+          firstName: "ExpiredTarget",
+        });
+        await setDoc(doc(ctx.firestore(), "invitations/inv-expired"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_expired",
+          patientEmail: "expired@test.com",
+          status: "pending",
+          expiresAt: "2026-01-01T00:00:00Z",
+          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-01-01T00:00:00Z")),
+        });
+      });
+
+      const userDb = testEnv
+        .authenticatedContext("expiredUser", { email: "expired@test.com" })
+        .firestore();
+
+      const batch = writeBatch(userDb);
+      batch.update(doc(userDb, "invitations/inv-expired"), {
+        status: "accepted",
+        acceptedByUid: "expiredUser",
+      });
+      batch.update(doc(userDb, `users/${NUTRI_A}/patients/p_expired`), {
+        portalUid: "expiredUser",
+        portalStatus: "active",
+      });
+      batch.set(doc(userDb, `patientProfiles/expiredUser`), {
+        nutritionistId: NUTRI_A,
+        patientId: "p_expired",
+        invitationId: "inv-expired",
+        role: "patient",
+      });
+
+      await assertFails(batch.commit());
+    });
+
+    it("DENIES silent nutritionist fallback for unprofiled account (no /users/{uid})", async () => {
+      const unprofiledUid = "unprofiledAccount";
+      const unprofiledDb = testEnv.authenticatedContext(unprofiledUid).firestore();
+
+      // Must FAIL: Cannot create patients under their own UID if /users/{uid} doesn't exist
+      await assertFails(
+        setDoc(doc(unprofiledDb, `users/${unprofiledUid}/patients/p_orphan`), {
+          firstName: "ShouldFail",
+        }),
+      );
+
+      // Must FAIL: Cannot create invitations
+      await assertFails(
+        setDoc(doc(unprofiledDb, "invitations/inv-orphan"), {
+          nutritionistId: unprofiledUid,
+          patientId: "p_orphan",
+          patientEmail: "test@test.com",
+          status: "pending",
+          expiresAt: "2026-10-01T00:00:00Z",
+        }),
+      );
+    });
+
+    it("PREVENTS revoked patient link from reading patient record, diets, or appointments even if profile remains", async () => {
+      // Revoke p1 in nutritionist's workspace
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p1`), {
+          portalUid: null,
+          portalStatus: "revoked",
+        });
+        await updateDoc(doc(ctx.firestore(), `patientProfiles/${PATIENT_UID}`), {
+          status: "revoked",
+        });
+      });
+
+      const revokedPatientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+      // All reads must FAIL
+      await assertFails(getDoc(doc(revokedPatientDb, `users/${NUTRI_A}/patients/p1`)));
+      await assertFails(getDoc(doc(revokedPatientDb, `users/${NUTRI_A}/diets/d1`)));
+      await assertFails(getDoc(doc(revokedPatientDb, `users/${NUTRI_A}/appointments/apt_p1`)));
+    });
+
+    it("ALLOWS legitimate atomic invitation acceptance and subsequent authorized reading", async () => {
+      const legitUid = "legitPatientUser";
+      const legitEmail = "legit@clinic.com";
+
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_legit`), {
+          firstName: "Legit Patient",
+        });
+        await setDoc(doc(ctx.firestore(), "invitations/inv-legit"), {
+          nutritionistId: NUTRI_A,
+          patientId: "p_legit",
+          patientEmail: legitEmail,
+          status: "pending",
+          expiresAt: "2026-12-01T00:00:00Z",
+          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+        });
+        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/diets/diet_legit`), {
+          patientId: "p_legit",
+        });
+      });
+
+      const legitDb = testEnv
+        .authenticatedContext(legitUid, { email: legitEmail })
+        .firestore();
+
+      // 1. Atomic batch commit succeeds
+      const batch = writeBatch(legitDb);
+      batch.update(doc(legitDb, "invitations/inv-legit"), {
+        status: "accepted",
+        acceptedByUid: legitUid,
+      });
+      batch.update(doc(legitDb, `users/${NUTRI_A}/patients/p_legit`), {
+        portalUid: legitUid,
+        portalStatus: "active",
+      });
+      batch.set(doc(legitDb, `patientProfiles/${legitUid}`), {
+        nutritionistId: NUTRI_A,
+        patientId: "p_legit",
+        invitationId: "inv-legit",
+        role: "patient",
+      });
+      await assertSucceeds(batch.commit());
+
+      // 2. Legit patient can now read their own patient record and diet
+      await assertSucceeds(getDoc(doc(legitDb, `users/${NUTRI_A}/patients/p_legit`)));
+      await assertSucceeds(getDoc(doc(legitDb, `users/${NUTRI_A}/diets/diet_legit`)));
+
+      // 3. Attacker STILL cannot read legit patient's record or diet
+      const attackerDb = testEnv.authenticatedContext(ATTACKER_UID).firestore();
+      await assertFails(getDoc(doc(attackerDb, `users/${NUTRI_A}/patients/p_legit`)));
+      await assertFails(getDoc(doc(attackerDb, `users/${NUTRI_A}/diets/diet_legit`)));
+    });
+
+    it("DENIES read even if attacker has a forged patientProfile because nutritionist patient doc does not point to attacker", async () => {
+      const forgedUid = "forgedAccountUid";
+
+      // Seed a forged profile (as if directly written or legacy leftover)
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), `patientProfiles/${forgedUid}`), {
+          nutritionistId: NUTRI_A,
+          patientId: "p1", // Points to Ana (p1), but p1.portalUid is PATIENT_UID
+          role: "patient",
+        });
+      });
+
+      const forgedDb = testEnv.authenticatedContext(forgedUid).firestore();
+
+      // Both reads must FAIL because p1.portalUid !== forgedUid
+      await assertFails(getDoc(doc(forgedDb, `users/${NUTRI_A}/patients/p1`)));
+      await assertFails(getDoc(doc(forgedDb, `users/${NUTRI_A}/diets/d1`)));
     });
   });
 });

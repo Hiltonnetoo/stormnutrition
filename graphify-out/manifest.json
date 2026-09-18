@@ -468,9 +468,9 @@
     "semantic_hash": ""
   },
   "src/services/authService.ts": {
-    "mtime": 1789697297.0639446,
-    "seen": 1789697320.77218,
-    "ast_hash": "62ce67849721327c33dedf47d9abf208",
+    "mtime": 1789749726.470924,
+    "seen": 1789750045.816305,
+    "ast_hash": "bba72b9b570fc1575d8aedd0b3ac0c70",
     "semantic_hash": ""
   },
   "src/services/billingService.ts": {
@@ -576,9 +576,9 @@
     "semantic_hash": ""
   },
   "src/types/patient.ts": {
-    "mtime": 1789691557.0292103,
-    "seen": 1789692300.124091,
-    "ast_hash": "e29b1afcabed88da586dc399b20f2344",
+    "mtime": 1789749656.5978286,
+    "seen": 1789750045.816312,
+    "ast_hash": "a63d5208d3fa34adbd7b8f0fca576757",
     "semantic_hash": ""
   },
   "src/utils/calcAge.ts": {
@@ -624,9 +624,9 @@
     "semantic_hash": ""
   },
   "tests-rules/firestore.rules.test.ts": {
-    "mtime": 1789692601.865333,
-    "seen": 1789693635.9190521,
-    "ast_hash": "3e641593365dd71cb7dce00663a19e25",
+    "mtime": 1789749880.6704514,
+    "seen": 1789750045.816322,
+    "ast_hash": "11d047f073542d3ac7d13c953d5cfd2d",
     "semantic_hash": ""
   },
   "tsconfig.json": {
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789744646.0063026,
-    "seen": 1789745493.209001,
-    "ast_hash": "0ee5b2b5f9bdf58a95cadde5b65d3966",
+    "mtime": 1789750018.6808991,
+    "seen": 1789750045.816345,
+    "ast_hash": "d75278166a65d5ce637a0be3aa8ab9b6",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1032,9 +1032,9 @@
     "semantic_hash": ""
   },
   "tests-rules/dietPersistence.integration.test.ts": {
-    "mtime": 1789686283.4465322,
-    "seen": 1789686354.645786,
-    "ast_hash": "390ff9dae027922a8c5e3bc808c13d99",
+    "mtime": 1789749832.8482947,
+    "seen": 1789750045.816322,
+    "ast_hash": "ab86337fc3d16edcdce8fca50d51c901",
     "semantic_hash": ""
   },
   "src/contexts/__tests__/AuthContext.test.tsx": {
@@ -1086,15 +1086,15 @@
     "semantic_hash": ""
   },
   "src/services/__tests__/invitationService.test.ts": {
-    "mtime": 1789688643.144054,
-    "seen": 1789688684.37868,
-    "ast_hash": "c19e3fe01f2083bb8547f2ae5f3ca284",
+    "mtime": 1789749957.4333563,
+    "seen": 1789750045.816303,
+    "ast_hash": "dd7e035fcfb227ab03b4d77c23ca40c5",
     "semantic_hash": ""
   },
   "src/services/invitationService.ts": {
-    "mtime": 1789688643.2130635,
-    "seen": 1789688684.378685,
-    "ast_hash": "6cf719fb0f4bf906e933bb0af23bf3a5",
+    "mtime": 1789749766.700216,
+    "seen": 1789750045.816309,
+    "ast_hash": "c548ef338a65eeb8b09aceb988a8ffe2",
     "semantic_hash": ""
   },
   "src/services/__tests__/appointmentService.test.ts": {

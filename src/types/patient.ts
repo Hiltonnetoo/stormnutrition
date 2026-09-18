@@ -154,4 +154,5 @@ export interface PatientPortalProfile {
   status?: "active" | "revoked";
   revokedAt?: string;
   revokedReason?: string;
+  invitationId?: string;
 }

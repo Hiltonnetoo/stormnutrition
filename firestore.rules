@@ -10,11 +10,12 @@ service cloud.firestore {
     // The nutritionist owns the workspace under /users/{userId}.
     // Verifies authentication and ensures the user is a registered nutritionist,
     // preventing arbitrary accounts or patients from operating as nutritionists.
+    // Unprofiled accounts do not silently receive nutritionist privileges.
     function isNutritionist(userId) {
       return isAuthenticated() &&
         request.auth.uid == userId &&
-        (!exists(/databases/$(database)/documents/users/$(userId)) ||
-         get(/databases/$(database)/documents/users/$(userId)).data.role == 'nutritionist');
+        exists(/databases/$(database)/documents/users/$(userId)) &&
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'nutritionist';
     }
 
     function getPatientProfile() {
@@ -37,10 +38,20 @@ service cloud.firestore {
 
     // True when the signed-in patient owns a document (diet/appointment) under
     // users/{userId}, matched by the document's patientId field.
+    // Also cross-verifies that the patient record in the nutritionist's workspace
+    // actually has portalUid == request.auth.uid and portalStatus != 'revoked'.
     function isOwnerPatientByField(userId) {
       return hasPatientProfile() &&
         getPatientProfile().nutritionistId == userId &&
-        resource.data.patientId == getPatientProfile().patientId;
+        resource.data.patientId == getPatientProfile().patientId &&
+        exists(/databases/$(database)/documents/users/$(userId)/patients/$(getPatientProfile().patientId)) &&
+        get(/databases/$(database)/documents/users/$(userId)/patients/$(getPatientProfile().patientId)).data.portalUid == request.auth.uid &&
+        (!('portalStatus' in get(/databases/$(database)/documents/users/$(userId)/patients/$(getPatientProfile().patientId)).data) ||
+         get(/databases/$(database)/documents/users/$(userId)/patients/$(getPatientProfile().patientId)).data.portalStatus != 'revoked') &&
+        (!('status' in get(/databases/$(database)/documents/users/$(userId)/patients/$(getPatientProfile().patientId)).data) ||
+         get(/databases/$(database)/documents/users/$(userId)/patients/$(getPatientProfile().patientId)).data.status != 'Archived') &&
+        (!('deletionPending' in get(/databases/$(database)/documents/users/$(userId)/patients/$(getPatientProfile().patientId)).data) ||
+         get(/databases/$(database)/documents/users/$(userId)/patients/$(getPatientProfile().patientId)).data.deletionPending != true);
     }
 
     // Patient self-service update validation:
@@ -77,31 +88,41 @@ service cloud.firestore {
       // Nutritionist creates pending invitation for an existing patient
       allow create: if isAuthenticated() &&
         request.resource.data.nutritionistId == request.auth.uid &&
+        isNutritionist(request.auth.uid) &&
         request.resource.data.status == "pending" &&
         request.resource.data.patientId is string &&
         request.resource.data.patientEmail is string &&
         request.resource.data.expiresAt is string &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)/patients/$(request.resource.data.patientId));
 
-      // Nutritionist can revoke, OR patient can accept
+      // Nutritionist can revoke, OR patient can accept in an atomic batch
       allow update: if isAuthenticated() && (
         // Revoke by nutritionist:
         (resource.data.nutritionistId == request.auth.uid &&
+         isNutritionist(request.auth.uid) &&
          request.resource.data.status == "revoked" &&
          resource.data.status == "pending")
         ||
-        // Accept by authenticated patient:
+        // Accept by authenticated patient (must be coordinated with patientProfile and patient doc):
         (resource.data.status == "pending" &&
-          request.resource.data.status == "accepted" &&
-          request.resource.data.acceptedByUid == request.auth.uid &&
-          request.resource.data.nutritionistId == resource.data.nutritionistId &&
-          request.resource.data.patientId == resource.data.patientId &&
-          request.resource.data.patientEmail == resource.data.patientEmail)
+         request.resource.data.status == "accepted" &&
+         request.resource.data.acceptedByUid == request.auth.uid &&
+         request.resource.data.nutritionistId == resource.data.nutritionistId &&
+         request.resource.data.patientId == resource.data.patientId &&
+         request.resource.data.patientEmail == resource.data.patientEmail &&
+         (!('expiresAtTimestamp' in resource.data) || request.time < resource.data.expiresAtTimestamp) &&
+         (!('email' in request.auth.token) ||
+          request.auth.token.email.lower() == resource.data.patientEmail.lower()) &&
+         existsAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)) &&
+         getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.patientId == resource.data.patientId &&
+         getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.nutritionistId == resource.data.nutritionistId &&
+         getAfter(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data.portalUid == request.auth.uid)
       );
 
       // Nutritionist can delete invitations associated with their patients
       allow delete: if isAuthenticated() &&
-        resource.data.nutritionistId == request.auth.uid;
+        resource.data.nutritionistId == request.auth.uid &&
+        isNutritionist(request.auth.uid);
     }
 
     // ------------------------------------------------------ patientProfiles
@@ -110,27 +131,73 @@ service cloud.firestore {
       allow read: if isAuthenticated() &&
         (request.auth.uid == profileId || resource.data.nutritionistId == request.auth.uid);
 
-      // Link profile can be created by the nutritionist owner OR by the patient themself during invite acceptance.
+      // Link profile can be created ONLY in two secure scenarios:
+      // 1. By the nutritionist who owns the patient workspace (direct portal provisioning)
+      // 2. By the authenticated patient accepting an active, matching, unexpired invitation in an atomic batch
       allow create: if isAuthenticated() &&
         request.resource.data.role == "patient" &&
         request.resource.data.patientId is string &&
         request.resource.data.nutritionistId is string &&
         (
-          (request.resource.data.nutritionistId == request.auth.uid &&
-           exists(/databases/$(database)/documents/users/$(request.auth.uid)/patients/$(request.resource.data.patientId)))
+          // Scenario 1: Nutritionist direct creation
+          (
+            request.resource.data.nutritionistId == request.auth.uid &&
+            isNutritionist(request.auth.uid) &&
+            exists(/databases/$(database)/documents/users/$(request.auth.uid)/patients/$(request.resource.data.patientId))
+          )
           ||
-          (request.auth.uid == profileId)
+          // Scenario 2: Patient accepting invitation via atomic batch
+          (
+            request.auth.uid == profileId &&
+            'invitationId' in request.resource.data &&
+            request.resource.data.invitationId is string &&
+            exists(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)) &&
+            get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.status == "pending" &&
+            get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.nutritionistId == request.resource.data.nutritionistId &&
+            get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.patientId == request.resource.data.patientId &&
+            (!('expiresAtTimestamp' in get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data) ||
+             request.time < get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.expiresAtTimestamp) &&
+            (!('email' in request.auth.token) ||
+             request.auth.token.email.lower() == get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.patientEmail.lower()) &&
+            getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.status == "accepted" &&
+            getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.acceptedByUid == request.auth.uid &&
+            getAfter(/databases/$(database)/documents/users/$(request.resource.data.nutritionistId)/patients/$(request.resource.data.patientId)).data.portalUid == request.auth.uid
+          )
         );
 
       // Only the linked nutritionist can update/delete it, with immutable association IDs.
-      allow update: if isAuthenticated() &&
-        resource.data.nutritionistId == request.auth.uid &&
-        request.resource.data.patientId == resource.data.patientId &&
-        request.resource.data.nutritionistId == resource.data.nutritionistId &&
-        request.resource.data.role == resource.data.role;
+      // (Exception: Patient can update their own profile during existing-account invitation re-link via atomic batch)
+      allow update: if isAuthenticated() && (
+        (
+          resource.data.nutritionistId == request.auth.uid &&
+          isNutritionist(request.auth.uid) &&
+          request.resource.data.patientId == resource.data.patientId &&
+          request.resource.data.nutritionistId == resource.data.nutritionistId &&
+          request.resource.data.role == resource.data.role
+        )
+        ||
+        (
+          request.auth.uid == profileId &&
+          request.resource.data.role == "patient" &&
+          'invitationId' in request.resource.data &&
+          request.resource.data.invitationId is string &&
+          exists(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)) &&
+          get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.status == "pending" &&
+          get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.nutritionistId == request.resource.data.nutritionistId &&
+          get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.patientId == request.resource.data.patientId &&
+          (!('expiresAtTimestamp' in get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data) ||
+           request.time < get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.expiresAtTimestamp) &&
+          (!('email' in request.auth.token) ||
+           request.auth.token.email.lower() == get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.patientEmail.lower()) &&
+          getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.status == "accepted" &&
+          getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.acceptedByUid == request.auth.uid &&
+          getAfter(/databases/$(database)/documents/users/$(request.resource.data.nutritionistId)/patients/$(request.resource.data.patientId)).data.portalUid == request.auth.uid
+        )
+      );
 
       allow delete: if isAuthenticated() &&
-        resource.data.nutritionistId == request.auth.uid;
+        resource.data.nutritionistId == request.auth.uid &&
+        isNutritionist(request.auth.uid);
     }
 
     // ------------------------------------------------------ users workspace
@@ -166,20 +233,46 @@ service cloud.firestore {
            request.resource.data.portalUid == null ||
            !('portalUid' in request.resource.data));
 
-        // The associated patient may read their own record...
-        allow read: if isAssociatedPatient(userId, patientId);
+        // The associated patient may read their own record:
+        // Must have matching patientProfile, must be linked in portalUid on this doc,
+        // not revoked, not archived, not pending deletion.
+        allow read: if isAssociatedPatient(userId, patientId) &&
+          resource.data.portalUid == request.auth.uid &&
+          (!('portalStatus' in resource.data) || resource.data.portalStatus != 'revoked') &&
+          (!('status' in resource.data) || resource.data.status != 'Archived') &&
+          (!('deletionPending' in resource.data) || resource.data.deletionPending != true);
+
         // ...and update ONLY self-service fields with validated non-decreasing history.
-        // Blocked if deletion is pending.
+        // Blocked if deletion is pending or revoked.
         allow update: if isAssociatedPatient(userId, patientId) &&
+          resource.data.portalUid == request.auth.uid &&
+          (!('portalStatus' in resource.data) || resource.data.portalStatus != 'revoked') &&
           (!('deletionPending' in resource.data) || resource.data.deletionPending != true) &&
           patientWriteIsSelfServiceValid();
 
         // Patient claiming portal access upon accepting invitation:
-        // Can only set portalUid == request.auth.uid when it is not yet bound
+        // Can only set portalUid == request.auth.uid in an atomic batch that accepts a valid pending invitation
         allow update: if isAuthenticated() &&
           (!('portalUid' in resource.data) || resource.data.portalUid == null) &&
+          (!('deletionPending' in resource.data) || resource.data.deletionPending != true) &&
+          (!('status' in resource.data) || resource.data.status != 'Archived') &&
           request.resource.data.portalUid == request.auth.uid &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['portalUid']);
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['portalUid', 'portalStatus']) &&
+          // Atomic batch verification with patientProfile and invitation:
+          existsAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)) &&
+          getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.patientId == patientId &&
+          getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.nutritionistId == userId &&
+          'invitationId' in getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data &&
+          exists(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)) &&
+          get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.status == "pending" &&
+          get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.patientId == patientId &&
+          get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.nutritionistId == userId &&
+          (!('email' in request.auth.token) ||
+           request.auth.token.email.lower() == get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.patientEmail.lower()) &&
+          (!('expiresAtTimestamp' in get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data) ||
+           request.time < get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.expiresAtTimestamp) &&
+          getAfter(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.status == "accepted" &&
+          getAfter(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.acceptedByUid == request.auth.uid;
       }
 
       match /diets/{dietId} {
