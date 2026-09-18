@@ -1427,17 +1427,17 @@ Os dez achados da revisão foram desdobrados em doze entregas para facilitar imp
 
 **Passo a passo:**
 
-1. [ ] Definir contrato único para geração e validação: catálogo/versão, metas, restrições, tolerâncias e opções clínicas entram explicitamente.
-2. [ ] Resolver alimentos por ID no catálogo correto. Se não for possível verificar um item, produzir erro ou revisão obrigatória; não usar `continue` como aprovação silenciosa.
-3. [ ] Separar compatível, incompatível e desconhecido nos metadados de restrições. Definir política conservadora para restrições obrigatórias e documentar limitações das heurísticas.
-4. [ ] Testar catálogo customizado e alimentos sem metadados, incluindo preparações. Comentário que promete política conservadora deve corresponder ao retorno da função.
-5. [ ] Validar finitude, sinal e coerência de entradas, quantidades e totais; dado desconhecido não pode ser convertido automaticamente em zero medido.
-6. [ ] Definir tolerâncias explícitas de calorias, proteína, carboidratos e gordura e criar issues para violações conforme a política adotada.
-7. [ ] Validar opções principais e alternativas. Quando a promessa for diária, verificar combinações permitidas ou usar um método conservador demonstrável; não limitar a análise combinatória ao sódio.
-8. [ ] Recalcular valores a partir das quantidades efetivamente persistidas. Alinhar arredondamento de `portionGrams` ao cálculo para evitar divergência entre quantidade mostrada e valores nutricionais.
-9. [ ] Revalidar após edição/substituição e antes de persistir/exportar. Tornar aprovação profissional de `requires_review` explícita e rastreável, se esse fluxo for permitido.
-10. [ ] Manter `infeasible` bloqueado e distinguir informação incompleta de plano validado. Não inventar limites clínicos para completar a tarefa.
-11. [ ] Reduzir a dependência de idioma global no domínio: retornar códigos/parâmetros e traduzir na apresentação, conforme C11.
+1. [x] Definir contrato único para geração e validação: catálogo/versão, metas, restrições, tolerâncias e opções clínicas entram explicitamente.
+2. [x] Resolver alimentos por ID no catálogo correto. Se não for possível verificar um item, produzir erro ou revisão obrigatória; não usar `continue` como aprovação silenciosa.
+3. [x] Separar compatível, incompatível e desconhecido nos metadados de restrições. Definir política conservadora para restrições obrigatórias e documentar limitações das heurísticas.
+4. [x] Testar catálogo customizado e alimentos sem metadados, incluindo preparações. Comentário que promete política conservadora deve corresponder ao retorno da função.
+5. [x] Validar finitude, sinal e coerência de entradas, quantidades e totais; dado desconhecido não pode ser convertido automaticamente em zero medido.
+6. [x] Definir tolerâncias explícitas de calorias, proteína, carboidratos e gordura e criar issues para violações conforme a política adotada.
+7. [x] Validar opções principais e alternativas. Quando a promessa for diária, verificar combinações permitidas ou usar um método conservador demonstrável; não limitar a análise combinatória ao sódio.
+8. [x] Recalcular valores a partir das quantidades efetivamente persistidas. Alinhar arredondamento de `portionGrams` ao cálculo para evitar divergência entre quantidade mostrada e valores nutricionais.
+9. [x] Revalidar após edição/substituição e antes de persistir/exportar. Tornar aprovação profissional de `requires_review` explícita e rastreável, se esse fluxo for permitido.
+10. [x] Manter `infeasible` bloqueado e distinguir informação incompleta de plano validado. Não inventar limites clínicos para completar a tarefa.
+11. [x] Reduzir a dependência de idioma global no domínio: retornar códigos/parâmetros e traduzir na apresentação, conforme C11.
 
 **Resultado esperado:** selo de validade significa que as verificações declaradas foram realmente executadas sobre o catálogo e as quantidades corretos.
 
@@ -1575,7 +1575,7 @@ Os dez achados da revisão foram desdobrados em doze entregas para facilitar imp
 - [ ] C03 — Convites validados no lado confiável, atômicos no Firestore e recuperáveis entre Auth/Firestore.
 - [ ] C04 — Java, Node e configuração de testes alinhados; checkout limpo reproduzido.
 - [ ] C05 — Edição e PDF preservam consistência de refeições, totais e validação.
-- [ ] C06 — Metas, alternativas e dados desconhecidos seguem regras explícitas e testadas.
+- [x] C06 — Metas, alternativas e dados desconhecidos seguem regras explícitas e testadas.
 - [ ] C07 — Revogação confirmada e exclusão protegida contra concorrência.
 - [ ] C08 — Ativação de convite e contexto de autenticação sincronizados.
 - [ ] C09 — Jornadas completas obrigatórias e regressões adversariais presentes.

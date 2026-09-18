@@ -344,6 +344,28 @@
     "and": "e",
     "healthy_preparation": "preparação saudável"
   },
+  "diet_validation": {
+    "issues": {
+      "UNKNOWN_FOOD_ITEM": "Alimento \"{{foodName}}\" na refeição \"{{mealName}}\" não foi localizado no catálogo ativo de alimentos.",
+      "UNVERIFIED_RESTRICTION": "Não foi possível verificar as restrições ({{restrictions}}) para o alimento \"{{foodName}}\" na refeição \"{{mealName}}\".",
+      "GLUTEN_VIOLATION": "Alimento \"{{foodName}}\" na refeição \"{{mealName}}\" viola a restrição \"gluten_free\": contém glúten.",
+      "LACTOSE_VIOLATION": "Alimento \"{{foodName}}\" na refeição \"{{mealName}}\" viola a restrição \"lactose_free\": contém lactose.",
+      "DAIRY_VIOLATION": "Alimento \"{{foodName}}\" na refeição \"{{mealName}}\" viola a restrição \"dairy_free\": contém derivados de leite (APLV).",
+      "VEGETARIAN_VIOLATION": "Alimento \"{{foodName}}\" na refeição \"{{mealName}}\" viola a restrição \"vegetarian\": contém carnes ou pescados.",
+      "VEGAN_VIOLATION": "Alimento \"{{foodName}}\" na refeição \"{{mealName}}\" viola a restrição \"vegan\": contém derivados de origem animal.",
+      "RESTRICTION_VIOLATION": "Alimento \"{{foodName}}\" na refeição \"{{mealName}}\" viola restrições prescritas.",
+      "CALORIE_DEVIATION": "Variação calórica de {{percent}}% em relação à meta prescrita ({{target}} kcal vs {{actual}} kcal).",
+      "PROTEIN_DEVIATION": "Variação de proteína de {{percent}}% em relação à meta ({{target}}g vs {{actual}}g).",
+      "CARBS_DEVIATION": "Variação de carboidratos de {{percent}}% em relação à meta ({{target}}g vs {{actual}}g).",
+      "FAT_DEVIATION": "Variação de gorduras de {{percent}}% em relação à meta ({{target}}g vs {{actual}}g).",
+      "ALTERNATIVE_CALORIE_DEVIATION": "Opção alternativa \"{{alternativeName}}\" varia {{percent}}% em calorias em relação à principal na refeição \"{{mealName}}\" ({{alternativeCalories}} kcal vs {{mainOptionCalories}} kcal).",
+      "WORST_CASE_ALTERNATIVE_DEVIATION": "A combinação de alternativas varia o consumo diário entre {{minCalories}} kcal e {{maxCalories}} kcal (meta: {{targetCalories}} kcal).",
+      "INVALID_NUTRIENT_VALUE": "Valor inválido para o campo \"{{field}}\" no alimento \"{{foodName}}\" da refeição \"{{mealName}}\".",
+      "INVALID_TARGET_VALUE": "Metas nutricionais prescritas contêm valores não numéricos, negativos ou inválidos.",
+      "HIGH_SODIUM_CEILING_HYPERTENSION": "Pior cenário de sódio nas combinações de alternativas atinge {{worstCaseAlternativeSodium}}mg (limite: {{limit}}mg).",
+      "HIGH_SODIUM_CEILING_RENAL": "Pior cenário de sódio nas combinações de alternativas atinge {{worstCaseAlternativeSodium}}mg para paciente renal (limite: {{limit}}mg)."
+    }
+  },
   "food": {
     "categories": {
       "Cereais e Derivados": "Cereais e Derivados",

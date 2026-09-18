@@ -386,8 +386,14 @@ export function buildCustomLayoutPdfDocument(
     issues.forEach((issue) => {
       const isError = issue.level === "error";
       const bulletSymbol = isError ? "[!] " : "[*] ";
+      const localizedMessage = issue.code
+        ? t(`diet_validation.issues.${issue.code}`, {
+            ...issue.details,
+            defaultValue: issue.message,
+          })
+        : issue.message;
       const issueLines = doc.splitTextToSize(
-        `${bulletSymbol}${issue.message}`,
+        `${bulletSymbol}${localizedMessage}`,
         contentWidth - 8,
       );
       checkPageBreak(issueLines.length * 4.2 + 2);

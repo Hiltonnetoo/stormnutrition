@@ -297,12 +297,20 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
         {/* Clinical Validation Issues (if any) */}
         {plan.validation?.issues && plan.validation.issues.length > 0 && (
           <div className="mb-5 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200 text-xs space-y-1.5 no-export">
-            {plan.validation.issues.map((issue, idx) => (
-              <div key={idx} className="flex items-start gap-2">
-                <span>{issue.level === "error" ? "⛔" : "⚠️"}</span>
-                <span className="font-medium">{issue.message}</span>
-              </div>
-            ))}
+            {plan.validation.issues.map((issue, idx) => {
+              const displayMsg = issue.code
+                ? t(`diet_validation.issues.${issue.code}`, {
+                    ...issue.details,
+                    defaultValue: issue.message,
+                  })
+                : issue.message;
+              return (
+                <div key={idx} className="flex items-start gap-2">
+                  <span>{issue.level === "error" ? "⛔" : "⚠️"}</span>
+                  <span className="font-medium">{displayMsg}</span>
+                </div>
+              );
+            })}
           </div>
         )}
 

@@ -32,6 +32,35 @@ export interface FoodRestrictions {
 }
 
 /**
+ * 3-state restriction status:
+ * - compatible: verified safe for the restriction
+ * - incompatible: confirmed violation / contains restricted ingredient or allergen
+ * - unknown: untested, unverified or missing metadata requiring professional review
+ */
+export type RestrictionStatus = "compatible" | "incompatible" | "unknown";
+
+export type RestrictionEvaluationSource =
+  | "explicit_metadata"
+  | "category_heuristic"
+  | "name_heuristic"
+  | "unknown_fallback";
+
+export interface RestrictionEvaluation {
+  status: RestrictionStatus;
+  reason?: string;
+  source: RestrictionEvaluationSource;
+}
+
+export interface FoodCompatibilityResult {
+  compatible: boolean;
+  status: "compatible" | "incompatible" | "requires_review";
+  reason?: string;
+  reasons: string[];
+  unverifiedRestrictions: string[];
+  evaluations: Record<string, RestrictionEvaluation>;
+}
+
+/**
  * Represents a food in the nutritional database.
  */
 export interface Food {

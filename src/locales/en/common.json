@@ -344,6 +344,28 @@
     "and": "and",
     "healthy_preparation": "healthy preparation"
   },
+  "diet_validation": {
+    "issues": {
+      "UNKNOWN_FOOD_ITEM": "Food \"{{foodName}}\" in meal \"{{mealName}}\" was not found in the active food catalog.",
+      "UNVERIFIED_RESTRICTION": "Could not verify dietary restrictions ({{restrictions}}) for food \"{{foodName}}\" in meal \"{{mealName}}\".",
+      "GLUTEN_VIOLATION": "Food \"{{foodName}}\" in meal \"{{mealName}}\" violates restriction \"gluten_free\": contains gluten.",
+      "LACTOSE_VIOLATION": "Food \"{{foodName}}\" in meal \"{{mealName}}\" violates restriction \"lactose_free\": contains lactose.",
+      "DAIRY_VIOLATION": "Food \"{{foodName}}\" in meal \"{{mealName}}\" violates restriction \"dairy_free\": contains cow's milk protein (APLV).",
+      "VEGETARIAN_VIOLATION": "Food \"{{foodName}}\" in meal \"{{mealName}}\" violates restriction \"vegetarian\": contains meat or fish.",
+      "VEGAN_VIOLATION": "Food \"{{foodName}}\" in meal \"{{mealName}}\" violates restriction \"vegan\": contains animal-derived ingredients.",
+      "RESTRICTION_VIOLATION": "Food \"{{foodName}}\" in meal \"{{mealName}}\" violates prescribed dietary restrictions.",
+      "CALORIE_DEVIATION": "Caloric variance of {{percent}}% compared to prescribed target ({{target}} kcal vs {{actual}} kcal).",
+      "PROTEIN_DEVIATION": "Protein variance of {{percent}}% compared to prescribed target ({{target}}g vs {{actual}}g).",
+      "CARBS_DEVIATION": "Carbohydrates variance of {{percent}}% compared to prescribed target ({{target}}g vs {{actual}}g).",
+      "FAT_DEVIATION": "Fat variance of {{percent}}% compared to prescribed target ({{target}}g vs {{actual}}g).",
+      "ALTERNATIVE_CALORIE_DEVIATION": "Alternative option \"{{alternativeName}}\" varies by {{percent}}% in calories compared to the main option in meal \"{{mealName}}\" ({{alternativeCalories}} kcal vs {{mainOptionCalories}} kcal).",
+      "WORST_CASE_ALTERNATIVE_DEVIATION": "Alternative combinations vary daily intake between {{minCalories}} kcal and {{maxCalories}} kcal (target: {{targetCalories}} kcal).",
+      "INVALID_NUTRIENT_VALUE": "Invalid value for field \"{{field}}\" in food \"{{foodName}}\" of meal \"{{mealName}}\".",
+      "INVALID_TARGET_VALUE": "Prescribed nutritional targets contain non-numeric, negative or invalid values.",
+      "HIGH_SODIUM_CEILING_HYPERTENSION": "Worst-case sodium across alternative combinations reaches {{worstCaseAlternativeSodium}}mg (ceiling: {{limit}}mg).",
+      "HIGH_SODIUM_CEILING_RENAL": "Worst-case sodium across alternative combinations reaches {{worstCaseAlternativeSodium}}mg for renal patient (ceiling: {{limit}}mg)."
+    }
+  },
   "food": {
     "categories": {
       "Cereais e Derivados": "Cereals and Derivatives",

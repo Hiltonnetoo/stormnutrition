@@ -1,6 +1,12 @@
 import i18n from "../i18n";
 import { brazilianFoods } from "../data/foods";
-import type { Food, NovaGroup, NovaClassificationOrigin } from "../types";
+import type {
+  Food,
+  NovaGroup,
+  NovaClassificationOrigin,
+  RestrictionEvaluation,
+  FoodCompatibilityResult,
+} from "../types";
 
 /* ============================================================================
    Classificação NOVA (processamento) + Carga Glicêmica
@@ -230,218 +236,471 @@ const MEAT_HINTS = [
 ];
 
 /**
+ * Evaluates compatibility of a food with a specific dietary restriction or clinical requirement.
+ * Returns a 3-state evaluation:
+ * - "compatible": verified safe (explicit metadata or safe food category)
+ * - "incompatible": explicit violation or high-risk classification
+ * - "unknown": missing metadata / unclassified preparation requiring professional review
+ */
+export const evaluateFoodRestriction = (
+  food: Food,
+  restriction: string,
+): RestrictionEvaluation => {
+  const name = (food.name || "").toLowerCase();
+
+  switch (restriction) {
+    case "gluten_free": {
+      if (food.restrictions?.containsGluten !== undefined) {
+        return food.restrictions.containsGluten
+          ? {
+              status: "incompatible",
+              reason: "Contém glúten",
+              source: "explicit_metadata",
+            }
+          : { status: "compatible", source: "explicit_metadata" };
+      }
+
+      if (GLUTEN_HINTS.some((hint) => name.includes(hint))) {
+        return {
+          status: "incompatible",
+          reason: "Contém glúten identificado no nome",
+          source: "name_heuristic",
+        };
+      }
+
+      if (
+        name.includes("empanad") ||
+        name.includes("milanesa") ||
+        name.includes("shoyu") ||
+        name.includes("molho de soja")
+      ) {
+        return {
+          status: "incompatible",
+          reason: "Preparação com provável presença de glúten/farinha",
+          source: "name_heuristic",
+        };
+      }
+
+      if (food.category === "Cereais e Derivados") {
+        if (
+          name.includes("arroz") ||
+          name.includes("milho") ||
+          name.includes("tapioca") ||
+          name.includes("cuscuz") ||
+          name.includes("quinoa") ||
+          name.includes("mandioca") ||
+          name.includes("polvilho")
+        ) {
+          return { status: "compatible", source: "name_heuristic" };
+        }
+        return {
+          status: "incompatible",
+          reason: "Cereal de alto risco sem comprovação de ausência de glúten",
+          source: "category_heuristic",
+        };
+      }
+
+      if (
+        food.category === "Frutas" ||
+        food.category === "Verduras e Legumes" ||
+        food.category === "Leguminosas" ||
+        food.category === "Carnes e Derivados" ||
+        food.category === "Oleaginosas" ||
+        food.category === "Óleos e Gorduras"
+      ) {
+        return { status: "compatible", source: "category_heuristic" };
+      }
+
+      return {
+        status: "unknown",
+        reason: "Ausência de metadados para verificação de glúten",
+        source: "unknown_fallback",
+      };
+    }
+
+    case "lactose_free": {
+      if (food.restrictions?.containsLactose !== undefined) {
+        return food.restrictions.containsLactose
+          ? {
+              status: "incompatible",
+              reason: "Contém lactose",
+              source: "explicit_metadata",
+            }
+          : { status: "compatible", source: "explicit_metadata" };
+      }
+
+      if (PLANT_MILK_HINTS.some((p) => name.includes(p))) {
+        return { status: "compatible", source: "name_heuristic" };
+      }
+
+      if (name.includes("zero lactose") || name.includes("sem lactose")) {
+        return { status: "compatible", source: "name_heuristic" };
+      }
+
+      if (name.includes("parmesão") || name.includes("provolone curado")) {
+        return { status: "compatible", source: "name_heuristic" };
+      }
+
+      if (food.category === "Leite e Derivados") {
+        return {
+          status: "incompatible",
+          reason: "Derivado lácteo com lactose",
+          source: "category_heuristic",
+        };
+      }
+
+      if (
+        name.includes("leite") ||
+        name.includes("queijo") ||
+        name.includes("iogurte") ||
+        name.includes("requeijão") ||
+        name.includes("creme de leite") ||
+        name.includes("manteiga")
+      ) {
+        return {
+          status: "incompatible",
+          reason: "Derivado lácteo identificado no nome",
+          source: "name_heuristic",
+        };
+      }
+
+      if (
+        food.category === "Frutas" ||
+        food.category === "Verduras e Legumes" ||
+        food.category === "Leguminosas" ||
+        food.category === "Carnes e Derivados" ||
+        food.category === "Cereais e Derivados" ||
+        food.category === "Oleaginosas" ||
+        food.category === "Óleos e Gorduras" ||
+        food.category === "Bebidas"
+      ) {
+        return { status: "compatible", source: "category_heuristic" };
+      }
+
+      return {
+        status: "unknown",
+        reason: "Ausência de metadados para verificação de lactose",
+        source: "unknown_fallback",
+      };
+    }
+
+    case "dairy_free": {
+      if (food.restrictions?.containsDairy !== undefined) {
+        return food.restrictions.containsDairy
+          ? {
+              status: "incompatible",
+              reason: "Contém derivados de leite (APLV)",
+              source: "explicit_metadata",
+            }
+          : { status: "compatible", source: "explicit_metadata" };
+      }
+
+      if (PLANT_MILK_HINTS.some((p) => name.includes(p))) {
+        return { status: "compatible", source: "name_heuristic" };
+      }
+
+      if (food.category === "Leite e Derivados") {
+        return {
+          status: "incompatible",
+          reason: "Derivado lácteo (contém proteína do leite de vaca)",
+          source: "category_heuristic",
+        };
+      }
+
+      if (
+        name.includes("leite") ||
+        name.includes("queijo") ||
+        name.includes("iogurte") ||
+        name.includes("requeijão") ||
+        name.includes("creme de leite") ||
+        name.includes("manteiga") ||
+        name.includes("soro de leite") ||
+        name.includes("caseína") ||
+        name.includes("whey")
+      ) {
+        return {
+          status: "incompatible",
+          reason: "Contém derivados de leite de vaca (APLV)",
+          source: "name_heuristic",
+        };
+      }
+
+      if (
+        food.category === "Frutas" ||
+        food.category === "Verduras e Legumes" ||
+        food.category === "Leguminosas" ||
+        food.category === "Oleaginosas" ||
+        food.category === "Óleos e Gorduras" ||
+        food.category === "Carnes e Derivados" ||
+        food.category === "Cereais e Derivados" ||
+        food.category === "Bebidas"
+      ) {
+        return { status: "compatible", source: "category_heuristic" };
+      }
+
+      return {
+        status: "unknown",
+        reason: "Ausência de metadados para verificação de APLV (proteína do leite)",
+        source: "unknown_fallback",
+      };
+    }
+
+    case "vegetarian": {
+      if (food.restrictions?.isVegetarian !== undefined) {
+        return food.restrictions.isVegetarian === false
+          ? {
+              status: "incompatible",
+              reason: "Contém carnes ou pescados",
+              source: "explicit_metadata",
+            }
+          : { status: "compatible", source: "explicit_metadata" };
+      }
+
+      if (
+        name.includes("ovo") ||
+        name.includes("clara de ovo") ||
+        name.includes("gema de ovo")
+      ) {
+        return { status: "compatible", source: "name_heuristic" };
+      }
+
+      if (food.category === "Carnes e Derivados") {
+        return {
+          status: "incompatible",
+          reason: "Contém carnes ou pescados",
+          source: "category_heuristic",
+        };
+      }
+
+      if (MEAT_HINTS.some((hint) => name.includes(hint))) {
+        return {
+          status: "incompatible",
+          reason: "Contém carnes ou pescados",
+          source: "name_heuristic",
+        };
+      }
+
+      if (
+        food.category === "Frutas" ||
+        food.category === "Verduras e Legumes" ||
+        food.category === "Leguminosas" ||
+        food.category === "Cereais e Derivados" ||
+        food.category === "Oleaginosas" ||
+        food.category === "Óleos e Gorduras" ||
+        food.category === "Leite e Derivados" ||
+        food.category === "Bebidas" ||
+        food.category === "Açúcares e Doces"
+      ) {
+        return { status: "compatible", source: "category_heuristic" };
+      }
+
+      return {
+        status: "unknown",
+        reason: "Preparação sem lista de ingredientes verificada para vegetarianismo",
+        source: "unknown_fallback",
+      };
+    }
+
+    case "vegan": {
+      if (food.restrictions?.isVegan !== undefined) {
+        return food.restrictions.isVegan === false
+          ? {
+              status: "incompatible",
+              reason: "Contém derivados de origem animal",
+              source: "explicit_metadata",
+            }
+          : { status: "compatible", source: "explicit_metadata" };
+      }
+
+      const vegEval = evaluateFoodRestriction(food, "vegetarian");
+      if (vegEval.status === "incompatible") {
+        return {
+          status: "incompatible",
+          reason: vegEval.reason || "Contém carnes ou pescados",
+          source: vegEval.source,
+        };
+      }
+
+      const dairyEval = evaluateFoodRestriction(food, "dairy_free");
+      if (dairyEval.status === "incompatible") {
+        return {
+          status: "incompatible",
+          reason: dairyEval.reason || "Contém derivados de leite",
+          source: dairyEval.source,
+        };
+      }
+
+      if (
+        name.includes("ovo") ||
+        name.includes("mel") ||
+        name.includes("gelatina")
+      ) {
+        return {
+          status: "incompatible",
+          reason: "Contém ovos, mel ou gelatina",
+          source: "name_heuristic",
+        };
+      }
+
+      if (
+        food.category === "Frutas" ||
+        food.category === "Verduras e Legumes" ||
+        food.category === "Leguminosas" ||
+        food.category === "Oleaginosas" ||
+        food.category === "Cereais e Derivados"
+      ) {
+        return { status: "compatible", source: "category_heuristic" };
+      }
+
+      if (food.category === "Óleos e Gorduras") {
+        if (name.includes("manteiga") || name.includes("banha")) {
+          return {
+            status: "incompatible",
+            reason: "Gordura de origem animal",
+            source: "name_heuristic",
+          };
+        }
+        return { status: "compatible", source: "category_heuristic" };
+      }
+
+      return {
+        status: "unknown",
+        reason: "Preparação sem comprovação de ausência de derivados animais",
+        source: "unknown_fallback",
+      };
+    }
+
+    case "hypertension": {
+      if (food.sodium !== undefined && Number.isFinite(food.sodium)) {
+        return food.sodium >= 300
+          ? {
+              status: "incompatible",
+              reason: "Sódio elevado (>= 300mg/porção)",
+              source: "explicit_metadata",
+            }
+          : { status: "compatible", source: "explicit_metadata" };
+      }
+      return {
+        status: "unknown",
+        reason: "Teor de sódio não informado",
+        source: "unknown_fallback",
+      };
+    }
+
+    case "diabetes": {
+      if (food.category === "Açúcares e Doces") {
+        return {
+          status: "incompatible",
+          reason: "Açúcares simples / Doces",
+          source: "category_heuristic",
+        };
+      }
+      if (
+        food.glycemicIndex !== undefined &&
+        Number.isFinite(food.glycemicIndex)
+      ) {
+        return food.glycemicIndex >= 70
+          ? {
+              status: "incompatible",
+              reason: "Alto Índice Glicêmico (>= 70)",
+              source: "explicit_metadata",
+            }
+          : { status: "compatible", source: "explicit_metadata" };
+      }
+      return { status: "compatible", source: "category_heuristic" };
+    }
+
+    default:
+      return {
+        status: "unknown",
+        reason: `Restrição não catalogada: ${restriction}`,
+        source: "unknown_fallback",
+      };
+  }
+};
+
+/**
  * Checks if a food contains gluten.
- * Follows conservative safety policy: missing metadata in grain/preparation/industrial categories
- * is treated as containing gluten to protect celiac patients.
+ * Conservative safety policy: unverified high-risk cereal or unclassified preparation returns true.
  */
 export const foodContainsGluten = (food: Food): boolean => {
-  if (food.restrictions?.containsGluten !== undefined) {
-    return food.restrictions.containsGluten;
-  }
-
-  const name = food.name.toLowerCase();
-  if (GLUTEN_HINTS.some((hint) => name.includes(hint))) {
-    return true;
-  }
-
-  // Safe raw categories
-  if (
-    food.category === "Frutas" ||
-    food.category === "Verduras e Legumes" ||
-    food.category === "Leguminosas" ||
-    food.category === "Carnes e Derivados" ||
-    food.category === "Oleaginosas" ||
-    food.category === "Óleos e Gorduras"
-  ) {
-    return false;
-  }
-
-  // Cereal derivatives check
-  if (food.category === "Cereais e Derivados") {
-    // Naturally gluten-free grains
-    if (
-      name.includes("arroz") ||
-      name.includes("milho") ||
-      name.includes("tapioca") ||
-      name.includes("cuscuz") ||
-      name.includes("quinoa") ||
-      name.includes("mandioca") ||
-      name.includes("polvilho")
-    ) {
-      return false;
-    }
-    // High-risk unverified cereal is treated as containing gluten
-    return true;
-  }
-
-  return false;
+  return evaluateFoodRestriction(food, "gluten_free").status !== "compatible";
 };
 
 /**
  * Checks if a food contains lactose.
- * Does NOT confuse lactose with cow's milk protein (APLV):
- * items labeled "zero lactose" or naturally aged cheeses with 0g lactose return false.
  */
 export const foodContainsLactose = (food: Food): boolean => {
-  if (food.restrictions?.containsLactose !== undefined) {
-    return food.restrictions.containsLactose;
-  }
-
-  const name = food.name.toLowerCase();
-  if (PLANT_MILK_HINTS.some((p) => name.includes(p))) {
-    return false;
-  }
-
-  if (name.includes("zero lactose") || name.includes("sem lactose")) {
-    return false;
-  }
-
-  // Aged cheeses with negligible lactose
-  if (name.includes("parmesão") || name.includes("provolone curado")) {
-    return false;
-  }
-
-  if (food.category === "Leite e Derivados") {
-    return true;
-  }
-
-  if (
-    name.includes("leite") ||
-    name.includes("queijo") ||
-    name.includes("iogurte") ||
-    name.includes("requeijão") ||
-    name.includes("creme de leite") ||
-    name.includes("manteiga")
-  ) {
-    return true;
-  }
-
-  return false;
+  return evaluateFoodRestriction(food, "lactose_free").status === "incompatible";
 };
 
 /**
  * Checks if a food contains dairy/cow's milk protein (for APLV).
- * Any product with milk protein is true, even if 100% lactose-free.
  */
 export const foodContainsDairy = (food: Food): boolean => {
-  if (food.restrictions?.containsDairy !== undefined) {
-    return food.restrictions.containsDairy;
-  }
-
-  const name = food.name.toLowerCase();
-  if (PLANT_MILK_HINTS.some((p) => name.includes(p))) {
-    return false;
-  }
-
-  if (food.category === "Leite e Derivados") {
-    return true;
-  }
-
-  if (
-    name.includes("leite") ||
-    name.includes("queijo") ||
-    name.includes("iogurte") ||
-    name.includes("requeijão") ||
-    name.includes("creme de leite") ||
-    name.includes("manteiga") ||
-    name.includes("soro de leite") ||
-    name.includes("caseína")
-  ) {
-    return true;
-  }
-
-  return false;
+  return evaluateFoodRestriction(food, "dairy_free").status === "incompatible";
 };
 
 /**
  * Checks if a food is vegetarian (no meat, poultry, fish, seafood).
  */
 export const foodIsVegetarian = (food: Food): boolean => {
-  if (food.restrictions?.isVegetarian !== undefined) {
-    return food.restrictions.isVegetarian;
-  }
-
-  const name = food.name.toLowerCase();
-
-  // Eggs are vegetarian (ovo-lacto) even when categorized under 'Carnes e Derivados' (TACO group 4)
-  if (
-    name.includes("ovo") ||
-    name.includes("clara de ovo") ||
-    name.includes("gema de ovo")
-  ) {
-    return true;
-  }
-
-  if (food.category === "Carnes e Derivados") {
-    return false;
-  }
-
-  if (MEAT_HINTS.some((hint) => name.includes(hint))) {
-    return false;
-  }
-
-  return true;
+  return evaluateFoodRestriction(food, "vegetarian").status === "compatible";
 };
 
 /**
  * Checks if a food is vegan (no meat, dairy, eggs, honey).
  */
 export const foodIsVegan = (food: Food): boolean => {
-  if (food.restrictions?.isVegan !== undefined) {
-    return food.restrictions.isVegan;
-  }
-
-  if (!foodIsVegetarian(food)) return false;
-  if (foodContainsDairy(food)) return false;
-
-  const name = food.name.toLowerCase();
-  if (
-    name.includes("ovo") ||
-    name.includes("mel") ||
-    name.includes("gelatina")
-  ) {
-    return false;
-  }
-
-  return true;
+  return evaluateFoodRestriction(food, "vegan").status === "compatible";
 };
 
 /**
  * Validates whether a food item is compatible with an active list of patient restrictions.
+ * Returns structured 3-state compatibility results.
  */
 export const isFoodCompatibleWithRestrictions = (
   food: Food,
   restrictions: string[] = [],
-): { compatible: boolean; reason?: string } => {
+): FoodCompatibilityResult => {
+  const evaluations: Record<string, RestrictionEvaluation> = {};
+  const reasons: string[] = [];
+  const unverifiedRestrictions: string[] = [];
+
   for (const r of restrictions) {
-    if (r === "gluten_free" && foodContainsGluten(food)) {
-      return { compatible: false, reason: "Contém glúten" };
-    }
-    if (r === "lactose_free" && foodContainsLactose(food)) {
-      return { compatible: false, reason: "Contém lactose" };
-    }
-    if (r === "dairy_free" && foodContainsDairy(food)) {
-      return { compatible: false, reason: "Contém derivados de leite (APLV)" };
-    }
-    if (r === "vegetarian" && !foodIsVegetarian(food)) {
-      return { compatible: false, reason: "Contém carnes ou pescados" };
-    }
-    if (r === "vegan" && !foodIsVegan(food)) {
-      return { compatible: false, reason: "Contém derivados de origem animal" };
-    }
-    if (r === "hypertension" && food.sodium >= 300) {
-      return { compatible: false, reason: "Sódio elevado (> 300mg)" };
-    }
-    if (
-      r === "diabetes" &&
-      (food.category === "Açúcares e Doces" ||
-        (food.glycemicIndex !== undefined && food.glycemicIndex >= 70))
-    ) {
-      return { compatible: false, reason: "Açúcares simples / Alto IG" };
+    const evaluation = evaluateFoodRestriction(food, r);
+    evaluations[r] = evaluation;
+
+    if (evaluation.status === "incompatible") {
+      reasons.push(evaluation.reason || `Incompatível com ${r}`);
+    } else if (evaluation.status === "unknown") {
+      unverifiedRestrictions.push(r);
+      if (evaluation.reason) reasons.push(evaluation.reason);
     }
   }
 
-  return { compatible: true };
+  const hasIncompatible = Object.values(evaluations).some(
+    (e) => e.status === "incompatible",
+  );
+  const hasUnknown = Object.values(evaluations).some(
+    (e) => e.status === "unknown",
+  );
+
+  let status: "compatible" | "incompatible" | "requires_review" = "compatible";
+  if (hasIncompatible) {
+    status = "incompatible";
+  } else if (hasUnknown) {
+    status = "requires_review";
+  }
+
+  return {
+    compatible: !hasIncompatible,
+    status,
+    reason: reasons[0],
+    reasons,
+    unverifiedRestrictions,
+    evaluations,
+  };
 };
 
 /** Available carbohydrate (total - fiber), basis of glycemic load. */

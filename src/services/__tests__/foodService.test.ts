@@ -13,6 +13,7 @@ import {
   foodContainsDairy,
   foodIsVegetarian,
   foodIsVegan,
+  evaluateFoodRestriction,
   isFoodCompatibleWithRestrictions,
 } from "../foodService";
 
@@ -323,5 +324,78 @@ describe("foodService — Dietary Restrictions Detection", () => {
     expect(
       isFoodCompatibleWithRestrictions(banana, ["gluten_free"]).compatible,
     ).toBe(true);
+  });
+
+  it("evaluates food restrictions into 3 states (compatible, incompatible, unknown)", () => {
+    // Explicit metadata has absolute priority
+    const explicitSafe = food({
+      name: "Alimento x",
+      restrictions: { containsGluten: false },
+    });
+    expect(evaluateFoodRestriction(explicitSafe, "gluten_free")).toEqual({
+      status: "compatible",
+      source: "explicit_metadata",
+    });
+
+    const explicitIncompatible = food({
+      name: "Alimento y",
+      restrictions: { containsGluten: true },
+    });
+    expect(evaluateFoodRestriction(explicitIncompatible, "gluten_free")).toEqual({
+      status: "incompatible",
+      reason: "Contém glúten",
+      source: "explicit_metadata",
+    });
+
+    // Unclassified preparation without metadata returns unknown
+    const customPrep = food({
+      name: "Prato misto especial",
+      category: "Preparações",
+      restrictions: undefined,
+    });
+    const evalPrep = evaluateFoodRestriction(customPrep, "gluten_free");
+    expect(evalPrep.status).toBe("unknown");
+    expect(evalPrep.source).toBe("unknown_fallback");
+
+    // High risk cereal without metadata returns incompatible
+    const unverifiedCereal = food({
+      name: "Farinha desconhecida",
+      category: "Cereais e Derivados",
+      restrictions: undefined,
+    });
+    const evalCereal = evaluateFoodRestriction(unverifiedCereal, "gluten_free");
+    expect(evalCereal.status).toBe("incompatible");
+    expect(evalCereal.source).toBe("category_heuristic");
+
+    // Naturally gluten-free cereal grain returns compatible
+    const rice = food({
+      name: "Arroz polido",
+      category: "Cereais e Derivados",
+      restrictions: undefined,
+    });
+    expect(evaluateFoodRestriction(rice, "gluten_free")).toEqual({
+      status: "compatible",
+      source: "name_heuristic",
+    });
+
+    // Lactose-free milk is compatible for lactose but incompatible for dairy (APLV)
+    const zeroLactoseMilk = food({
+      name: "Leite UHT Integral Zero Lactose",
+      category: "Leite e Derivados",
+    });
+    expect(evaluateFoodRestriction(zeroLactoseMilk, "lactose_free").status).toBe("compatible");
+    expect(evaluateFoodRestriction(zeroLactoseMilk, "dairy_free").status).toBe("incompatible");
+
+    // Sodium and hypertension
+    const highSodiumFood = food({ name: "Carne seca", sodium: 500 });
+    const lowSodiumFood = food({ name: "Maçã", sodium: 2 });
+    expect(evaluateFoodRestriction(highSodiumFood, "hypertension").status).toBe("incompatible");
+    expect(evaluateFoodRestriction(lowSodiumFood, "hypertension").status).toBe("compatible");
+
+    // Structured compatibility with unknown items produces requires_review
+    const res = isFoodCompatibleWithRestrictions(customPrep, ["gluten_free"]);
+    expect(res.compatible).toBe(true);
+    expect(res.status).toBe("requires_review");
+    expect(res.unverifiedRestrictions).toContain("gluten_free");
   });
 });

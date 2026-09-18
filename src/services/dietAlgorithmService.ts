@@ -8,6 +8,7 @@ import {
   foodContainsDairy,
   foodIsVegetarian,
   foodIsVegan,
+  evaluateFoodRestriction,
 } from "./foodService";
 import type {
   Food,
@@ -21,6 +22,9 @@ import type {
   PlanValidationResult,
   PlanValidationStatus,
   PlanValidationIssue,
+  ValidateDietPlanOptions,
+  WorstCaseAlternativeTotals,
+  MacroTolerances,
 } from "../types";
 import type { DietType } from "./metabolicCalculations";
 
@@ -225,16 +229,55 @@ export function validateGenerationParams(params: GenerationParams): void {
  * Validates an existing or newly generated diet plan against targets, tolerances,
  * restrictions and clinical constraints across all meals and alternative combinations.
  */
+/**
+ * Validates an existing or newly generated diet plan against targets, tolerances,
+ * restrictions and clinical constraints across all meals and alternative combinations.
+ */
 export function validateDietPlan(
   meals: Meal[],
   targets: { calories: number; protein: number; carbs: number; fat: number },
-  options?: {
-    restrictions?: string[];
-    clinicalTags?: ClinicalTag[];
-    mode?: DietMode;
-  },
+  options?: ValidateDietPlanOptions,
 ): PlanValidationResult {
   const issues: PlanValidationIssue[] = [];
+
+  // Target validity check (finite, positive)
+  if (
+    !Number.isFinite(targets.calories) ||
+    targets.calories <= 0 ||
+    !Number.isFinite(targets.protein) ||
+    targets.protein < 0 ||
+    !Number.isFinite(targets.carbs) ||
+    targets.carbs < 0 ||
+    !Number.isFinite(targets.fat) ||
+    targets.fat < 0
+  ) {
+    issues.push({
+      level: "error",
+      code: "INVALID_TARGET_VALUE",
+      message:
+        "Metas nutricionais prescritas contêm valores não numéricos, negativos ou inválidos.",
+      details: { targets },
+    });
+  }
+
+  const catalog = options?.availableFoodsCatalog || brazilianFoods;
+  const catalogVersion = options?.catalogVersion;
+
+  const findFoodInCatalog = (item: MealOptionItem): Food | undefined => {
+    if (item.foodId) {
+      const byId = catalog.find((f) => f.id === item.foodId);
+      if (byId) return byId;
+    }
+    if (item.name) {
+      const normName = item.name.trim().toLowerCase();
+      return catalog.find(
+        (f) =>
+          f.name.toLowerCase() === normName ||
+          (f.nameEn && f.nameEn.toLowerCase() === normName),
+      );
+    }
+    return undefined;
+  };
 
   const calculatedTotals = {
     calories: 0,
@@ -246,6 +289,8 @@ export function validateDietPlan(
   };
 
   let worstCaseAlternativeSodium = 0;
+  let minCombinatorialCalories = 0;
+  let maxCombinatorialCalories = 0;
 
   for (const meal of meals) {
     calculatedTotals.calories += meal.mainOption.calories || 0;
@@ -255,76 +300,146 @@ export function validateDietPlan(
     calculatedTotals.fiber += meal.mainOption.micros?.fiber || 0;
     calculatedTotals.sodium += meal.mainOption.micros?.sodium || 0;
 
-    const mainSod = meal.mainOption.micros?.sodium || 0;
-    const altSods = (meal.alternatives || []).map((a) => a.micros?.sodium || 0);
-    worstCaseAlternativeSodium += Math.max(mainSod, ...altSods);
-
-    // Validate restrictions on main option and all alternatives
     const allOptions: MealOption[] = [
       meal.mainOption,
       ...(meal.alternatives || []),
     ];
+
+    // Combinatorial tracking per meal
+    const optionCalList = allOptions.map((opt) => opt.calories || 0);
+    const optionSodList = allOptions.map((opt) => opt.micros?.sodium || 0);
+    minCombinatorialCalories += Math.min(...optionCalList);
+    maxCombinatorialCalories += Math.max(...optionCalList);
+    worstCaseAlternativeSodium += Math.max(...optionSodList);
+
+    // Alternative options calorie variance against main option
+    if (meal.alternatives && meal.alternatives.length > 0) {
+      for (const alt of meal.alternatives) {
+        if (meal.mainOption.calories > 0) {
+          const calDiff = (alt.calories || 0) - meal.mainOption.calories;
+          const calPct = Math.round((calDiff / meal.mainOption.calories) * 100);
+          if (Math.abs(calPct) > 25) {
+            issues.push({
+              level: "warning",
+              code: "ALTERNATIVE_CALORIE_DEVIATION",
+              message: `Opção alternativa "${alt.name}" varia ${calPct}% em calorias em relação à principal na refeição "${meal.mealName}" (${alt.calories} kcal vs ${meal.mainOption.calories} kcal).`,
+              details: {
+                mealName: meal.mealName,
+                alternativeName: alt.name,
+                alternativeCalories: alt.calories,
+                mainOptionCalories: meal.mainOption.calories,
+                percentDiff: calPct,
+                percent: calPct,
+              },
+            });
+          }
+        }
+      }
+    }
+
+    // Validate all items in main option and all alternatives
     for (const opt of allOptions) {
       for (const item of opt.items || []) {
-        const itemFood = brazilianFoods.find(
-          (f) => (item.foodId && f.id === item.foodId) || f.name === item.name,
-        );
-        if (!itemFood) continue;
+        // Finitude and non-negative values validation
+        const numFields = [
+          { name: "portionGrams", val: item.portionGrams },
+          { name: "calories", val: item.calories },
+          { name: "protein", val: item.protein },
+          { name: "carbs", val: item.carbs },
+          { name: "fat", val: item.fat },
+        ];
+        for (const f of numFields) {
+          if (f.val !== undefined && (!Number.isFinite(f.val) || f.val < 0)) {
+            issues.push({
+              level: "error",
+              code: "INVALID_NUTRIENT_VALUE",
+              message: `Valor inválido para o campo "${f.name}" no alimento "${item.name}" da refeição "${meal.mealName}".`,
+              details: {
+                field: f.name,
+                value: f.val,
+                foodName: item.name,
+                mealName: meal.mealName,
+              },
+            });
+          }
+        }
 
-        if (
-          options?.restrictions?.includes("gluten_free") &&
-          foodContainsGluten(itemFood)
-        ) {
+        const itemFood = findFoodInCatalog(item);
+        if (!itemFood) {
+          // Unknown food item in the active catalog: requires professional review
           issues.push({
-            level: "error",
-            code: "GLUTEN_VIOLATION",
-            message: `Alimento "${item.name}" na refeição "${meal.mealName}" contém glúten.`,
-            details: { foodId: item.foodId, foodName: item.name },
+            level: "warning",
+            code: "UNKNOWN_FOOD_ITEM",
+            message: `Alimento "${item.name}" na refeição "${meal.mealName}" não foi localizado no catálogo ativo de alimentos.`,
+            details: {
+              ...(item.foodId ? { foodId: item.foodId } : {}),
+              foodName: item.name,
+              mealName: meal.mealName,
+              ...(catalogVersion ? { catalogVersion } : {}),
+            },
           });
+
+          // If restrictions are active, an uncataloged food cannot be verified
+          if (options?.restrictions && options.restrictions.length > 0) {
+            issues.push({
+              level: "warning",
+              code: "UNVERIFIED_RESTRICTION",
+              message: `Não foi possível verificar as restrições (${options.restrictions.join(", ")}) para o alimento desconhecido "${item.name}" na refeição "${meal.mealName}".`,
+              details: {
+                ...(item.foodId ? { foodId: item.foodId } : {}),
+                foodName: item.name,
+                mealName: meal.mealName,
+                restrictions: options.restrictions.join(", "),
+                unverifiedRestrictions: options.restrictions,
+              },
+            });
+          }
+          continue;
         }
-        if (
-          options?.restrictions?.includes("lactose_free") &&
-          foodContainsLactose(itemFood)
-        ) {
-          issues.push({
-            level: "error",
-            code: "LACTOSE_VIOLATION",
-            message: `Alimento "${item.name}" na refeição "${meal.mealName}" contém lactose.`,
-            details: { foodId: item.foodId, foodName: item.name },
-          });
-        }
-        if (
-          options?.restrictions?.includes("dairy_free") &&
-          foodContainsDairy(itemFood)
-        ) {
-          issues.push({
-            level: "error",
-            code: "DAIRY_VIOLATION",
-            message: `Alimento "${item.name}" na refeição "${meal.mealName}" contém laticínios/APLV.`,
-            details: { foodId: item.foodId, foodName: item.name },
-          });
-        }
-        if (
-          options?.restrictions?.includes("vegetarian") &&
-          !foodIsVegetarian(itemFood)
-        ) {
-          issues.push({
-            level: "error",
-            code: "VEGETARIAN_VIOLATION",
-            message: `Alimento "${item.name}" na refeição "${meal.mealName}" contém carnes/pescados.`,
-            details: { foodId: item.foodId, foodName: item.name },
-          });
-        }
-        if (
-          options?.restrictions?.includes("vegan") &&
-          !foodIsVegan(itemFood)
-        ) {
-          issues.push({
-            level: "error",
-            code: "VEGAN_VIOLATION",
-            message: `Alimento "${item.name}" na refeição "${meal.mealName}" contém derivados de origem animal.`,
-            details: { foodId: item.foodId, foodName: item.name },
-          });
+
+        // Food found: evaluate restrictions
+        if (options?.restrictions && options.restrictions.length > 0) {
+          for (const r of options.restrictions) {
+            const evalResult = evaluateFoodRestriction(itemFood, r);
+            const resolvedFoodId = item.foodId || itemFood.id;
+            if (evalResult.status === "incompatible") {
+              let code = "RESTRICTION_VIOLATION";
+              if (r === "gluten_free") code = "GLUTEN_VIOLATION";
+              else if (r === "lactose_free") code = "LACTOSE_VIOLATION";
+              else if (r === "dairy_free") code = "DAIRY_VIOLATION";
+              else if (r === "vegetarian") code = "VEGETARIAN_VIOLATION";
+              else if (r === "vegan") code = "VEGAN_VIOLATION";
+
+              issues.push({
+                level: "error",
+                code,
+                message: `Alimento "${item.name}" na refeição "${meal.mealName}" viola a restrição "${r}": ${evalResult.reason || "incompatível"}.`,
+                details: {
+                  ...(resolvedFoodId ? { foodId: resolvedFoodId } : {}),
+                  foodName: item.name,
+                  mealName: meal.mealName,
+                  restriction: r,
+                  ...(evalResult.reason ? { reason: evalResult.reason } : {}),
+                  source: evalResult.source,
+                },
+              });
+            } else if (evalResult.status === "unknown") {
+              issues.push({
+                level: "warning",
+                code: "UNVERIFIED_RESTRICTION",
+                message: `Restrição "${r}" para o alimento "${item.name}" na refeição "${meal.mealName}" requer verificação manual (${evalResult.reason || "dados insuficientes"}).`,
+                details: {
+                  ...(resolvedFoodId ? { foodId: resolvedFoodId } : {}),
+                  foodName: item.name,
+                  mealName: meal.mealName,
+                  restrictions: r,
+                  unverifiedRestrictions: [r],
+                  ...(evalResult.reason ? { reason: evalResult.reason } : {}),
+                  source: evalResult.source,
+                },
+              });
+            }
+          }
         }
       }
     }
@@ -337,6 +452,14 @@ export function validateDietPlan(
   calculatedTotals.fiber = parseFloat(calculatedTotals.fiber.toFixed(1));
   calculatedTotals.sodium = Math.round(calculatedTotals.sodium);
   worstCaseAlternativeSodium = Math.round(worstCaseAlternativeSodium);
+  minCombinatorialCalories = Math.round(minCombinatorialCalories);
+  maxCombinatorialCalories = Math.round(maxCombinatorialCalories);
+
+  const worstCaseAlternativeTotals: WorstCaseAlternativeTotals = {
+    minCalories: minCombinatorialCalories,
+    maxCalories: maxCombinatorialCalories,
+    worstCaseSodium: worstCaseAlternativeSodium,
+  };
 
   const caloriesDiff = calculatedTotals.calories - targets.calories;
   const caloriesPercent =
@@ -361,23 +484,88 @@ export function validateDietPlan(
     fatPercent: parseFloat(fatPercent.toFixed(1)),
   };
 
-  // Warnings for deviations
-  if (Math.abs(caloriesPercent) > 15) {
+  const tolerances = {
+    caloriePercent: options?.tolerances?.caloriePercent ?? 15,
+    proteinPercent: options?.tolerances?.proteinPercent ?? 20,
+    carbsPercent: options?.tolerances?.carbsPercent ?? 20,
+    fatPercent: options?.tolerances?.fatPercent ?? 20,
+  };
+
+  // Warnings for all 4 macronutrient deviations
+  if (Math.abs(caloriesPercent) > tolerances.caloriePercent) {
     issues.push({
       level: "warning",
       code: "CALORIE_DEVIATION",
       message: `Variação calórica de ${deviations.caloriesPercent}% em relação à meta prescrita (${targets.calories} kcal vs ${calculatedTotals.calories} kcal).`,
-      details: { target: targets.calories, actual: calculatedTotals.calories },
+      details: {
+        target: targets.calories,
+        actual: calculatedTotals.calories,
+        percent: deviations.caloriesPercent,
+        diff: deviations.caloriesDiff,
+      },
     });
   }
 
-  if (Math.abs(proteinPercent) > 20) {
+  if (Math.abs(proteinPercent) > tolerances.proteinPercent) {
     issues.push({
       level: "warning",
       code: "PROTEIN_DEVIATION",
       message: `Variação de proteína de ${deviations.proteinPercent}% em relação à meta (${targets.protein}g vs ${calculatedTotals.protein}g).`,
-      details: { target: targets.protein, actual: calculatedTotals.protein },
+      details: {
+        target: targets.protein,
+        actual: calculatedTotals.protein,
+        percent: deviations.proteinPercent,
+        diff: deviations.proteinDiff,
+      },
     });
+  }
+
+  if (Math.abs(carbsPercent) > tolerances.carbsPercent) {
+    issues.push({
+      level: "warning",
+      code: "CARBS_DEVIATION",
+      message: `Variação de carboidratos de ${deviations.carbsPercent}% em relação à meta (${targets.carbs}g vs ${calculatedTotals.carbs}g).`,
+      details: {
+        target: targets.carbs,
+        actual: calculatedTotals.carbs,
+        percent: deviations.carbsPercent,
+        diff: deviations.carbsDiff,
+      },
+    });
+  }
+
+  if (Math.abs(fatPercent) > tolerances.fatPercent) {
+    issues.push({
+      level: "warning",
+      code: "FAT_DEVIATION",
+      message: `Variação de gorduras de ${deviations.fatPercent}% em relação à meta (${targets.fat}g vs ${calculatedTotals.fat}g).`,
+      details: {
+        target: targets.fat,
+        actual: calculatedTotals.fat,
+        percent: deviations.fatPercent,
+        diff: deviations.fatDiff,
+      },
+    });
+  }
+
+  // Combinatorial daily calories deviation check across alternatives
+  if (targets.calories > 0) {
+    const maxCalVarPct =
+      ((maxCombinatorialCalories - targets.calories) / targets.calories) * 100;
+    const minCalVarPct =
+      ((minCombinatorialCalories - targets.calories) / targets.calories) * 100;
+    if (maxCalVarPct > 20 || minCalVarPct < -20) {
+      issues.push({
+        level: "warning",
+        code: "WORST_CASE_ALTERNATIVE_DEVIATION",
+        message: `A combinação de alternativas varia o consumo diário entre ${minCombinatorialCalories} kcal e ${maxCombinatorialCalories} kcal (meta: ${targets.calories} kcal).`,
+        details: {
+          minCalories: minCombinatorialCalories,
+          maxCalories: maxCombinatorialCalories,
+          targetCalories: targets.calories,
+        },
+      });
+    }
   }
 
   // Clinical sodium ceilings across all alternatives
@@ -412,13 +600,23 @@ export function validateDietPlan(
     status = "requires_review";
   }
 
+  // Infeasible plans can NEVER be approved.
+  // Requires review can be approved ONLY if allowApprovedReview is explicitly provided.
+  let isApproved = false;
+  if (status === "valid") {
+    isApproved = true;
+  } else if (status === "requires_review" && options?.allowApprovedReview) {
+    isApproved = true;
+  }
+
   return {
     status,
-    isApproved: status === "valid",
+    isApproved,
     issues,
     calculatedTotals,
     deviations,
     worstCaseAlternativeSodium,
+    worstCaseAlternativeTotals,
   };
 }
 
@@ -826,6 +1024,11 @@ export const generateAlgorithmicDietPlan = (
         );
       }
 
+      // Round portions before calculating stats so nutritional values match displayed portion exactly (Item 8)
+      proteinPortion = Math.round(proteinPortion);
+      carbPortion = Math.round(carbPortion);
+      fatPortion = Math.round(fatPortion);
+
       const pS = calculateStats(proteinSource, proteinPortion);
       const cS = calculateStats(carbSource, carbPortion);
       const fS = calculateStats(fatSource, fatPortion);
@@ -962,6 +1165,8 @@ export const generateAlgorithmicDietPlan = (
     restrictions,
     clinicalTags,
     mode,
+    availableFoodsCatalog,
+    catalogVersion: datasetVersion,
   });
 
   return {

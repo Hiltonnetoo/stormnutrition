@@ -33,6 +33,7 @@ import type {
   PlanValidationResult,
   PlanValidationIssue,
   PlanValidationStatus,
+  ValidateDietPlanOptions,
 } from "../types";
 import { validateDietPlan } from "./dietAlgorithmService";
 
@@ -671,6 +672,8 @@ export const validateAndSerializeDietPlan = (
 
 export const validateAndSerializeDietUpdate = (
   partial: Partial<DietPlan>,
+  existingPlan?: DietPlan,
+  validationOptions?: ValidateDietPlanOptions,
 ): DietPlanUpdateDto => {
   if (!partial || typeof partial !== "object") {
     throw new Error(
@@ -850,9 +853,24 @@ export const validateAndSerializeDietUpdate = (
     }
 
     if (targets) {
-      const options = {
-        clinicalTags: dto.clinicalTags || partial.clinicalTags,
-        mode: dto.mode || partial.mode,
+      const options: ValidateDietPlanOptions = {
+        clinicalTags:
+          dto.clinicalTags || partial.clinicalTags || existingPlan?.clinicalTags,
+        mode: dto.mode || partial.mode || existingPlan?.mode,
+        restrictions:
+          validationOptions?.restrictions ||
+          (partial as unknown as { restrictions?: string[] })?.restrictions ||
+          (existingPlan as unknown as { restrictions?: string[] })?.restrictions,
+        availableFoodsCatalog: validationOptions?.availableFoodsCatalog,
+        catalogVersion:
+          validationOptions?.catalogVersion ||
+          dto.datasetVersion ||
+          partial.datasetVersion ||
+          existingPlan?.datasetVersion,
+        tolerances: validationOptions?.tolerances,
+        allowApprovedReview:
+          validationOptions?.allowApprovedReview ??
+          (partial.validation?.isApproved === true),
       };
       const revalidated = validateDietPlan(dto.meals, targets, options);
       if (
@@ -966,6 +984,7 @@ export const updateDietPlan = async (
   userId: string,
   dietId: string,
   dietPlan: Partial<DietPlan>,
+  options?: ValidateDietPlanOptions,
 ) => {
   if (!userId || !dietId) {
     throw new Error(
@@ -974,6 +993,7 @@ export const updateDietPlan = async (
   }
 
   let fullPartial = { ...dietPlan };
+  let existing: DietPlan | undefined;
   const needsMerge =
     (dietPlan.meals && (!dietPlan.dailyCalories || !dietPlan.macronutrients)) ||
     (!dietPlan.meals && (dietPlan.dailyCalories || dietPlan.macronutrients));
@@ -982,7 +1002,7 @@ export const updateDietPlan = async (
     try {
       const existingSnap = await getDoc(getDietDoc(userId, dietId));
       if (existingSnap.exists()) {
-        const existing = existingSnap.data() as DietPlan;
+        existing = existingSnap.data() as DietPlan;
         fullPartial = {
           meals: existing.meals,
           dailyCalories: existing.dailyCalories,
@@ -1003,7 +1023,7 @@ export const updateDietPlan = async (
     }
   }
 
-  const updateDto = validateAndSerializeDietUpdate(fullPartial);
+  const updateDto = validateAndSerializeDietUpdate(fullPartial, existing, options);
   try {
     return await updateDoc(getDietDoc(userId, dietId), updateDto);
   } catch (error) {

@@ -730,4 +730,394 @@ describe("dietAlgorithmService", () => {
       result.validation.calculatedTotals.protein,
     );
   });
+
+  describe("validateDietPlan — C06 comprehensive validation", () => {
+    const customFood: Food = {
+      id: "custom_cereal_1",
+      name: "Cereal Personalizado Seguro",
+      category: "Cereais e Derivados",
+      portion: "100",
+      unit: "g",
+      calories: 350,
+      protein: 10,
+      carbs: 70,
+      fat: 2,
+      fiber: 5,
+      sodium: 10,
+      restrictions: {
+        containsGluten: false,
+        containsLactose: false,
+        containsDairy: false,
+        isVegetarian: true,
+        isVegan: true,
+      },
+    };
+
+    const validMeal: Meal = {
+      mealName: "Café da Manhã",
+      time: "08:00",
+      calories: 350,
+      protein: 10,
+      carbs: 70,
+      fat: 2,
+      mainOption: {
+        name: "Cereal Personalizado",
+        portion: "100g",
+        calories: 350,
+        protein: 10,
+        carbs: 70,
+        fat: 2,
+        items: [
+          {
+            foodId: "custom_cereal_1",
+            name: "Cereal Personalizado Seguro",
+            portion: "100g",
+            portionGrams: 100,
+            unit: "g",
+            calories: 350,
+            protein: 10,
+            carbs: 70,
+            fat: 2,
+          },
+        ],
+      },
+      alternatives: [],
+    };
+
+    it("resolves foods against custom/injected catalog without flagging unknown", () => {
+      const result = validateDietPlan(
+        [validMeal],
+        { calories: 350, protein: 10, carbs: 70, fat: 2 },
+        {
+          availableFoodsCatalog: [customFood],
+          restrictions: ["gluten_free"],
+        },
+      );
+
+      expect(result.status).toBe("valid");
+      expect(result.isApproved).toBe(true);
+      expect(result.issues).toEqual([]);
+    });
+
+    it("flags UNKNOWN_FOOD_ITEM when food is not in active catalog (no silent continue)", () => {
+      const mealWithUnknownFood: Meal = {
+        ...validMeal,
+        mainOption: {
+          ...validMeal.mainOption,
+          items: [
+            {
+              foodId: "non_existent_id",
+              name: "Super Alimento Misterioso",
+              portion: "100g",
+              portionGrams: 100,
+              unit: "g",
+              calories: 350,
+              protein: 10,
+              carbs: 70,
+              fat: 2,
+            },
+          ],
+        },
+      };
+
+      const result = validateDietPlan(
+        [mealWithUnknownFood],
+        { calories: 350, protein: 10, carbs: 70, fat: 2 },
+        {
+          availableFoodsCatalog: [customFood],
+        },
+      );
+
+      expect(result.status).toBe("requires_review");
+      expect(result.isApproved).toBe(false);
+      const unknownIssue = result.issues.find((i) => i.code === "UNKNOWN_FOOD_ITEM");
+      expect(unknownIssue).toBeDefined();
+      expect(unknownIssue?.level).toBe("warning");
+      expect(unknownIssue?.details?.foodName).toBe("Super Alimento Misterioso");
+    });
+
+    it("emits UNVERIFIED_RESTRICTION on unknown food when restrictions are active", () => {
+      const mealWithUnknownFood: Meal = {
+        ...validMeal,
+        mainOption: {
+          ...validMeal.mainOption,
+          items: [
+            {
+              foodId: "alien_food",
+              name: "Pó Cósmico",
+              portion: "50g",
+              portionGrams: 50,
+              unit: "g",
+              calories: 350,
+              protein: 10,
+              carbs: 70,
+              fat: 2,
+            },
+          ],
+        },
+      };
+
+      const result = validateDietPlan(
+        [mealWithUnknownFood],
+        { calories: 350, protein: 10, carbs: 70, fat: 2 },
+        {
+          availableFoodsCatalog: [customFood],
+          restrictions: ["gluten_free", "dairy_free"],
+        },
+      );
+
+      expect(result.status).toBe("requires_review");
+      const unverifiedIssue = result.issues.find((i) => i.code === "UNVERIFIED_RESTRICTION");
+      expect(unverifiedIssue).toBeDefined();
+      expect(unverifiedIssue?.level).toBe("warning");
+      expect(unverifiedIssue?.details?.unverifiedRestrictions).toEqual(["gluten_free", "dairy_free"]);
+    });
+
+    it("marks status as infeasible when an active restriction is violated, and forbids approval", () => {
+      const glutenFood: Food = {
+        ...customFood,
+        id: "gluten_cereal",
+        name: "Cereal de Trigo",
+        restrictions: { containsGluten: true },
+      };
+
+      const mealWithGluten: Meal = {
+        ...validMeal,
+        mainOption: {
+          ...validMeal.mainOption,
+          items: [
+            {
+              foodId: "gluten_cereal",
+              name: "Cereal de Trigo",
+              portion: "100g",
+              portionGrams: 100,
+              unit: "g",
+              calories: 350,
+              protein: 10,
+              carbs: 70,
+              fat: 2,
+            },
+          ],
+        },
+      };
+
+      const result = validateDietPlan(
+        [mealWithGluten],
+        { calories: 350, protein: 10, carbs: 70, fat: 2 },
+        {
+          availableFoodsCatalog: [glutenFood],
+          restrictions: ["gluten_free"],
+          allowApprovedReview: true, // Should still be rejected!
+        },
+      );
+
+      expect(result.status).toBe("infeasible");
+      expect(result.isApproved).toBe(false);
+      const glutenViolation = result.issues.find((i) => i.code === "GLUTEN_VIOLATION");
+      expect(glutenViolation).toBeDefined();
+      expect(glutenViolation?.level).toBe("error");
+    });
+
+    it("allows approval of requires_review only when allowApprovedReview is explicitly provided", () => {
+      const mealWithWarning: Meal = {
+        ...validMeal,
+        mainOption: {
+          ...validMeal.mainOption,
+          items: [
+            {
+              foodId: "unknown_id",
+              name: "Fruta Exótica",
+              portion: "100g",
+              portionGrams: 100,
+              unit: "g",
+              calories: 350,
+              protein: 10,
+              carbs: 70,
+              fat: 2,
+            },
+          ],
+        },
+      };
+
+      const unapprovedResult = validateDietPlan(
+        [mealWithWarning],
+        { calories: 350, protein: 10, carbs: 70, fat: 2 },
+        { availableFoodsCatalog: [customFood] },
+      );
+      expect(unapprovedResult.status).toBe("requires_review");
+      expect(unapprovedResult.isApproved).toBe(false);
+
+      const approvedResult = validateDietPlan(
+        [mealWithWarning],
+        { calories: 350, protein: 10, carbs: 70, fat: 2 },
+        { availableFoodsCatalog: [customFood], allowApprovedReview: true },
+      );
+      expect(approvedResult.status).toBe("requires_review");
+      expect(approvedResult.isApproved).toBe(true);
+    });
+
+    it("emits warnings for all 4 macronutrient deviations (calories, protein, carbs, fat)", () => {
+      const deviatingMeal: Meal = {
+        mealName: "Refeição Completa",
+        time: "12:00",
+        calories: 800, // target: 500 (+60%)
+        protein: 50,  // target: 30 (+66%)
+        carbs: 10,    // target: 50 (-80%)
+        fat: 40,      // target: 15 (+166%)
+        mainOption: {
+          name: "Opção",
+          portion: "100g",
+          calories: 800,
+          protein: 50,
+          carbs: 10,
+          fat: 40,
+          items: [
+            {
+              foodId: "custom_cereal_1",
+              name: "Cereal Personalizado Seguro",
+              portion: "100g",
+              portionGrams: 100,
+              unit: "g",
+              calories: 800,
+              protein: 50,
+              carbs: 10,
+              fat: 40,
+            },
+          ],
+        },
+        alternatives: [],
+      };
+
+      const result = validateDietPlan(
+        [deviatingMeal],
+        { calories: 500, protein: 30, carbs: 50, fat: 15 },
+        { availableFoodsCatalog: [customFood] },
+      );
+
+      const codes = result.issues.map((i) => i.code);
+      expect(codes).toContain("CALORIE_DEVIATION");
+      expect(codes).toContain("PROTEIN_DEVIATION");
+      expect(codes).toContain("CARBS_DEVIATION");
+      expect(codes).toContain("FAT_DEVIATION");
+      expect(result.status).toBe("requires_review");
+    });
+
+    it("evaluates alternative option caloric divergence (> 25%) and computes worstCaseAlternativeTotals", () => {
+      const mealWithDivergentAlt: Meal = {
+        mealName: "Almoço",
+        time: "12:30",
+        calories: 400,
+        protein: 30,
+        carbs: 40,
+        fat: 10,
+        mainOption: {
+          name: "Frango com arroz",
+          portion: "200g",
+          calories: 400,
+          protein: 30,
+          carbs: 40,
+          fat: 10,
+          micros: { sodium: 300 },
+          items: [],
+        },
+        alternatives: [
+          {
+            name: "Lanche rápido super calórico",
+            portion: "150g",
+            calories: 650, // +62.5% divergence from 400!
+            protein: 20,
+            carbs: 80,
+            fat: 25,
+            micros: { sodium: 800 },
+            items: [],
+          },
+        ],
+      };
+
+      const result = validateDietPlan(
+        [mealWithDivergentAlt],
+        { calories: 400, protein: 30, carbs: 40, fat: 10 },
+      );
+
+      const altIssue = result.issues.find((i) => i.code === "ALTERNATIVE_CALORIE_DEVIATION");
+      expect(altIssue).toBeDefined();
+      expect(altIssue?.details?.alternativeName).toBe("Lanche rápido super calórico");
+      expect(altIssue?.details?.percentDiff).toBe(63);
+
+      expect(result.worstCaseAlternativeTotals).toEqual({
+        minCalories: 400,
+        maxCalories: 650,
+        worstCaseSodium: 800,
+      });
+
+      const worstCaseIssue = result.issues.find(
+        (i) => i.code === "WORST_CASE_ALTERNATIVE_DEVIATION",
+      );
+      expect(worstCaseIssue).toBeDefined();
+    });
+
+    it("rejects non-finite and negative target or nutrient values with error status", () => {
+      const corruptedMeal: Meal = {
+        mealName: "Jantar",
+        time: "20:00",
+        calories: 300,
+        protein: 20,
+        carbs: 30,
+        fat: 10,
+        mainOption: {
+          name: "Sopa",
+          portion: "100g",
+          calories: 300,
+          protein: 20,
+          carbs: 30,
+          fat: 10,
+          items: [
+            {
+              foodId: "custom_cereal_1",
+              name: "Cereal",
+              portion: "100g",
+              portionGrams: -50, // NEGATIVE!
+              unit: "g",
+              calories: NaN,     // NaN!
+              protein: 10,
+              carbs: 20,
+              fat: 5,
+            },
+          ],
+        },
+        alternatives: [],
+      };
+
+      const result = validateDietPlan(
+        [corruptedMeal],
+        { calories: 300, protein: 20, carbs: 30, fat: 10 },
+        { availableFoodsCatalog: [customFood] },
+      );
+
+      expect(result.status).toBe("infeasible");
+      expect(result.isApproved).toBe(false);
+      const invalidValueIssue = result.issues.find(
+        (i) => i.code === "INVALID_NUTRIENT_VALUE",
+      );
+      expect(invalidValueIssue).toBeDefined();
+      expect(invalidValueIssue?.level).toBe("error");
+    });
+
+    it("verifies that portion rounding in generation has zero drift with calculated nutrients", () => {
+      const plan = generateAlgorithmicDietPlan({
+        ...defaultParams,
+        seed: 42,
+      });
+
+      plan.meals.forEach((meal) => {
+        meal.mainOption.items?.forEach((item) => {
+          expect(Number.isInteger(item.portionGrams)).toBe(true);
+          const food = getRequiredFood(item);
+          const factor = (item.portionGrams || 0) / (Number(food.portion) || 100);
+          const expectedCalories = Math.round(food.calories * factor);
+          expect(item.calories).toBe(expectedCalories);
+        });
+      });
+    });
+  });
 });

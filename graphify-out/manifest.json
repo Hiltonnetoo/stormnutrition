@@ -114,9 +114,9 @@
     "semantic_hash": "32d39fd41f3584e79294c38d6b34dbbc"
   },
   "src/components/diet-generator/DietPlanDisplay.tsx": {
-    "mtime": 1789756270.1173918,
-    "seen": 1789756635.2245219,
-    "ast_hash": "e3b9dac868d8250a5d4773c5680f5d4c",
+    "mtime": 1789757566.951961,
+    "seen": 1789757783.083976,
+    "ast_hash": "eaa4f6c1af39b8199de94dabf074a748",
     "semantic_hash": ""
   },
   "src/components/diet-generator/DietProgressBar.tsx": {
@@ -342,15 +342,15 @@
     "semantic_hash": ""
   },
   "src/locales/en/common.json": {
-    "mtime": 1789756319.9161654,
-    "seen": 1789756635.224552,
-    "ast_hash": "ea6d3511679d016b96cc4ffcafafc4a7",
+    "mtime": 1789757550.1974177,
+    "seen": 1789757783.0840058,
+    "ast_hash": "0bca63c9f827a3184cb133a498e4e898",
     "semantic_hash": ""
   },
   "src/locales/pt/common.json": {
-    "mtime": 1789756296.5104222,
-    "seen": 1789756635.224552,
-    "ast_hash": "d9fa9a4e0822a8e01ad25f3cac3ea429",
+    "mtime": 1789757536.94913,
+    "seen": 1789757783.0840058,
+    "ast_hash": "cd34b22ed75ab0985963a7d8717105c0",
     "semantic_hash": ""
   },
   "src/pages/Calendar.tsx": {
@@ -444,15 +444,15 @@
     "semantic_hash": ""
   },
   "src/services/__tests__/dietAlgorithmService.test.ts": {
-    "mtime": 1789693622.047972,
-    "seen": 1789693635.919035,
-    "ast_hash": "0b139ce6ab222a4c5bc89a3564ba1d55",
+    "mtime": 1789757700.542803,
+    "seen": 1789757783.0840142,
+    "ast_hash": "c0b78c3ef7e5ddd39ba1431d1f1e13c8",
     "semantic_hash": ""
   },
   "src/services/__tests__/foodService.test.ts": {
-    "mtime": 1789689636.7161682,
-    "seen": 1789689663.930231,
-    "ast_hash": "c019de84c8dd45b0f517047f644a1349",
+    "mtime": 1789757671.113775,
+    "seen": 1789757783.084016,
+    "ast_hash": "9991dc97035e97e7b48d29c37235e8cc",
     "semantic_hash": ""
   },
   "src/services/__tests__/metabolicCalculations.test.ts": {
@@ -480,15 +480,15 @@
     "semantic_hash": ""
   },
   "src/services/dietAlgorithmService.ts": {
-    "mtime": 1789690359.4344912,
-    "seen": 1789690389.130199,
-    "ast_hash": "e9ea2cb50e7c9254e929c7ccd1949166",
+    "mtime": 1789757614.9823003,
+    "seen": 1789757783.08402,
+    "ast_hash": "abcaa0aaeab68f93bebbc10da0c75b45",
     "semantic_hash": ""
   },
   "src/services/dietService.ts": {
-    "mtime": 1789756353.3885472,
-    "seen": 1789756635.224567,
-    "ast_hash": "648006be53ae199f0620db2431ef75b4",
+    "mtime": 1789757518.28995,
+    "seen": 1789757783.08402,
+    "ast_hash": "6d6786ba4bf02c3849d63737834f9f40",
     "semantic_hash": ""
   },
   "src/services/emailService.ts": {
@@ -522,9 +522,9 @@
     "semantic_hash": ""
   },
   "src/services/foodService.ts": {
-    "mtime": 1789689636.7961972,
-    "seen": 1789689663.930235,
-    "ast_hash": "5ed4021fc5fff2c158bb54f7082be3ab",
+    "mtime": 1789757370.5885398,
+    "seen": 1789757783.084022,
+    "ast_hash": "5a1a0d8eaa4c193c0c568473a17dc132",
     "semantic_hash": ""
   },
   "src/services/metabolicCalculations.ts": {
@@ -552,9 +552,9 @@
     "semantic_hash": "4bb6b8603fa01ada1120d800691e751c"
   },
   "src/types/diet.ts": {
-    "mtime": 1789756133.73375,
-    "seen": 1789756635.224572,
-    "ast_hash": "c860c63d94ad40d3732dcef6afa5e4dd",
+    "mtime": 1789757278.5170078,
+    "seen": 1789757783.0840251,
+    "ast_hash": "f5d5097e8bc6af7bdee756b2449c0631",
     "semantic_hash": ""
   },
   "src/types/email.ts": {
@@ -564,9 +564,9 @@
     "semantic_hash": "1bb4595779b81c67c41e84f553ab0613"
   },
   "src/types/food.ts": {
-    "mtime": 1789689636.8174098,
-    "seen": 1789689663.930239,
-    "ast_hash": "40ac88de8ab6cafa4a237565115335da",
+    "mtime": 1789757261.7498066,
+    "seen": 1789757783.084026,
+    "ast_hash": "d1fcf42adc851f37aa00d0c1d85563ef",
     "semantic_hash": ""
   },
   "src/types/index.ts": {
@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "src/utils/pdfExporter.ts": {
-    "mtime": 1789756258.2214286,
-    "seen": 1789756635.2245781,
-    "ast_hash": "8b294767c836a32851d832d1cba8b2b9",
+    "mtime": 1789757578.4466631,
+    "seen": 1789757783.084032,
+    "ast_hash": "ff5eaa5feb36f961007f438036bfd921",
     "semantic_hash": ""
   },
   "tests-e2e/critical-flow.spec.ts": {

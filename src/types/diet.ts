@@ -1,3 +1,5 @@
+import type { Food } from "./food";
+
 // --- V1 Diet Plan Types (Legacy from old AI generator) ---
 export interface V1_Meal {
   name: string;
@@ -165,6 +167,33 @@ export interface CalculatedDietTotals {
   sodium?: number;
 }
 
+export interface MacroTolerances {
+  /** Maximum allowed percentage deviation for calories (default ±15%) */
+  caloriePercent?: number;
+  /** Maximum allowed percentage deviation for protein (default ±20%) */
+  proteinPercent?: number;
+  /** Maximum allowed percentage deviation for carbohydrates (default ±20%) */
+  carbsPercent?: number;
+  /** Maximum allowed percentage deviation for fats (default ±20%) */
+  fatPercent?: number;
+}
+
+export interface WorstCaseAlternativeTotals {
+  minCalories: number;
+  maxCalories: number;
+  worstCaseSodium: number;
+}
+
+export interface ValidateDietPlanOptions {
+  restrictions?: string[];
+  clinicalTags?: ClinicalTag[];
+  mode?: DietMode;
+  availableFoodsCatalog?: Food[];
+  catalogVersion?: string;
+  tolerances?: MacroTolerances;
+  allowApprovedReview?: boolean;
+}
+
 export interface PlanValidationResult {
   status: PlanValidationStatus;
   isApproved: boolean;
@@ -181,6 +210,7 @@ export interface PlanValidationResult {
     fatPercent: number;
   };
   worstCaseAlternativeSodium?: number;
+  worstCaseAlternativeTotals?: WorstCaseAlternativeTotals;
 }
 
 /**
