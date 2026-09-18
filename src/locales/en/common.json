@@ -681,6 +681,10 @@
     "notes_label": "Notes",
     "notes_placeholder": "Notes about the appointment...",
     "patient_error": "Select a patient before saving.",
+    "error_load": "Failed to load appointment calendar.",
+    "error_load_desc": "A communication failure occurred with the database.",
+    "error_permission": "Permission denied to access the calendar.",
+    "error_permission_desc": "Your account does not have permission to view these appointments.",
     "no_appts_today": "No appointments on this day.",
     "no_appts_scheduled": "No appointments scheduled.",
     "upcoming_appointments": "Upcoming Appointments",
@@ -1445,5 +1449,13 @@
     "incomplete_profile_desc": "Your account is authenticated, but your professional profile has not been initialized yet. Would you like to initialize your workspace?",
     "init_profile_button": "Initialize professional profile",
     "exit_button": "Sign out"
+  },
+  "error_boundary": {
+    "title": "Something went wrong in this section",
+    "desc": "An unexpected error occurred. Other sections of the application remain accessible.",
+    "correlation_id": "Diagnostic code",
+    "btn_retry": "Try again",
+    "btn_reload": "Reload page",
+    "btn_home": "Go to Home"
   }
 }

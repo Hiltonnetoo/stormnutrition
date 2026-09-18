@@ -681,6 +681,10 @@
     "notes_label": "Observações",
     "notes_placeholder": "Anotações sobre a consulta...",
     "patient_error": "Selecione um paciente antes de salvar.",
+    "error_load": "Falha ao carregar a agenda de consultas.",
+    "error_load_desc": "Ocorreu uma falha na comunicação com o banco de dados.",
+    "error_permission": "Permissão negada para acessar a agenda.",
+    "error_permission_desc": "Sua conta não tem permissão para visualizar estas consultas.",
     "no_appts_today": "Nenhuma consulta neste dia.",
     "no_appts_scheduled": "Nenhuma consulta agendada.",
     "upcoming_appointments": "Próximas Consultas",
@@ -1445,5 +1449,13 @@
     "incomplete_profile_desc": "Sua conta está autenticada, mas o perfil profissional ainda não foi inicializado. Deseja inicializar o seu espaço de trabalho?",
     "init_profile_button": "Inicializar perfil profissional",
     "exit_button": "Sair"
+  },
+  "error_boundary": {
+    "title": "Algo deu errado nesta seção",
+    "desc": "Ocorreu um erro inesperado. As outras seções do aplicativo continuam disponíveis.",
+    "correlation_id": "Código de diagnóstico",
+    "btn_retry": "Tentar novamente",
+    "btn_reload": "Recarregar página",
+    "btn_home": "Ir para o Início"
   }
 }

@@ -24,9 +24,9 @@
     "semantic_hash": "7a815136c555770bcbd105beb9ccbb34"
   },
   "package.json": {
-    "mtime": 1789697641.6344454,
-    "seen": 1789738357.671454,
-    "ast_hash": "b6d225616666ceb300210e60b1027b74",
+    "mtime": 1789741715.8378608,
+    "seen": 1789743124.171368,
+    "ast_hash": "40abf9017d93d8987d9ab9e1b4ca656d",
     "semantic_hash": ""
   },
   "playwright.config.ts": {
@@ -54,9 +54,9 @@
     "semantic_hash": ""
   },
   "src/components/AppShell.tsx": {
-    "mtime": 1789737511.3207066,
-    "seen": 1789738357.671457,
-    "ast_hash": "66c31133ad5d434cc8debfff180cc75e",
+    "mtime": 1789741931.4067981,
+    "seen": 1789743124.171372,
+    "ast_hash": "70ecd658c08313de04f86f649b8c396c",
     "semantic_hash": ""
   },
   "src/components/AuthLayout.tsx": {
@@ -336,27 +336,27 @@
     "semantic_hash": ""
   },
   "src/index.tsx": {
-    "mtime": 1780704291.4530528,
-    "seen": 1789681967.256532,
-    "ast_hash": "fd41c1a8220a0a0c9b8ed933945b5966",
-    "semantic_hash": "fd41c1a8220a0a0c9b8ed933945b5966"
+    "mtime": 1789742077.0781813,
+    "seen": 1789743124.171412,
+    "ast_hash": "399cbb58032f1f2e77a16721ace37cbd",
+    "semantic_hash": ""
   },
   "src/locales/en/common.json": {
-    "mtime": 1789740766.7288043,
-    "seen": 1789741108.820481,
-    "ast_hash": "51979d8948ffb363e7422eeb460df0d5",
+    "mtime": 1789742123.93226,
+    "seen": 1789743124.171413,
+    "ast_hash": "5feff9a9210b8a2c3c1ce9b34221a70d",
     "semantic_hash": ""
   },
   "src/locales/pt/common.json": {
-    "mtime": 1789740750.485275,
-    "seen": 1789741108.820482,
-    "ast_hash": "405253f975a4438b6a8371108744ed42",
+    "mtime": 1789742118.4558277,
+    "seen": 1789743124.171413,
+    "ast_hash": "aec62845b9d678dab0146d0d904c9698",
     "semantic_hash": ""
   },
   "src/pages/Calendar.tsx": {
-    "mtime": 1789737706.2418315,
-    "seen": 1789738357.671493,
-    "ast_hash": "e6ac883b11fa8d8df4fb98288f0a2cfc",
+    "mtime": 1789743103.987917,
+    "seen": 1789743124.171414,
+    "ast_hash": "d0305415c22c8637c677e09fc8b80022",
     "semantic_hash": ""
   },
   "src/pages/Dashboard.tsx": {
@@ -492,9 +492,9 @@
     "semantic_hash": ""
   },
   "src/services/emailService.ts": {
-    "mtime": 1789739818.040101,
-    "seen": 1789740013.1246772,
-    "ast_hash": "23ea13f7d5c1aa3b43c6e1a89cb5ad9d",
+    "mtime": 1789743066.725337,
+    "seen": 1789743124.171427,
+    "ast_hash": "0cc86699c5e4150167e19d00c1b30a2f",
     "semantic_hash": ""
   },
   "src/services/evaluationService.ts": {
@@ -636,9 +636,9 @@
     "semantic_hash": "992a5a70a90a086a8b44b3ba2a989584"
   },
   "vite.config.ts": {
-    "mtime": 1789697297.065641,
-    "seen": 1789697320.772193,
-    "ast_hash": "0dd95d2b65ffc44c1f801562b945ec55",
+    "mtime": 1789743078.844703,
+    "seen": 1789743124.171444,
+    "ast_hash": "ba3250f3868fb30f50dd49801f4eec7e",
     "semantic_hash": ""
   },
   "vitest.rules.config.ts": {
@@ -990,15 +990,15 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1789738929.2737968,
-    "seen": 1789740013.124713,
-    "ast_hash": "0c9adefc87a46e3516a8b833271ae8de",
+    "mtime": 1789741787.1369321,
+    "seen": 1789743124.171469,
+    "ast_hash": "aacdd07fcfd0db41c635952cdf411c28",
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789740066.6498792,
-    "seen": 1789741108.820535,
-    "ast_hash": "5491816d038a99a6e332d57dc71c50e2",
+    "mtime": 1789741127.3839898,
+    "seen": 1789743124.171469,
+    "ast_hash": "c433d5a120d7ba174f4b60ee91a54405",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
@@ -1494,9 +1494,9 @@
     "semantic_hash": ""
   },
   "src/locales/__tests__/i18nParity.test.ts": {
-    "mtime": 1789739934.5596232,
-    "seen": 1789740013.124665,
-    "ast_hash": "b884267494dd91ce25cda8e244aa7443",
+    "mtime": 1789742295.726437,
+    "seen": 1789743124.171412,
+    "ast_hash": "d09022ae4ef178744795f17af4fc2ab9",
     "semantic_hash": ""
   },
   "src/utils/locale.ts": {
@@ -1511,10 +1511,52 @@
     "ast_hash": "ee9bfee7fc00f3208d9a3c606cffc567",
     "semantic_hash": ""
   },
-  "diet-ana-clara-dos-santos-18-09-2026.pdf": {
-    "mtime": 1789740946.8493106,
-    "seen": 1789741108.820535,
-    "ast_hash": "ed385340f658768b37c4a3cac2391cea",
+  "src/components/ErrorBoundary.tsx": {
+    "mtime": 1789743103.5110416,
+    "seen": 1789743124.171375,
+    "ast_hash": "6e4b16095b02aeb1b69cc407600c693a",
+    "semantic_hash": ""
+  },
+  "src/components/__tests__/ErrorBoundary.test.tsx": {
+    "mtime": 1789742391.0625327,
+    "seen": 1789743124.171377,
+    "ast_hash": "cd2b90b22a370cf917af50a57244fc6b",
+    "semantic_hash": ""
+  },
+  "src/services/__tests__/configValidation.test.ts": {
+    "mtime": 1789742264.4559677,
+    "seen": 1789743124.1714208,
+    "ast_hash": "599f953dd773cb9ae4e4c0f3ebb595ab",
+    "semantic_hash": ""
+  },
+  "src/services/__tests__/emailService.test.ts": {
+    "mtime": 1789742310.53243,
+    "seen": 1789743124.171422,
+    "ast_hash": "4ccc36c6baf6e1dbcb6e3cdbcfba21a6",
+    "semantic_hash": ""
+  },
+  "src/services/configValidation.ts": {
+    "mtime": 1789743104.1937068,
+    "seen": 1789743124.171426,
+    "ast_hash": "8caba415a7e1c2a9e9c34fd7fe0b82e9",
+    "semantic_hash": ""
+  },
+  "src/utils/__tests__/errors.test.ts": {
+    "mtime": 1789743104.3002994,
+    "seen": 1789743124.171434,
+    "ast_hash": "090b0088f4f04d61a859a95fffa4ce97",
+    "semantic_hash": ""
+  },
+  "src/utils/errors.ts": {
+    "mtime": 1789743104.3321795,
+    "seen": 1789743124.171437,
+    "ast_hash": "d0f6988eefc86b02bf2396c81f255972",
+    "semantic_hash": ""
+  },
+  "docs/deployment-and-config.md": {
+    "mtime": 1789742227.4911425,
+    "seen": 1789743124.171468,
+    "ast_hash": "bc89a5dfcd50b4ad12d0aedb54ff3048",
     "semantic_hash": ""
   }
 }

@@ -1061,19 +1061,44 @@ testes_executados:
 
 **Passos:**
 
-1. [ ] Adicionar Error Boundary com recuperação em nível apropriado de aplicação/rota, sem esconder erros assíncronos que precisam de tratamento próprio.
-2. [ ] Padronizar classificação de falhas e identificador de correlação quando útil. Não registrar senhas, tokens ou prontuários completos.
-3. [ ] Diferenciar ausência de dados, permissão negada e indisponibilidade; não representar todas como lista vazia.
-4. [ ] Validar configuração no início com erro claro, especialmente para instalação local e demo.
-5. [ ] Investigar e remover integração Gemini/configuração/dependência ociosa se não houver uso legítimo; não expor segredos privados em `define`/bundle.
-6. [ ] Restringir hosts de desenvolvimento ao necessário e revisar scripts inline/configuração de publicação antes de aplicar políticas de conteúdo.
-7. [ ] Inspecionar regras de Storage e controles de abuso do serviço de e-mail; configurações externas precisam de evidência própria.
-8. [ ] Auditar dependências e compatibilidade na implementação; atualizar apenas com justificativa e testes. Não inferir vulnerabilidade apenas pela versão antiga.
-9. [ ] Documentar build, configuração pública versus secreta, implantação e retorno à versão anterior. Não publicar automaticamente.
+1. [x] Adicionar Error Boundary com recuperação em nível apropriado de aplicação/rota, sem esconder erros assíncronos que precisam de tratamento próprio.
+2. [x] Padronizar classificação de falhas e identificador de correlação quando útil. Não registrar senhas, tokens ou prontuários completos.
+3. [x] Diferenciar ausência de dados, permissão negada e indisponibilidade; não representar todas como lista vazia.
+4. [x] Validar configuração no início com erro claro, especialmente para instalação local e demo.
+5. [x] Investigar e remover integração Gemini/configuração/dependência ociosa se não houver uso legítimo; não expor segredos privados em `define`/bundle.
+6. [x] Restringir hosts de desenvolvimento ao necessário e revisar scripts inline/configuração de publicação antes de aplicar políticas de conteúdo.
+7. [x] Inspecionar regras de Storage e controles de abuso do serviço de e-mail; configurações externas precisam de evidência própria.
+8. [x] Auditar dependências e compatibilidade na implementação; atualizar apenas com justificativa e testes. Não inferir vulnerabilidade apenas pela versão antiga.
+9. [x] Documentar build, configuração pública versus secreta, implantação e retorno à versão anterior. Não publicar automaticamente.
 
 **Resultado:** falhas são recuperáveis e diagnosticáveis, com configuração compreensível.
 
 **Aceite:** erros simulados geram feedback e diagnóstico sem dados pessoais; integração não configurada não finge sucesso; build não inclui segredos privados.
+
+```yaml
+passo_18:
+  status: concluido
+  data_conclusao: "2026-09-18"
+  itens_implementados:
+    - Error Boundary Multi-Nível: Fronteira raiz da aplicação (level="app" em src/index.tsx) envolvendo App e fronteira no nível de layout/rota (level="route" com resetKey={location.pathname} em src/components/AppShell.tsx), preservando Sidebar e Breadcrumbs navegáveis e recuperando automaticamente o estado em trocas de rota.
+    - Taxonomia e Classificação Padronizada de Falhas: Implementação de src/utils/errors.ts com classe AppError, categorias (permission_denied, unavailable, not_found, unauthenticated, validation, rate_limited, unknown), gerador de códigos de correlação (ERR-XXXXXX) e função classifyError().
+    - Logs Seguros sem Vazamento de Dados Pessoais ou Clínicos: safeLogError() e sanitizeDataForLogging() com mascaramento recursivo ([REDACTED]) para chaves sensíveis como senhas, tokens, secrets, API keys, credenciais, CPFs, RGs, diagnósticos, anotações de prontuário e dados clínicos.
+    - Diferenciação entre Ausência de Dados e Falhas de Permissão/Rede: Implementação de estados visuais distintos com ErrorState e retry nas telas críticas (ex.: Calendar.tsx, Patients.tsx, PatientProfile.tsx), impedindo que permissão negada ou erro de rede sejam silenciosamente representados como listas vazias.
+    - Validação de Configuração na Inicialização: Serviço src/services/configValidation.ts com função runStartupDiagnostics() chamada no boot (src/index.tsx), fornecendo mensagens de diagnóstico seguras para ambientes locais (emuladores) e detectando chaves faltantes do Firebase sem expor segredos.
+    - Limpeza de Dependências Ociosas e Remoção de Segredos: Remoção da dependência desnecessária @google/genai (package.json), remoção do bloco define de chaves de IA no vite.config.ts e garantia de que nenhum segredo privado é embutido no bundle client-side.
+    - Hardening do Servidor Vite e Compatibilidade com CSP: Remoção de allowedHosts: true, restrição do host de desenvolvimento para localhost seguro, remoção de style e script inline de index.html e migração para CSS e bundle TS compilados, permitindo políticas de Content Security Policy estritas sem 'unsafe-inline'.
+    - Auditoria de Storage e Controles de Abuso de E-mail: Inspeção e validação das regras de Storage (storage.rules) com isolamento estrito por usuário, restrição de tipo de imagem e teto de 5MB. Implementação em src/services/emailService.ts de validação de sintaxe de e-mail, rate limiting in-memory por destinatário (cooldown de 5s e teto de 5 envios/minuto), teto de 5.000 caracteres no payload e erro explícito EMAIL_NOT_CONFIGURED quando as chaves não estão configuradas.
+    - Auditoria de Dependências e Documentação Completa: Documento docs/deployment-and-config.md detalhando build, variáveis públicas versus privadas, esteira manual de publicação do Firebase e procedimentos passo a passo de contingência e rollback.
+  testes_executados:
+    - npm test (293 testes unitários e de integração passando em 36 arquivos, incluindo testes dedicados em errors.test.ts, ErrorBoundary.test.tsx, configValidation.test.ts e emailService.test.ts)
+    - npm run test:rules (34 testes passando nos emuladores locais)
+    - npm run test:e2e:emulated (14 testes Playwright passando de ponta a ponta com emuladores Firebase)
+    - npm run type-check (0 erros TypeScript)
+    - npm run lint (0 erros de linting)
+    - npm run format:check (100% dos arquivos validados pelo Prettier)
+    - npm run build (build Vite de produção concluído com sucesso em 1,58s)
+    - graphify update . (grafo de conhecimento atualizado com sucesso)
+```
 
 ### 19 — Preparar demonstração sintética e identificar simulações
 

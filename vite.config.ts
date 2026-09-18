@@ -1,22 +1,15 @@
 import path from 'path';
-import { loadEnv } from 'vite';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
+export default defineConfig(() => {
     return {
       server: {
         port: 5000,
-        host: '0.0.0.0',
-        allowedHosts: true,
+        host: 'localhost',
       },
       plugins: [tailwindcss(), react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, 'src'),
@@ -29,7 +22,7 @@ export default defineConfig(({ mode }) => {
         setupFiles: './src/test/setup.ts',
         exclude: ['**/node_modules/**', '**/dist/**', '**/tests-e2e/**', '**/tests-rules/**', '**/tests-perf/**'],
         coverage: {
-          provider: 'v8',
+          provider: 'v8' as const,
           reporter: ['text', 'text-summary', 'html', 'lcov'],
           reportsDirectory: './coverage',
           // Focus coverage on the domain logic and components we test; skip

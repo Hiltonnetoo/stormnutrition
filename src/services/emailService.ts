@@ -1,6 +1,7 @@
 import emailjs from "@emailjs/browser";
 import i18n from "../i18n";
 import { getNormalizedLanguage, type SupportedLanguage } from "../utils/locale";
+import { AppError, safeLogError } from "../utils/errors";
 
 /**
  * Real sending of emails via EmailJS (client).
@@ -11,10 +12,66 @@ import { getNormalizedLanguage, type SupportedLanguage } from "../utils/locale";
  * When not configured, `sendDietEmail` throws "EMAIL_NOT_CONFIGURED" so that
  * the UI displays a clear guidance instead of pretending it sent the email.
  *
- * Evolutionary path (production): replace EmailJS with a Firebase Cloud Function
- * + transactional provider (Resend/SendGrid), maintaining the same
- * signature `sendDietEmail` here.
+ * Abuse controls included:
+ * - Recipient email syntax validation
+ * - In-memory throttling (cooldown and sliding window rate limiting)
+ * - Maximum payload size constraints
  */
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_INTERVAL_PER_RECIPIENT_MS = 5000; // 5 seconds cooldown
+const MAX_SENDS_PER_WINDOW = 5;
+const RATE_WINDOW_MS = 60000; // 1 minute
+const MAX_MESSAGE_LENGTH = 5000;
+
+// Recipient email -> list of timestamps
+const recipientSendHistory = new Map<string, number[]>();
+
+export const clearEmailRateLimits = (): void => {
+  recipientSendHistory.clear();
+};
+
+export const isValidEmail = (email: unknown): boolean => {
+  return typeof email === "string" && EMAIL_REGEX.test(email.trim());
+};
+
+const enforceAbuseControls = (toEmail: string, messageLength: number): void => {
+  const normalizedEmail = (toEmail || "").trim().toLowerCase();
+
+  if (!isValidEmail(normalizedEmail)) {
+    throw new AppError("EMAIL_INVALID_RECIPIENT", "validation", {
+      originalCode: "EMAIL_INVALID_RECIPIENT",
+    });
+  }
+
+  if (messageLength > MAX_MESSAGE_LENGTH) {
+    throw new AppError("EMAIL_PAYLOAD_TOO_LARGE", "validation", {
+      originalCode: "EMAIL_PAYLOAD_TOO_LARGE",
+    });
+  }
+
+  const now = Date.now();
+  const history = recipientSendHistory.get(normalizedEmail) || [];
+  const recentHistory = history.filter((ts) => now - ts < RATE_WINDOW_MS);
+
+  if (recentHistory.length > 0) {
+    const lastSend = recentHistory[recentHistory.length - 1];
+    if (now - lastSend < MIN_INTERVAL_PER_RECIPIENT_MS) {
+      throw new AppError("EMAIL_RATE_LIMITED", "rate_limited", {
+        originalCode: "EMAIL_RATE_LIMITED",
+      });
+    }
+  }
+
+  if (recentHistory.length >= MAX_SENDS_PER_WINDOW) {
+    throw new AppError("EMAIL_RATE_LIMITED", "rate_limited", {
+      originalCode: "EMAIL_RATE_LIMITED",
+    });
+  }
+
+  recentHistory.push(now);
+  recipientSendHistory.set(normalizedEmail, recentHistory);
+};
 
 const getEmailConfig = () => ({
   serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined,
@@ -40,28 +97,41 @@ export interface DietEmailParams {
 export const sendDietEmail = async (params: DietEmailParams): Promise<void> => {
   const { serviceId, templateId, publicKey } = getEmailConfig();
   if (!serviceId || !templateId || !publicKey) {
-    throw new Error("EMAIL_NOT_CONFIGURED");
+    throw new AppError("EMAIL_NOT_CONFIGURED", "unavailable", {
+      originalCode: "EMAIL_NOT_CONFIGURED",
+    });
   }
-  const targetLng = getNormalizedLanguage(params.locale);
-  await emailjs.send(
-    serviceId,
-    templateId,
-    {
-      to_email: params.toEmail,
-      to_name: params.toName,
-      from_name: params.fromName,
-      diet_date: params.dietDate,
-      portal_url: params.portalUrl || "",
-      message:
-        params.message ||
-        i18n.t("email.diet_message", {
-          lng: targetLng,
-          toName: params.toName,
-          dietDate: params.dietDate,
-        }),
-    },
-    { publicKey },
-  );
+
+  const messageText =
+    params.message ||
+    i18n.t("email.diet_message", {
+      lng: getNormalizedLanguage(params.locale),
+      toName: params.toName,
+      dietDate: params.dietDate,
+    });
+
+  enforceAbuseControls(params.toEmail, messageText.length);
+
+  try {
+    await emailjs.send(
+      serviceId,
+      templateId,
+      {
+        to_email: params.toEmail,
+        to_name: params.toName,
+        from_name: params.fromName,
+        diet_date: params.dietDate,
+        portal_url: params.portalUrl || "",
+        message: messageText,
+      },
+      { publicKey },
+    );
+  } catch (err) {
+    safeLogError("emailService:sendDietEmail", err, undefined, {
+      recipient: params.toEmail,
+    });
+    throw err;
+  }
 };
 
 export interface PortalAccessEmailParams {
@@ -80,26 +150,39 @@ export const sendPortalAccessEmail = async (
 ): Promise<void> => {
   const { serviceId, templateId, publicKey } = getEmailConfig();
   if (!serviceId || !templateId || !publicKey) {
-    throw new Error("EMAIL_NOT_CONFIGURED");
+    throw new AppError("EMAIL_NOT_CONFIGURED", "unavailable", {
+      originalCode: "EMAIL_NOT_CONFIGURED",
+    });
   }
-  const targetLng = getNormalizedLanguage(params.locale);
+
   const actionUrl = params.inviteUrl || params.portalUrl;
-  await emailjs.send(
-    serviceId,
-    templateId,
-    {
-      to_email: params.toEmail,
-      to_name: params.toName,
-      from_name: params.fromName,
-      portal_url: actionUrl,
-      message: i18n.t("email.portal_message", {
-        lng: targetLng,
-        toName: params.toName,
-        fromName: params.fromName,
-        toEmail: params.toEmail,
-        portalUrl: actionUrl,
-      }),
-    },
-    { publicKey },
-  );
+  const messageText = i18n.t("email.portal_message", {
+    lng: getNormalizedLanguage(params.locale),
+    toName: params.toName,
+    fromName: params.fromName,
+    toEmail: params.toEmail,
+    portalUrl: actionUrl,
+  });
+
+  enforceAbuseControls(params.toEmail, messageText.length);
+
+  try {
+    await emailjs.send(
+      serviceId,
+      templateId,
+      {
+        to_email: params.toEmail,
+        to_name: params.toName,
+        from_name: params.fromName,
+        portal_url: actionUrl,
+        message: messageText,
+      },
+      { publicKey },
+    );
+  } catch (err) {
+    safeLogError("emailService:sendPortalAccessEmail", err, undefined, {
+      recipient: params.toEmail,
+    });
+    throw err;
+  }
 };

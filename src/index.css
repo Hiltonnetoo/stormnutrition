@@ -512,7 +512,17 @@ h4 {
   }
 }
 
-/* Print / PDF export support (preserved from original) */
+/* Print / PDF export support */
 .preparing-for-export .no-export {
   display: none !important;
+}
+body.preparing-for-export #diet-plan-display-content,
+body.preparing-for-export #diet-plan-viewer-content {
+  width: 210mm; /* A4 width */
+  height: auto;
+  min-height: 297mm; /* A4 height */
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  margin: 0 auto;
 }

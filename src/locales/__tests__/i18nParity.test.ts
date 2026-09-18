@@ -10,6 +10,7 @@ import {
 import {
   sendDietEmail,
   sendPortalAccessEmail,
+  clearEmailRateLimits,
 } from "../../services/emailService";
 import emailjs from "@emailjs/browser";
 
@@ -193,6 +194,7 @@ describe("i18n Translation Parity (Passo 16)", () => {
   describe("emailService explicit locale", () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      clearEmailRateLimits();
       vi.stubEnv("VITE_EMAILJS_SERVICE_ID", "test_svc");
       vi.stubEnv("VITE_EMAILJS_TEMPLATE_ID", "test_tpl");
       vi.stubEnv("VITE_EMAILJS_PUBLIC_KEY", "test_key");

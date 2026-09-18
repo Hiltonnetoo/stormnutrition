@@ -11,7 +11,7 @@ import {
 } from "../services/firebaseService";
 import { usePatientDirectory } from "../hooks/usePatientDirectory";
 import type { Appointment, AppointmentType, Patient } from "../types";
-import { PageHeader, Card, Button, Modal } from "../components/ui";
+import { PageHeader, Card, Button, Modal, ErrorState } from "../components/ui";
 import { PlusIcon, ChevronRightIcon } from "../components/icons";
 import { ConfirmationModal } from "../components/modals/PatientModal";
 import { getCivilMonthRange, parseLocalDateTime } from "../utils/dateTime";
@@ -307,6 +307,10 @@ const Calendar: React.FC = () => {
   );
   const [prePatientId, setPrePatientId] = useState<string>("");
   const [prePatientName, setPrePatientName] = useState<string>("");
+  const [loadError, setLoadError] = useState<
+    "permission_denied" | "load_error" | null
+  >(null);
+  const [refreshCount, setRefreshCount] = useState(0);
   // The patient picker is only needed while the appointment modal is open.
   const { patients } = usePatientDirectory(modalDate !== null);
 
@@ -319,9 +323,23 @@ const Calendar: React.FC = () => {
   // Only the visible month is read; navigating re-subscribes to the new range.
   useEffect(() => {
     if (!uid) return;
+    setLoadError(null);
     const { start, end } = getCivilMonthRange(year, month);
-    return getAppointmentsInRange(uid, start, end, setAppointments);
-  }, [uid, year, month]);
+    return getAppointmentsInRange(
+      uid,
+      start,
+      end,
+      (appts) => {
+        setAppointments(appts);
+        setLoadError(null);
+      },
+      (err) => {
+        setLoadError(
+          err.code === "permission-denied" ? "permission_denied" : "load_error",
+        );
+      },
+    );
+  }, [uid, year, month, refreshCount]);
 
   useEffect(() => {
     if (!uid) return;
@@ -432,89 +450,109 @@ const Calendar: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-7">
-            {DAYS_KEYS.map((k) => (
-              <div
-                key={k}
-                aria-hidden="true"
-                className="py-2.5 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider"
-              >
-                {t(`calendar.days_short.${k}`)}
-              </div>
-            ))}
-            {Array.from({ length: firstDay }).map((_, i) => (
-              <div
-                key={`empty-${i}`}
-                aria-hidden="true"
-                className="border-t border-slate-50 dark:border-slate-800 min-h-[84px]"
+          {loadError ? (
+            <div className="p-8">
+              <ErrorState
+                title={
+                  loadError === "permission_denied"
+                    ? t("calendar.error_permission")
+                    : t("calendar.error_load")
+                }
+                message={
+                  loadError === "permission_denied"
+                    ? t("calendar.error_permission_desc")
+                    : t("calendar.error_load_desc")
+                }
+                onRetry={() => setRefreshCount((c) => c + 1)}
               />
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const pad = (n: number) => String(n).padStart(2, "0");
-              const dayStr = `${year}-${pad(month + 1)}-${pad(day)}`;
-              const isToday = dayStr === todayStr;
-              const isSelected =
-                selectedDate?.getDate() === day &&
-                selectedDate?.getMonth() === month &&
-                selectedDate?.getFullYear() === year;
-              const dayAppts = getApptForDay(day);
-              const dayDate = new Date(year, month, day);
-              const dayLabel = `${dayDate.toLocaleDateString(locale, {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}, ${t("a11y.appointments_count", { count: dayAppts.length })}`;
-              return (
+            </div>
+          ) : (
+            <div className="grid grid-cols-7">
+              {DAYS_KEYS.map((k) => (
                 <div
-                  key={day}
-                  onClick={() => setSelectedDate(dayDate)}
-                  className={`min-h-[84px] p-1.5 border-t border-slate-50 dark:border-slate-800 cursor-pointer transition-colors hover:bg-sage-50/50 dark:hover:bg-slate-800/50 ${isSelected ? "bg-sage-50 dark:bg-sage-900/20" : ""}`}
+                  key={k}
+                  aria-hidden="true"
+                  className="py-2.5 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider"
                 >
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedDate(dayDate);
-                    }}
-                    aria-label={dayLabel}
-                    aria-pressed={isSelected}
-                    aria-current={isToday ? "date" : undefined}
-                    className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-semibold mb-1 focus-ring ${isToday ? "bg-sage-600 text-white" : "text-slate-700 dark:text-slate-300"}`}
-                  >
-                    {day}
-                  </button>
-                  <div className="space-y-0.5">
-                    {dayAppts.slice(0, 2).map((a) => (
-                      <button
-                        type="button"
-                        key={a.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingAppt(a);
-                          setModalDate(parseLocalDateTime(a.dateTime));
-                        }}
-                        aria-label={t("a11y.edit_appointment", {
-                          name: a.patientName,
-                          time: a.dateTime.slice(11, 16),
-                        })}
-                        className={`block w-full text-left text-[11px] font-semibold px-1.5 py-0.5 rounded-md truncate cursor-pointer border focus-ring ${TYPE_LIGHT[a.type]}`}
-                      >
-                        {a.dateTime.slice(11, 16)} {a.patientName.split(" ")[0]}
-                      </button>
-                    ))}
-                    {dayAppts.length > 2 && (
-                      <div className="text-[11px] text-slate-500 pl-1">
-                        {t("calendar.more_events", {
-                          count: dayAppts.length - 2,
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  {t(`calendar.days_short.${k}`)}
                 </div>
-              );
-            })}
-          </div>
+              ))}
+              {Array.from({ length: firstDay }).map((_, i) => (
+                <div
+                  key={`empty-${i}`}
+                  aria-hidden="true"
+                  className="border-t border-slate-50 dark:border-slate-800 min-h-[84px]"
+                />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const isToday =
+                  today.getDate() === day &&
+                  today.getMonth() === month &&
+                  today.getFullYear() === year;
+                const isSelected =
+                  selectedDate?.getDate() === day &&
+                  selectedDate?.getMonth() === month &&
+                  selectedDate?.getFullYear() === year;
+                const dayAppts = getApptForDay(day);
+                const dayDate = new Date(year, month, day);
+                const dayLabel = `${dayDate.toLocaleDateString(locale, {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })}, ${t("a11y.appointments_count", { count: dayAppts.length })}`;
+                return (
+                  <div
+                    key={day}
+                    onClick={() => setSelectedDate(dayDate)}
+                    className={`min-h-[84px] p-1.5 border-t border-slate-50 dark:border-slate-800 cursor-pointer transition-colors hover:bg-sage-50/50 dark:hover:bg-slate-800/50 ${isSelected ? "bg-sage-50 dark:bg-sage-900/20" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDate(dayDate);
+                      }}
+                      aria-label={dayLabel}
+                      aria-pressed={isSelected}
+                      aria-current={isToday ? "date" : undefined}
+                      className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-semibold mb-1 focus-ring ${isToday ? "bg-sage-600 text-white" : "text-slate-700 dark:text-slate-300"}`}
+                    >
+                      {day}
+                    </button>
+                    <div className="space-y-0.5">
+                      {dayAppts.slice(0, 2).map((a) => (
+                        <button
+                          type="button"
+                          key={a.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingAppt(a);
+                            setModalDate(parseLocalDateTime(a.dateTime));
+                          }}
+                          aria-label={t("a11y.edit_appointment", {
+                            name: a.patientName,
+                            time: a.dateTime.slice(11, 16),
+                          })}
+                          className={`block w-full text-left text-[11px] font-semibold px-1.5 py-0.5 rounded-md truncate cursor-pointer border focus-ring ${TYPE_LIGHT[a.type]}`}
+                        >
+                          {a.dateTime.slice(11, 16)}{" "}
+                          {a.patientName.split(" ")[0]}
+                        </button>
+                      ))}
+                      {dayAppts.length > 2 && (
+                        <div className="text-[11px] text-slate-500 pl-1">
+                          {t("calendar.more_events", {
+                            count: dayAppts.length - 2,
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
 
         {/* Side panel */}

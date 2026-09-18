@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar";
 import Breadcrumbs from "./Breadcrumbs";
 import { Dialog } from "./Dialog";
 import { routeNameKey } from "../utils/routes";
+import ErrorBoundary from "./ErrorBoundary";
 
 const APP_NAME = "Storm Nutrition";
 
@@ -80,7 +81,9 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           tabIndex={-1}
           className="flex-1 overflow-y-auto focus:outline-none"
         >
-          {children}
+          <ErrorBoundary level="route" resetKey={location.pathname}>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
     </div>
