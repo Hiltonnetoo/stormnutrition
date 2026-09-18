@@ -1341,13 +1341,13 @@ Os dez achados da revisão foram desdobrados em doze entregas para facilitar imp
 
 **Passo a passo:**
 
-1. [ ] Adicionar regressão que substitui um registro profissional por outro com mesmo tamanho de array e confirmar que a operação deve ser negada.
-2. [ ] Definir campos de autoria/origem e quais operações cada papel pode fazer: acrescentar peso autorrelatado, responder protocolo, corrigir registro próprio e registrar medição profissional.
-3. [ ] Preferir eventos individuais em subcoleções, com ID estável, autor e instante de registro. Se mantiver arrays, demonstrar proteção do conteúdo anterior; tamanho igual não comprova preservação.
-4. [ ] Validar autoria e origem no servidor/regras. Paciente não pode se identificar como autor profissional nem editar eventos de outro autor.
-5. [ ] Validar transições das avaliações. Permitir resposta não significa permitir criar/reescrever o protocolo ou alterar arbitrariamente `activeProtocolId`.
-6. [ ] Manter operações idempotentes e a proteção contra atualização concorrente já adicionada.
-7. [ ] Adaptar leitura de gráficos/portal e estabelecer migração idempotente de dados legados, sem perda de informação.
+1. [x] Adicionar regressão que substitui um registro profissional por outro com mesmo tamanho de array e confirmar que a operação deve ser negada.
+2. [x] Definir campos de autoria/origem e quais operações cada papel pode fazer: acrescentar peso autorrelatado, responder protocolo, corrigir registro próprio e registrar medição profissional.
+3. [x] Preferir eventos individuais em subcoleções, com ID estável, autor e instante de registro. Se mantiver arrays, demonstrar proteção do conteúdo anterior; tamanho igual não comprova preservação.
+4. [x] Validar autoria e origem no servidor/regras. Paciente não pode se identificar como autor profissional nem editar eventos de outro autor.
+5. [x] Validar transições das avaliações. Permitir resposta não significa permitir criar/reescrever o protocolo ou alterar arbitrariamente `activeProtocolId`.
+6. [x] Manter operações idempotentes e a proteção contra atualização concorrente já adicionada.
+7. [x] Adaptar leitura de gráficos/portal e estabelecer migração idempotente de dados legados, sem perda de informação.
 
 **Resultado esperado:** autoatendimento acrescenta informações autorizadas sem apagar ou falsificar o histórico profissional.
 

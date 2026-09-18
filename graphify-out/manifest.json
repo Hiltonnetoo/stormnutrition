@@ -624,9 +624,9 @@
     "semantic_hash": ""
   },
   "tests-rules/firestore.rules.test.ts": {
-    "mtime": 1789749880.6704514,
-    "seen": 1789750045.816322,
-    "ast_hash": "11d047f073542d3ac7d13c953d5cfd2d",
+    "mtime": 1789750373.5224862,
+    "seen": 1789750472.492377,
+    "ast_hash": "1fb25361f21c795d066afa8a71b90c9a",
     "semantic_hash": ""
   },
   "tsconfig.json": {
@@ -996,9 +996,9 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789750018.6808991,
-    "seen": 1789750045.816345,
-    "ast_hash": "d75278166a65d5ce637a0be3aa8ab9b6",
+    "mtime": 1789750439.2688112,
+    "seen": 1789750472.492401,
+    "ast_hash": "20460308616e3474f95a8254f0218164",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {

@@ -850,4 +850,183 @@ describe("Firestore security rules - Authorization Matrix", () => {
       await assertFails(getDoc(doc(forgedDb, `users/${NUTRI_A}/diets/d1`)));
     });
   });
+
+  describe("11. Passo C02 - Integrity and Authorship Protection for Historical Records", () => {
+    it("FORBIDS patient from replacing an existing weight record with another of the same array size", async () => {
+      // p1 starts with 1 record: [{ date: "2026-01-01", weight: 60, origin: "clinical" }]
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+      // Tamper attempt: replacing the clinical record with a forged one of the same array size (1)
+      await assertFails(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`), {
+          weight: 55,
+          weightHistory: [
+            { date: "2026-01-01", weight: 55, origin: "self_reported" },
+          ],
+        }),
+      );
+    });
+
+    it("FORBIDS patient from adding a weight record with clinical origin", async () => {
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+      // Attempting to append a record with origin: "clinical"
+      await assertFails(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`), {
+          weight: 61,
+          weightHistory: [
+            { date: "2026-01-01", weight: 60, origin: "clinical" },
+            { date: "2026-09-18", weight: 61, origin: "clinical" },
+          ],
+        }),
+      );
+    });
+
+    it("FORBIDS patient from forging authorUid to another user", async () => {
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+      // Attempting to impersonate nutritionist in authorUid
+      await assertFails(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`), {
+          weight: 61.5,
+          weightHistory: [
+            { date: "2026-01-01", weight: 60, origin: "clinical" },
+            {
+              date: "2026-09-18",
+              weight: 61.5,
+              origin: "self_reported",
+              authorUid: NUTRI_A,
+            },
+          ],
+        }),
+      );
+    });
+
+    it("FORBIDS patient from arbitrarily setting activeProtocolId when none was requested", async () => {
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+      // Attempting to set activeProtocolId to a new string
+      await assertFails(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`), {
+          activeProtocolId: "forged_protocol_id",
+        }),
+      );
+    });
+
+    it("FORBIDS patient from modifying selfEvaluations when activeProtocolId is null", async () => {
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+      // p1 currently has activeProtocolId: null (or unset). Trying to inject an evaluation:
+      await assertFails(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`), {
+          selfEvaluations: [
+            { id: "eval_1", status: "completed" },
+            { id: "eval_forged", status: "completed" },
+          ],
+        }),
+      );
+    });
+
+    it("FORBIDS patient from truncating or clearing adherenceLog", async () => {
+      // Seed adherenceLog
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p1`), {
+          adherenceLog: [{ date: "2026-09-17", followed: true }],
+        });
+      });
+
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+      // Attempting to clear adherenceLog
+      await assertFails(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`), {
+          adherenceLog: [],
+        }),
+      );
+    });
+
+    it("ALLOWS patient to append a valid self-reported weight record preserving existing history", async () => {
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+      // Legitimate self-reported weight append
+      await assertSucceeds(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`), {
+          weight: 62.0,
+          weightHistory: [
+            { date: "2026-01-01", weight: 60, origin: "clinical" },
+            {
+              date: "2026-09-18",
+              weight: 62.0,
+              origin: "self_reported",
+              authorUid: PATIENT_UID,
+            },
+          ],
+        }),
+      );
+    });
+
+    it("ALLOWS patient to complete an active evaluation protocol requested by nutritionist and clear activeProtocolId", async () => {
+      // Seed active protocol on p1
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p1`), {
+          activeProtocolId: "eval_active_123",
+          selfEvaluations: [
+            { id: "eval_1", status: "completed" },
+            {
+              id: "eval_active_123",
+              requestDate: "2026-09-18",
+              status: "pending",
+            },
+          ],
+        });
+      });
+
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+      // Patient completes protocol: transitions activeProtocolId to null and marks evaluation completed
+      await assertSucceeds(
+        updateDoc(doc(patientDb, `users/${NUTRI_A}/patients/p1`), {
+          activeProtocolId: null,
+          selfEvaluations: [
+            { id: "eval_1", status: "completed" },
+            {
+              id: "eval_active_123",
+              requestDate: "2026-09-18",
+              completionDate: "2026-09-18T12:00:00Z",
+              status: "completed",
+            },
+          ],
+        }),
+      );
+    });
+
+    it("ALLOWS nutritionist full professional authority to add clinical records and request protocols", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+
+      // Nutritionist can add clinical weight record and request new protocol
+      await assertSucceeds(
+        updateDoc(doc(nutriDb, `users/${NUTRI_A}/patients/p1`), {
+          weight: 63.0,
+          weightHistory: [
+            { date: "2026-01-01", weight: 60, origin: "clinical" },
+            {
+              date: "2026-09-18",
+              weight: 63.0,
+              origin: "clinical",
+              authorUid: NUTRI_A,
+            },
+          ],
+          activeProtocolId: "proto_nutri_456",
+          selfEvaluations: [
+            { id: "eval_1", status: "completed" },
+            {
+              id: "proto_nutri_456",
+              requestDate: "2026-09-18",
+              status: "pending",
+            },
+          ],
+        }),
+      );
+    });
+  });
 });

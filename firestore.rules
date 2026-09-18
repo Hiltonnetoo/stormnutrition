@@ -56,8 +56,65 @@ service cloud.firestore {
 
     // Patient self-service update validation:
     // 1. Only self-service fields can be modified.
-    // 2. Histories (weightHistory, selfEvaluations) cannot be truncated or erased.
-    // 3. Weight value (if present) must be a realistic numeric range.
+    // 2. Existing historical entries (weightHistory, adherenceLog) cannot be replaced, altered or truncated.
+    // 3. New weight entries must have valid self-reported/remote-guided origin and match auth UID.
+    // 4. Protocols in selfEvaluations cannot be fabricated or altered when no active protocol is requested.
+    function isCurrentWeightValid() {
+      let diff = request.resource.data.diff(resource.data);
+      let isAffected = 'weight' in diff.affectedKeys();
+      let weightOk = request.resource.data.weight is number &&
+        request.resource.data.weight >= 10 &&
+        request.resource.data.weight <= 500;
+      return !isAffected || weightOk;
+    }
+
+    function isWeightHistoryValid() {
+      let diff = request.resource.data.diff(resource.data);
+      let isAffected = 'weightHistory' in diff.affectedKeys();
+      let sizeOk = !('weightHistory' in resource.data) ||
+        (request.resource.data.weightHistory.size() >= resource.data.weightHistory.size() &&
+         request.resource.data.weightHistory.hasAll(resource.data.weightHistory));
+      let lastRec = request.resource.data.weightHistory[request.resource.data.weightHistory.size() - 1];
+      let lastRecOk = request.resource.data.weightHistory.size() == 0 ||
+        (lastRec.origin in ['self_reported', 'remote_guided'] &&
+         (!('authorUid' in lastRec) || lastRec.authorUid == request.auth.uid) &&
+         lastRec.weight is number &&
+         lastRec.weight >= 10 &&
+         lastRec.weight <= 500 &&
+         lastRec.date is string);
+      return !isAffected || (sizeOk && lastRecOk);
+    }
+
+    function isEvaluationsValid() {
+      let diff = request.resource.data.diff(resource.data);
+      let evAffected = 'selfEvaluations' in diff.affectedKeys();
+      let protoAffected = 'activeProtocolId' in diff.affectedKeys();
+
+      // If activeProtocolId is touched, patient can only transition it from non-null to null
+      let protoOk = !protoAffected || (
+        request.resource.data.activeProtocolId == null &&
+        ('activeProtocolId' in resource.data && resource.data.activeProtocolId != null)
+      );
+
+      // If selfEvaluations is touched, there must have been an active protocol, it must now be null, and size must remain identical
+      let evOk = !evAffected || (
+        ('activeProtocolId' in resource.data && resource.data.activeProtocolId != null) &&
+        request.resource.data.activeProtocolId == null &&
+        request.resource.data.selfEvaluations.size() == resource.data.selfEvaluations.size()
+      );
+
+      return protoOk && evOk;
+    }
+
+    function isAdherenceValid() {
+      let diff = request.resource.data.diff(resource.data);
+      let isAffected = 'adherenceLog' in diff.affectedKeys();
+      let sizeOk = !('adherenceLog' in resource.data) ||
+        (request.resource.data.adherenceLog.size() >= resource.data.adherenceLog.size() &&
+         request.resource.data.adherenceLog.hasAll(resource.data.adherenceLog));
+      return !isAffected || sizeOk;
+    }
+
     function patientWriteIsSelfServiceValid() {
       return request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly([
@@ -67,14 +124,10 @@ service cloud.firestore {
           'adherenceLog',
           'activeProtocolId'
         ]) &&
-        (!('weightHistory' in resource.data) ||
-         request.resource.data.weightHistory.size() >= resource.data.weightHistory.size()) &&
-        (!('selfEvaluations' in resource.data) ||
-         request.resource.data.selfEvaluations.size() >= resource.data.selfEvaluations.size()) &&
-        (!('weight' in request.resource.data) ||
-         (request.resource.data.weight is number &&
-          request.resource.data.weight >= 10 &&
-          request.resource.data.weight <= 500));
+        isCurrentWeightValid() &&
+        isWeightHistoryValid() &&
+        isEvaluationsValid() &&
+        isAdherenceValid();
     }
 
     // ------------------------------------------------------ invitations
