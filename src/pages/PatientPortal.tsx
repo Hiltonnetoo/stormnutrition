@@ -1,341 +1,13 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { updatePassword } from "firebase/auth";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 import { useAuth } from "../contexts/AuthContext";
-import {
-  auth,
-  firebaseSignOut,
-  getPatientDiets,
-  getPatientAppointments,
-  logPatientWeight,
-  completeSelfEvaluation,
-  logAdherence,
-  getPatientById,
-} from "../services/firebaseService";
-import MealOptionTable from "../components/MealOptionTable";
-import WeightEvolutionChart from "../components/patient-profile/WeightEvolutionChart";
-import type {
-  AnyDietPlan,
-  Appointment,
-  DietPlan,
-  Meal,
-  PatientPortalProfile,
-  WeightRecord,
-  Patient,
-  AdherenceEntry,
-} from "../types";
-import { Modal, Button } from "../components/ui";
-import { LogoIcon } from "../components/icons";
-import {
-  DEFAULT_CLINIC_TIMEZONE,
-  getCivilToday,
-  toUtcIsoString,
-} from "../utils/dateTime";
-
-const r = (n: number) => Math.round(n);
-
-const translateMealName = (name: string, t: TFunction) => {
-  const normalized = name.toLowerCase().trim();
-  const keys: Record<string, string> = {
-    "café da manhã": "meal_table.breakfast",
-    "lanche da manhã": "meal_table.morning_snack",
-    almoço: "meal_table.lunch",
-    "lanche da tarde": "meal_table.afternoon_snack",
-    jantar: "meal_table.dinner",
-    ceia: "meal_table.supper",
-  };
-  const key = keys[normalized];
-  return key ? t(key) : name;
-};
-
-/* --------------------------------------------------------- Adherence check-in */
-const AdherenceCheckIn: React.FC<{
-  nutritionistId: string;
-  patientId: string;
-  currentLog?: AdherenceEntry[];
-  onCheckInSuccess?: (entry: AdherenceEntry) => void;
-}> = ({ nutritionistId, patientId, currentLog, onCheckInSuccess }) => {
-  const { t } = useTranslation();
-  const today = getCivilToday(DEFAULT_CLINIC_TIMEZONE);
-  const [optimisticEntry, setOptimisticEntry] = useState<AdherenceEntry | null>(
-    null,
-  );
-  const todayEntry =
-    optimisticEntry?.date === today
-      ? optimisticEntry
-      : currentLog?.find((e) => e.date === today);
-  const [loading, setLoading] = useState(false);
-  const [checkError, setCheckError] = useState("");
-
-  const handleCheck = async (followed: boolean) => {
-    setLoading(true);
-    setCheckError("");
-    try {
-      const clientEventId = `adh_${today}_${Date.now()}`;
-      await logAdherence(nutritionistId, patientId, followed, {
-        date: today,
-        clientEventId,
-      });
-      const newEntry: AdherenceEntry = {
-        date: today,
-        followed,
-        timestamp: toUtcIsoString(),
-        clientEventId,
-      };
-      setOptimisticEntry(newEntry);
-      onCheckInSuccess?.(newEntry);
-    } catch (error) {
-      console.error(error);
-      setCheckError(t("patient_portal.adherence.error"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (todayEntry)
-    return (
-      <div className="bg-sage-50 border border-sage-100 rounded-3xl p-5 flex items-center gap-3">
-        <div
-          className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${todayEntry.followed ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"}`}
-        >
-          {todayEntry.followed ? "🌟" : "💪"}
-        </div>
-        <div>
-          <p className="text-xs font-bold text-sage-600 uppercase tracking-wider">
-            {t("patient_portal.adherence.checkin_title")}
-          </p>
-          <p className="font-bold text-slate-800">
-            {todayEntry.followed
-              ? t("patient_portal.adherence.followed_msg")
-              : t("patient_portal.adherence.not_followed_msg")}
-          </p>
-        </div>
-      </div>
-    );
-
-  return (
-    <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-soft">
-      <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest mb-2">
-        {t("patient_portal.adherence.title")}
-      </h3>
-      <p className="text-sm text-slate-500 mb-5">
-        {t("patient_portal.adherence.question")}
-      </p>
-      {checkError && (
-        <p className="text-sm text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2 mb-4">
-          {checkError}
-        </p>
-      )}
-      <div className="flex gap-3">
-        <button
-          onClick={() => handleCheck(true)}
-          disabled={loading}
-          className="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50"
-        >
-          {loading ? "..." : t("patient_portal.adherence.yes_btn")}
-        </button>
-        <button
-          onClick={() => handleCheck(false)}
-          disabled={loading}
-          className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all active:scale-95 disabled:opacity-50"
-        >
-          {t("patient_portal.adherence.no_btn")}
-        </button>
-      </div>
-    </div>
-  );
-};
-
-/* ------------------------------------------------------- Self-evaluation form */
-const SelfEvaluationForm: React.FC<{
-  protocolId: string;
-  patientProfile: PatientPortalProfile;
-  patient: Patient | null;
-  onComplete: () => void;
-}> = ({ protocolId, patientProfile, patient, onComplete }) => {
-  const { t } = useTranslation();
-  const [step, setStep] = useState(1);
-  const [data, setData] = useState({
-    measurements: { weight: patient?.weight || 0, waist: 0, hip: 0, neck: 0 },
-    wellbeing: {
-      sleepQuality: 3,
-      energyLevel: 3,
-      satiety: 3,
-      digestiveHealth: "Normal",
-    },
-    notes: "",
-  });
-  const [loading, setLoading] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-
-  const handleSubmit = async () => {
-    setLoading(true);
-    setSubmitError("");
-    try {
-      await completeSelfEvaluation(
-        patientProfile.nutritionistId,
-        patientProfile.patientId,
-        protocolId,
-        data,
-      );
-      onComplete();
-    } catch (error) {
-      console.error(error);
-      setSubmitError(t("patient_portal.self_eval.error"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const Scale: React.FC<{ value: number; onChange: (v: number) => void }> = ({
-    value,
-    onChange,
-  }) => (
-    <div className="flex justify-between gap-2">
-      {[1, 2, 3, 4, 5].map((v) => (
-        <button
-          key={v}
-          onClick={() => onChange(v)}
-          className={`flex-1 py-2 rounded-lg font-bold transition-all ${value === v ? "bg-white text-sky-600" : "bg-white/15 text-white"}`}
-        >
-          {v}
-        </button>
-      ))}
-    </div>
-  );
-
-  return (
-    <div className="bg-sky-600 rounded-3xl p-6 text-white shadow-xl shadow-sky-500/20 animate-scale-in">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-white/20 rounded-xl text-xl">📝</div>
-        <div>
-          <h2 className="text-lg font-bold">
-            {t("patient_portal.self_eval.title")}
-          </h2>
-          <p className="text-xs text-sky-100">
-            {t("patient_portal.self_eval.subtitle")}
-          </p>
-        </div>
-      </div>
-
-      {step === 1 && (
-        <div className="space-y-4 animate-fade-in">
-          <p className="text-sm font-bold opacity-80 uppercase tracking-wider">
-            {t("patient_portal.self_eval.step1_title")}
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase opacity-60">
-                {t("patient_portal.self_eval.weight_label")}
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                value={data.measurements.weight}
-                onChange={(e) =>
-                  setData({
-                    ...data,
-                    measurements: {
-                      ...data.measurements,
-                      weight: parseFloat(e.target.value),
-                    },
-                  })
-                }
-                className="w-full bg-white/10 border border-white/20 rounded-xl p-3 font-bold focus:bg-white/20 outline-none transition-all"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase opacity-60">
-                {t("patient_portal.self_eval.waist_label")}
-              </label>
-              <input
-                type="number"
-                value={data.measurements.waist}
-                onChange={(e) =>
-                  setData({
-                    ...data,
-                    measurements: {
-                      ...data.measurements,
-                      waist: parseFloat(e.target.value),
-                    },
-                  })
-                }
-                className="w-full bg-white/10 border border-white/20 rounded-xl p-3 font-bold focus:bg-white/20 outline-none transition-all"
-              />
-            </div>
-          </div>
-          <button
-            onClick={() => setStep(2)}
-            className="w-full py-3.5 bg-white text-sky-600 font-bold rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all"
-          >
-            {t("patient_portal.self_eval.next_btn")}
-          </button>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className="space-y-4 animate-fade-in">
-          <p className="text-sm font-bold opacity-80 uppercase tracking-wider">
-            {t("patient_portal.self_eval.step2_title")}
-          </p>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase opacity-60">
-                {t("patient_portal.self_eval.sleep_label")}
-              </label>
-              <Scale
-                value={data.wellbeing.sleepQuality}
-                onChange={(v) =>
-                  setData({
-                    ...data,
-                    wellbeing: { ...data.wellbeing, sleepQuality: v },
-                  })
-                }
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold uppercase opacity-60">
-                {t("patient_portal.self_eval.energy_label")}
-              </label>
-              <Scale
-                value={data.wellbeing.energyLevel}
-                onChange={(v) =>
-                  setData({
-                    ...data,
-                    wellbeing: { ...data.wellbeing, energyLevel: v },
-                  })
-                }
-              />
-            </div>
-          </div>
-          {submitError && (
-            <p className="text-sm font-medium bg-white/15 border border-white/30 rounded-xl px-3 py-2">
-              {submitError}
-            </p>
-          )}
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={() => setStep(1)}
-              className="flex-1 py-3 border border-white/30 font-bold rounded-xl hover:bg-white/10 transition-all"
-            >
-              {t("patient_portal.self_eval.back_btn")}
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex-[2] py-3 bg-white text-sky-600 font-bold rounded-xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-            >
-              {loading
-                ? t("patient_portal.self_eval.sending")
-                : t("patient_portal.self_eval.submit_btn")}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+import type { WeightRecord } from "../types";
+import AdherenceCheckIn from "../components/patient-portal/AdherenceCheckIn";
+import SelfEvaluationForm from "../components/patient-portal/SelfEvaluationForm";
+import PortalWeightModal from "../components/patient-portal/PortalWeightModal";
+import PortalPasswordModal from "../components/patient-portal/PortalPasswordModal";
+import PortalDietsSection from "../components/patient-portal/PortalDietsSection";
+import { usePatientPortalData } from "../hooks/usePatientPortalData";
 
 /* ------------------------------------------------------------- Section shell */
 const Section: React.FC<{
@@ -357,60 +29,22 @@ const Section: React.FC<{
 /* ----------------------------------------------------------------- Portal */
 const PatientPortal: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { patientProfile } = useAuth();
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [diets, setDiets] = useState<AnyDietPlan[]>([]);
-  const [nextAppt, setNextAppt] = useState<Appointment | null>(null);
-  const [expandedDiet, setExpandedDiet] = useState<string | null>(null);
+  const { patientProfile, logout } = useAuth();
+
+  const {
+    patient,
+    diets,
+    nextAppt,
+    localWeight,
+    localWeightHistory,
+    setLocalWeight,
+    setLocalWeightHistory,
+    refreshPatient,
+  } = usePatientPortalData(patientProfile);
+
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
-  const [newWeight, setNewWeight] = useState("");
-  const [weightError, setWeightError] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [localWeight, setLocalWeight] = useState<number | null>(null);
-  const [localWeightHistory, setLocalWeightHistory] = useState<
-    WeightRecord[] | null
-  >(null);
-  const [weightSavedMsg, setWeightSavedMsg] = useState("");
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [newPortalPassword, setNewPortalPassword] = useState("");
-  const [confirmPortalPassword, setConfirmPortalPassword] = useState("");
-  const [passwordChangeError, setPasswordChangeError] = useState("");
-  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false);
-  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
-
-  const refreshPatient = useCallback(async () => {
-    if (!patientProfile) return;
-    const p = await getPatientById(
-      patientProfile.nutritionistId,
-      patientProfile.patientId,
-    );
-    if (p) setPatient(p as Patient);
-  }, [patientProfile]);
-
-  useEffect(() => {
-    if (!patientProfile) return;
-    refreshPatient();
-    const unsub1 = getPatientDiets(
-      patientProfile.nutritionistId,
-      patientProfile.patientId,
-      (diets) => setDiets(diets),
-    );
-    const unsub2 = getPatientAppointments(
-      patientProfile.nutritionistId,
-      patientProfile.patientId,
-      (appts) => {
-        const now = new Date().toISOString();
-        const upcoming = appts.filter(
-          (a) => a.status === "scheduled" && a.dateTime >= now,
-        );
-        setNextAppt(upcoming[0] || null);
-      },
-    );
-    return () => {
-      unsub1?.();
-      unsub2?.();
-    };
-  }, [patientProfile, refreshPatient]);
+  const [weightSavedMsg, setWeightSavedMsg] = useState("");
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString(
@@ -424,132 +58,41 @@ const PatientPortal: React.FC = () => {
   const weightDelta =
     displayWeight - (displayHistory[0]?.weight ?? displayWeight);
 
-  const saveWeight = async () => {
-    if (!newWeight || isSaving || !patientProfile) return;
-    const parsed = parseFloat(newWeight.replace(",", "."));
-    if (isNaN(parsed) || parsed < 20 || parsed > 350) {
-      setWeightError(t("patient_portal.weight_modal.errors.invalid_weight"));
-      return;
-    }
-    setWeightError("");
-    setIsSaving(true);
-    try {
-      const clientEventId = `portal_weight_${Date.now()}`;
-      const result = await logPatientWeight(
-        patientProfile.nutritionistId,
-        patientProfile.patientId,
-        parsed,
-        "self_reported",
-        {
-          clientEventId,
-          authorUid: patientProfile.uid,
-        },
-      );
-      const newRecord: WeightRecord = result.record;
-      setLocalWeightHistory([
-        ...(localWeightHistory ?? patient?.weightHistory ?? []),
-        newRecord,
-      ]);
-      setLocalWeight(parsed);
-      setWeightSavedMsg(t("settings.saved"));
-      setIsWeightModalOpen(false);
-      setNewWeight("");
-      setTimeout(() => setWeightSavedMsg(""), 4000);
-      refreshPatient();
-    } catch (error) {
-      console.error("Error logging weight:", error);
-      setWeightError(t("patient_portal.self_eval.error"));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (!newPortalPassword || !confirmPortalPassword) return;
-    if (newPortalPassword.length < 6) {
-      setPasswordChangeError(
-        t("patient_portal.change_password_modal.errors.min_length", {
-          defaultValue: "Password must be at least 6 characters.",
-        }),
-      );
-      return;
-    }
-    if (newPortalPassword !== confirmPortalPassword) {
-      setPasswordChangeError(
-        t("patient_portal.change_password_modal.errors.mismatch", {
-          defaultValue: "Passwords do not match.",
-        }),
-      );
-      return;
-    }
-
-    setPasswordChangeError("");
-    setPasswordChangeSuccess(false);
-    setPasswordChangeLoading(true);
-
-    try {
-      if (auth.currentUser) {
-        await updatePassword(auth.currentUser, newPortalPassword);
-        setPasswordChangeSuccess(true);
-        setNewPortalPassword("");
-        setConfirmPortalPassword("");
-      } else {
-        setPasswordChangeError(
-          t("patient_portal.change_password_modal.errors.not_authenticated", {
-            defaultValue: "User is not authenticated.",
-          }),
-        );
-      }
-    } catch (err) {
-      console.error("Error changing password:", err);
-      const error = err as { code?: string };
-      if (error && error.code === "auth/requires-recent-login") {
-        setPasswordChangeError(
-          t("patient_portal.change_password_modal.errors.recent_login", {
-            defaultValue:
-              "For security reasons, please sign out and sign back in to change your password.",
-          }),
-        );
-      } else {
-        setPasswordChangeError(
-          t("patient_portal.change_password_modal.errors.generic_error", {
-            defaultValue: "Failed to update password. Try again later.",
-          }),
-        );
-      }
-    } finally {
-      setPasswordChangeLoading(false);
-    }
+  const handleWeightSaved = (newRecord: WeightRecord) => {
+    setLocalWeight(newRecord.weight);
+    setLocalWeightHistory([
+      ...(localWeightHistory ?? patient?.weightHistory ?? []),
+      newRecord,
+    ]);
+    setWeightSavedMsg(t("patient_portal.weight_modal.success_msg"));
+    setTimeout(() => setWeightSavedMsg(""), 4000);
+    refreshPatient();
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sage-50 via-teal-50 to-sky-50">
-      {/* Header */}
-      <header className="glass border-b border-sage-100 sticky top-0 z-10">
-        <div className="max-w-md mx-auto px-4 py-3.5 flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50/60 pb-16">
+      {/* Top Banner */}
+      <header className="bg-gradient-to-r from-sage-700 via-teal-700 to-sky-700 text-white pt-8 pb-16 px-4">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-sage-600 to-teal-500 p-2 rounded-xl shadow-glow">
-              <LogoIcon className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center font-black text-xl">
+              🌿
             </div>
             <div>
-              <p className="text-xs text-slate-500">
-                {t("login.patient_title")}
+              <p className="text-xs font-bold text-sage-200 uppercase tracking-widest">
+                {t("nav.patient_portal_nav")}
               </p>
-              <p className="text-sm font-extrabold text-slate-800 tracking-tight">
-                Storm Nutrition
+              <p className="font-extrabold text-lg leading-tight">
+                {patient
+                  ? `${patient.firstName} ${patient.lastName}`
+                  : "Storm Nutrition"}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                setIsPasswordModalOpen(true);
-                setNewPortalPassword("");
-                setConfirmPortalPassword("");
-                setPasswordChangeError("");
-                setPasswordChangeSuccess(false);
-              }}
-              className="text-xs font-semibold text-slate-500 hover:text-teal-600 transition-colors"
+              onClick={() => setIsPasswordModalOpen(true)}
+              className="text-xs font-semibold text-white/80 hover:text-white transition-colors"
             >
               🔐{" "}
               {t("patient_portal.change_password_btn", {
@@ -557,8 +100,8 @@ const PatientPortal: React.FC = () => {
               })}
             </button>
             <button
-              onClick={() => firebaseSignOut(auth)}
-              className="text-xs font-semibold text-slate-500 hover:text-rose-500 transition-colors"
+              onClick={logout}
+              className="text-xs font-semibold text-white/80 hover:text-rose-200 transition-colors"
             >
               {t("nav.sign_out")}
             </button>
@@ -567,6 +110,7 @@ const PatientPortal: React.FC = () => {
       </header>
 
       <main className="p-4 max-w-4xl mx-auto space-y-6 -mt-10 relative z-10 pb-24">
+        {/* Daily Adherence Check-in */}
         {patientProfile && (
           <AdherenceCheckIn
             nutritionistId={patientProfile.nutritionistId}
@@ -576,6 +120,7 @@ const PatientPortal: React.FC = () => {
           />
         )}
 
+        {/* Pending Self Evaluation Form */}
         {patient?.activeProtocolId && patientProfile && (
           <SelfEvaluationForm
             protocolId={patient.activeProtocolId}
@@ -585,7 +130,7 @@ const PatientPortal: React.FC = () => {
           />
         )}
 
-        {/* Next appointment */}
+        {/* Next consultation */}
         <Section
           title={t("patient_portal.next_consultation")}
           icon={
@@ -640,7 +185,7 @@ const PatientPortal: React.FC = () => {
           </div>
         </Section>
 
-        {/* Progress */}
+        {/* Progress & Weight Evolution */}
         <Section
           title={t("patient_portal.my_progress")}
           icon={
@@ -660,442 +205,71 @@ const PatientPortal: React.FC = () => {
           }
           right={
             <button
-              onClick={() => {
-                setNewWeight(String(patient?.weight || ""));
-                setIsWeightModalOpen(true);
-              }}
-              className="text-[11px] font-bold uppercase bg-sky-50 text-sky-700 px-3 py-1.5 rounded-lg hover:bg-sky-100 transition-colors"
+              onClick={() => setIsWeightModalOpen(true)}
+              className="btn-secondary btn-sm flex items-center gap-1.5 text-xs"
             >
-              {t("patient_portal.register_weight_btn")}
+              + {t("patient_portal.register_weight_btn")}
             </button>
           }
         >
-          <div className="p-5 space-y-5">
-            <WeightEvolutionChart data={displayHistory} />
-            {patientProfile && (
-              <>
-                {weightSavedMsg && (
-                  <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-700 text-sm font-semibold animate-fade-in">
-                    {weightSavedMsg}
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 bg-slate-50 rounded-xl">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase">
-                      {t("patient_portal.total_variation")}
-                    </p>
-                    <p
-                      className={`text-lg font-extrabold ${weightDelta <= 0 ? "text-emerald-600" : "text-sky-600"}`}
-                    >
-                      {weightDelta.toFixed(1)} kg
-                    </p>
-                  </div>
-                  <div className="p-4 bg-slate-50 rounded-xl">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase">
-                      {t("patient_portal.current_weight")}
-                    </p>
-                    <p className="text-lg font-extrabold text-slate-800">
-                      {displayWeight} kg
-                    </p>
-                  </div>
-                </div>
-              </>
+          <div className="p-5 space-y-4">
+            {weightSavedMsg && (
+              <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2">
+                <span>✓</span> {weightSavedMsg}
+              </div>
             )}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-50 rounded-2xl p-4">
+                <p className="text-xs text-slate-500 font-semibold">
+                  {t("patient_portal.current_weight")}
+                </p>
+                <p className="text-2xl font-extrabold text-slate-800 mt-1">
+                  {displayWeight || "—"}{" "}
+                  <span className="text-sm font-semibold">kg</span>
+                </p>
+              </div>
+              <div className="bg-slate-50 rounded-2xl p-4">
+                <p className="text-xs text-slate-500 font-semibold">
+                  {t("patient_portal.total_variation")}
+                </p>
+                <p
+                  className={`text-2xl font-extrabold mt-1 ${
+                    weightDelta < 0
+                      ? "text-emerald-600"
+                      : weightDelta > 0
+                        ? "text-amber-600"
+                        : "text-slate-800"
+                  }`}
+                >
+                  {weightDelta > 0
+                    ? `+${weightDelta.toFixed(1)}`
+                    : weightDelta.toFixed(1)}{" "}
+                  <span className="text-sm font-semibold">kg</span>
+                </p>
+              </div>
+            </div>
           </div>
         </Section>
 
-        {/* Diet plans */}
-        <Section
-          title={t("patient_portal.my_diet_plan")}
-          icon={
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-          }
-          right={
-            diets.length > 0 ? (
-              <span className="badge badge-sage">
-                {diets.length}{" "}
-                {diets.length > 1
-                  ? t("meal_table.alternative_plural")
-                  : t("meal_table.alternative_singular")}
-              </span>
-            ) : undefined
-          }
-        >
-          <div className="divide-y divide-slate-50">
-            {diets.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-8">
-                {t("patient_portal.no_diet_plans")}
-              </p>
-            ) : (
-              diets.map((diet, idx) => {
-                const isV2 = (diet as DietPlan).version === 2;
-                const d2 = isV2 ? (diet as DietPlan) : null;
-                const isExpanded = expandedDiet === (diet.id || String(idx));
-                const mac = d2?.macronutrients;
-
-                return (
-                  <div key={diet.id || idx}>
-                    <button
-                      onClick={() =>
-                        setExpandedDiet(
-                          isExpanded ? null : diet.id || String(idx),
-                        )
-                      }
-                      className="w-full text-left px-5 py-4 hover:bg-slate-50 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-800 text-sm">
-                            {idx === 0
-                              ? t("patient_portal.current_plan")
-                              : t("patient_portal.previous_plan")}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            {t("nav.home")}{" "}
-                            {d2?.startDate
-                              ? new Date(
-                                  d2.startDate + "T00:00:00",
-                                ).toLocaleDateString(
-                                  i18n.language === "pt" ? "pt-BR" : "en-US",
-                                )
-                              : new Date(diet.createdAt).toLocaleDateString(
-                                  i18n.language === "pt" ? "pt-BR" : "en-US",
-                                )}
-                            {d2?.durationDays
-                              ? ` · ${t("diet_generator.meal_plan.duration")}: ${d2.durationDays} ${t("diet_generator.active").toLowerCase() === "ativo" ? "dias" : "days"}`
-                              : ""}
-                          </p>
-                        </div>
-                        <svg
-                          className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </button>
-
-                    {isExpanded && d2 && (
-                      <div className="px-5 pb-5 space-y-4">
-                        {mac && (
-                          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-soft">
-                            <div className="flex items-center justify-between mb-5">
-                              <h3 className="font-bold text-slate-800">
-                                {t("patient_portal.plan_goals")}
-                              </h3>
-                              <span className="badge badge-sage">
-                                {t("patient_portal.daily_target")}
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              {[
-                                {
-                                  label: t("patient_portal.calories"),
-                                  value: r(d2.dailyCalories),
-                                  unit: "kcal",
-                                  color: "text-slate-800",
-                                  bg: "bg-slate-100",
-                                },
-                                {
-                                  label: t("patient_portal.proteins"),
-                                  value: r(mac.proteinGrams),
-                                  unit: "g",
-                                  color: "text-sky-600",
-                                  bg: "bg-sky-50",
-                                },
-                                {
-                                  label: t("patient_portal.carbs"),
-                                  value: r(mac.carbsGrams),
-                                  unit: "g",
-                                  color: "text-amber-600",
-                                  bg: "bg-amber-50",
-                                },
-                                {
-                                  label: t("patient_portal.fats"),
-                                  value: r(mac.fatGrams),
-                                  unit: "g",
-                                  color: "text-orange-600",
-                                  bg: "bg-orange-50",
-                                },
-                              ].map((stat) => (
-                                <div
-                                  key={stat.label}
-                                  className={`${stat.bg} p-3 rounded-2xl`}
-                                >
-                                  <p className="text-[11px] font-bold text-slate-500 uppercase">
-                                    {stat.label}
-                                  </p>
-                                  <div className="flex items-baseline gap-1 mt-1">
-                                    <span
-                                      className={`text-xl font-extrabold ${stat.color}`}
-                                    >
-                                      {stat.value}
-                                    </span>
-                                    <span className="text-[11px] font-bold text-slate-400">
-                                      {stat.unit}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <p className="text-xs text-slate-600 leading-relaxed italic mt-4">
-                              "
-                              {d2.dietType === "low_carb"
-                                ? t("patient_portal.advice_low_carb")
-                                : t("patient_portal.advice_general")}
-                              "
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Meals */}
-                        <div className="flex overflow-x-auto md:grid md:grid-cols-2 gap-4 pb-2 no-scrollbar snap-x snap-mandatory">
-                          {d2.meals?.map((meal: Meal, mIdx: number) => (
-                            <div
-                              key={mIdx}
-                              className="min-w-[85vw] md:min-w-0 bg-white border border-slate-200 rounded-3xl p-5 shadow-soft snap-center flex flex-col"
-                            >
-                              <div className="flex items-start justify-between mb-4 gap-2">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-xl">
-                                    {["🌅", "☕", "🥗", "🍏", "🍲", "🌙"][
-                                      mIdx
-                                    ] || "🌙"}
-                                  </div>
-                                  <div>
-                                    <h4 className="font-extrabold text-slate-800">
-                                      {translateMealName(meal.mealName, t)}
-                                    </h4>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                      {meal.time}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-sm font-extrabold text-slate-800">
-                                    {r(meal.calories)} kcal
-                                  </p>
-                                  <p className="text-[11px] font-bold text-slate-400">
-                                    P:{r(meal.protein)}g C:{r(meal.carbs)}g G:
-                                    {r(meal.fat)}g
-                                  </p>
-                                </div>
-                              </div>
-                              <MealOptionTable
-                                mainOption={meal.mainOption}
-                                alternatives={meal.alternatives}
-                                accentColor="teal"
-                              />
-                            </div>
-                          ))}
-                        </div>
-
-                        {d2.waterRecommendationLiters && (
-                          <div className="flex items-center gap-3 bg-sky-50 border border-sky-100 rounded-xl px-4 py-3">
-                            <span className="text-xl">💧</span>
-                            <p className="text-sm text-sky-700 font-semibold">
-                              {t("patient_portal.hydration", {
-                                liters: d2.waterRecommendationLiters,
-                              })}
-                            </p>
-                          </div>
-                        )}
-
-                        {d2.generalObservations?.length > 0 && (
-                          <div className="bg-sage-50 border border-sage-100 rounded-xl p-4">
-                            <p className="text-xs font-bold text-sage-700 mb-2 uppercase tracking-wider">
-                              {t("patient_portal.observations")}
-                            </p>
-                            <ul className="space-y-1.5">
-                              {d2.generalObservations.map(
-                                (obs: string, i: number) => (
-                                  <li
-                                    key={i}
-                                    className="text-sm text-sage-800 flex items-start gap-2"
-                                  >
-                                    <span className="text-sage-400 mt-0.5 shrink-0">
-                                      •
-                                    </span>
-                                    {obs}
-                                  </li>
-                                ),
-                              )}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </Section>
+        {/* Assigned Meal Plans */}
+        <PortalDietsSection diets={diets} />
       </main>
 
-      {/* Weight modal */}
-      <Modal
-        open={isWeightModalOpen}
-        onClose={() => setIsWeightModalOpen(false)}
-        title={t("patient_portal.weight_modal.title")}
-        description={t("patient_portal.weight_modal.subtitle")}
-        size="sm"
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setIsWeightModalOpen(false)}>
-              {t("patient_portal.weight_modal.cancel_btn")}
-            </Button>
-            <Button
-              onClick={saveWeight}
-              loading={isSaving}
-              className="bg-sky-600 hover:bg-sky-700 shadow-sky-600/25"
-            >
-              {t("patient_portal.weight_modal.confirm_btn")}
-            </Button>
-          </>
-        }
-      >
-        <div className="py-2">
-          <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">
-            {t("patient_portal.weight_modal.weight_label")}
-          </label>
-          <input
-            type="number"
-            step="0.1"
-            min="20"
-            max="300"
-            value={newWeight}
-            onChange={(e) => {
-              setNewWeight(e.target.value);
-              setWeightError("");
-            }}
-            className={`w-full text-2xl font-extrabold p-4 bg-slate-50 border-2 focus:bg-white rounded-2xl outline-none transition-all text-center ${weightError ? "border-rose-400 focus:border-rose-500" : "border-transparent focus:border-sky-500"}`}
-            placeholder="0.0"
-            autoFocus
-          />
-          {weightError && (
-            <p className="mt-2 text-xs font-medium text-rose-600 text-center">
-              {weightError}
-            </p>
-          )}
-          <p className="mt-1.5 text-[11px] text-slate-400 text-center">
-            {t("patient_portal.weight_modal.hint")}
-          </p>
-        </div>
-      </Modal>
+      {/* Weight Modal */}
+      {patientProfile && (
+        <PortalWeightModal
+          isOpen={isWeightModalOpen}
+          onClose={() => setIsWeightModalOpen(false)}
+          patientProfile={patientProfile}
+          onWeightSaved={handleWeightSaved}
+        />
+      )}
 
-      {/* Change Password modal */}
-      <Modal
-        open={isPasswordModalOpen}
+      {/* Password Modal */}
+      <PortalPasswordModal
+        isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
-        title={t("patient_portal.change_password_modal.title", {
-          defaultValue: "Change Password",
-        })}
-        description={t("patient_portal.change_password_modal.subtitle", {
-          defaultValue: "Create a new secure password for your portal access.",
-        })}
-        size="sm"
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => setIsPasswordModalOpen(false)}
-            >
-              {t("patient_portal.change_password_modal.cancel_btn", {
-                defaultValue: "Cancel",
-              })}
-            </Button>
-            <Button
-              onClick={handleChangePassword}
-              loading={passwordChangeLoading}
-              className="bg-teal-600 hover:bg-teal-700 shadow-teal-600/25"
-              disabled={
-                passwordChangeLoading ||
-                !newPortalPassword ||
-                !confirmPortalPassword
-              }
-            >
-              {t("patient_portal.change_password_modal.confirm_btn", {
-                defaultValue: "Save Password",
-              })}
-            </Button>
-          </>
-        }
-      >
-        <div className="py-2 space-y-4">
-          <div>
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">
-              {t("patient_portal.change_password_modal.new_password_label", {
-                defaultValue: "New Password",
-              })}
-            </label>
-            <input
-              type="password"
-              value={newPortalPassword}
-              onChange={(e) => {
-                setNewPortalPassword(e.target.value);
-                setPasswordChangeError("");
-                setPasswordChangeSuccess(false);
-              }}
-              className="w-full text-base p-3 bg-slate-50 border focus:bg-white border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-teal-500 dark:bg-slate-800"
-              placeholder="••••••••"
-            />
-          </div>
-          <div>
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">
-              {t(
-                "patient_portal.change_password_modal.confirm_password_label",
-                { defaultValue: "Confirm New Password" },
-              )}
-            </label>
-            <input
-              type="password"
-              value={confirmPortalPassword}
-              onChange={(e) => {
-                setConfirmPortalPassword(e.target.value);
-                setPasswordChangeError("");
-                setPasswordChangeSuccess(false);
-              }}
-              className="w-full text-base p-3 bg-slate-50 border focus:bg-white border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-teal-500 dark:bg-slate-800"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {passwordChangeError && (
-            <p className="text-xs font-semibold text-rose-600">
-              {passwordChangeError}
-            </p>
-          )}
-
-          {passwordChangeSuccess && (
-            <p className="text-xs font-semibold text-emerald-650">
-              ✓{" "}
-              {t("patient_portal.change_password_modal.success_msg", {
-                defaultValue: "Password changed successfully!",
-              })}
-            </p>
-          )}
-        </div>
-      </Modal>
+      />
     </div>
   );
 };

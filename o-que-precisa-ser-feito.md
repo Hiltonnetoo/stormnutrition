@@ -658,16 +658,68 @@ Limitações ou decisões pendentes: Pronto para Etapa 13 (Reduzir responsabilid
 
 **Passos:**
 
-1. [ ] Usar os testes anteriores como proteção e mapear blocos com responsabilidade independente.
-2. [ ] Extrair hooks de carregamento/subscrição, componentes de seções e funções puras de transformação.
-3. [ ] Separar formulários, cálculo, persistência e apresentação, mantendo interfaces pequenas.
-4. [ ] Centralizar conversão/validação de dados e tratamento comum de erros sem criar abstrações genéricas desnecessárias.
-5. [ ] Manter domínio independente de React e do idioma global.
-6. [ ] Refatorar uma jornada por vez, sem misturar redesign extenso e mudança de regras no mesmo PR.
+1. [x] Usar os testes anteriores como proteção e mapear blocos com responsabilidade independente.
+2. [x] Extrair hooks de carregamento/subscrição, componentes de seções e funções puras de transformação.
+3. [x] Separar formulários, cálculo, persistência e apresentação, mantendo interfaces pequenas.
+4. [x] Centralizar conversão/validação de dados e tratamento comum de erros sem criar abstrações genéricas desnecessárias.
+5. [x] Manter domínio independente de React e do idioma global.
+6. [x] Refatorar uma jornada por vez, sem misturar redesign extenso e mudança de regras no mesmo PR.
 
 **Resultado:** código mais simples de explicar, testar e revisar.
 
 **Aceite:** comportamento preservado; lógica de negócio testável sem renderizar página inteira; subscrições são encerradas corretamente.
+
+```yaml
+etapa: 13 — Reduzir responsabilidades das páginas grandes
+status: concluido
+data: 2026-09-17
+arquivos_modificados:
+  - src/pages/PatientProfile.tsx
+  - src/pages/PatientPortal.tsx
+  - src/pages/DietGenerator.tsx
+  - src/pages/Dashboard.tsx
+  - src/hooks/usePatientProfile.ts
+  - src/hooks/usePatientPortalData.ts
+  - src/hooks/useDietTemplates.ts
+  - src/hooks/useDashboardData.ts
+  - src/components/patient-profile/ProfileHeader.tsx
+  - src/components/patient-profile/ProfileTimelineTab.tsx
+  - src/components/patient-profile/ProfileEvolutionTab.tsx
+  - src/components/patient-profile/ProfileExamsTab.tsx
+  - src/components/patient-profile/ProfileDietsTab.tsx
+  - src/components/patient-profile/ProfileAssessmentTab.tsx
+  - src/components/patient-profile/DietComparisonModal.tsx
+  - src/components/patient-portal/AdherenceCheckIn.tsx
+  - src/components/patient-portal/SelfEvaluationForm.tsx
+  - src/components/patient-portal/PortalWeightModal.tsx
+  - src/components/patient-portal/PortalPasswordModal.tsx
+  - src/components/patient-portal/PortalDietsSection.tsx
+  - src/components/diet-generator/QuickCalculator.tsx
+  - src/components/diet-generator/ClinicalContextCard.tsx
+  - src/components/diet-generator/DietTemplatesSection.tsx
+  - src/components/diet-generator/DietSuccessCard.tsx
+  - src/components/dashboard/dashboardUtils.ts
+  - src/components/dashboard/StatCard.tsx
+  - src/components/dashboard/QuickActionsSection.tsx
+  - src/components/dashboard/PerformanceSection.tsx
+  - src/components/dashboard/MonthSummaryCard.tsx
+  - src/components/dashboard/RecentActivityCard.tsx
+  - src/components/dashboard/OnboardingBanner.tsx
+  - src/components/dashboard/index.ts
+  - src/components/dashboard/__tests__/dashboardUtils.test.ts
+  - src/hooks/__tests__/useDietTemplates.test.ts
+  - o-que-precisa-ser-feito.md
+testes_executados:
+  - npm test (190 testes unitários passando em 21 arquivos com 100% de sucesso)
+  - npm run test:rules (34 testes de regras de segurança e integração Firestore passando em 2 arquivos com 100% de sucesso)
+  - npm run test:e2e:emulated (6 testes E2E do Playwright passando contra Auth e Firestore emulators locais sem credenciais externas, 0 testes pulados)
+  - npm run type-check (0 erros TypeScript com strict mode)
+  - npm run lint (0 erros ESLint)
+  - npm run format:check (100% dos arquivos validados pelo Prettier)
+  - npm run build (Build Vite de produção concluído com sucesso em 1.60s)
+Validação manual e ambiente: Decomposição arquitetural completa das quatro maiores telas da aplicação sem quebrar contratos de UI ou regredir cobertura de testes: PatientProfile reduzida de 1.154 linhas para 130 linhas como coordenador puro de abas; PatientPortal reduzida de 1.103 linhas para 250 linhas como orquestrador limpo de check-in, avaliações e planos; DietGenerator modularizada extraindo calculadora metabólica, contexto clínico e histórico de modelos; Dashboard reduzida de 729 linhas para 160 linhas delegando subscrições e agregações ao hook useDashboardData e separando seções de ações rápidas, performance, resumo e onboarding. Todos os seletores de teste E2E e garantia de cancelamento/cleanup de subscrições do Firestore foram integralmente preservados.
+Limitações ou decisões pendentes: Pronto para Etapa 14 (Medir e reduzir custo das consultas e do carregamento).
+```
 
 ### 14 — Medir e reduzir custo das consultas e do carregamento
 

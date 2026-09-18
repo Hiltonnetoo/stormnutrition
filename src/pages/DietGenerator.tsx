@@ -13,7 +13,7 @@ import {
   getGeneralObservations,
 } from "../services/dietAlgorithmService";
 import usePersistentState from "../hooks/usePersistentState";
-import { getUserStorageKey, loadUserState } from "../utils/localStorage";
+import { getUserStorageKey } from "../utils/localStorage";
 import * as M from "../services/metabolicCalculations";
 import { dietaryOptionsMap } from "../components/patient-form/Step4Nutritional";
 
@@ -26,6 +26,11 @@ import Step2Nutrition from "../components/diet-generator/DietStep2Nutrition";
 import Step3MealPlan from "../components/diet-generator/DietStep3MealPlan";
 import DietPlanDisplay from "../components/diet-generator/DietPlanDisplay";
 import LabExamsModule from "../components/diet-generator/LabExamsModule";
+import QuickCalculator from "../components/diet-generator/QuickCalculator";
+import ClinicalContextCard from "../components/diet-generator/ClinicalContextCard";
+import DietTemplatesSection from "../components/diet-generator/DietTemplatesSection";
+import DietSuccessCard from "../components/diet-generator/DietSuccessCard";
+import { useDietTemplates, type DietTemplate } from "../hooks/useDietTemplates";
 import { PageHeader, Card, Button, Badge, Spinner } from "../components/ui";
 
 const fieldClass = "input-field";
@@ -42,164 +47,6 @@ const defaultMealPlan = {
   durationDays: 7,
   startDate: new Date().toISOString().split("T")[0],
   finalObservations: "",
-};
-
-const modeTone: Record<string, string> = {
-  clinical: "bg-rose-100 text-rose-700",
-  performance: "bg-sky-100 text-sky-700",
-  pediatric: "bg-violet-100 text-violet-700",
-  recovery: "bg-indigo-100 text-indigo-700",
-};
-
-/* --------------------------------------------------------- Quick calculator */
-const QuickCalculator: React.FC<{ onUseTDEE: (tdee: number) => void }> = ({
-  onUseTDEE,
-}) => {
-  const { t } = useTranslation();
-  const [calcData, setCalcData] = useState({
-    gender: "female" as M.Gender,
-    age: "30",
-    weight: "60",
-    height: "165",
-    activityLevel: "moderately_active" as M.ActivityLevel,
-  });
-  const [results, setResults] = useState<{
-    bmr: number;
-    tdee: number;
-    bmi: number;
-    bmiCategory: string;
-  } | null>(null);
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    setCalcData({ ...calcData, [e.target.name]: e.target.value });
-  };
-
-  const parsedData = useMemo(
-    () => ({
-      gender: calcData.gender,
-      age: parseInt(calcData.age) || 0,
-      weight: parseFloat(calcData.weight) || 0,
-      height: parseFloat(calcData.height) || 0,
-      activityLevel: calcData.activityLevel,
-    }),
-    [calcData],
-  );
-
-  const calculate = (e: React.FormEvent) => {
-    e.preventDefault();
-    const { gender, age, weight, height, activityLevel } = parsedData;
-    if (age > 0 && weight > 0 && height > 0) {
-      const bmr = M.calculateBMR({ gender, age, weight, height });
-      const tdee = M.calculateTDEE({
-        gender,
-        age,
-        weight,
-        height,
-        activityLevel,
-      });
-      const bmi = M.calculateBMI(weight, height);
-      const bmiCategory = M.getBMICategory(bmi);
-      setResults({ bmr, tdee, bmi, bmiCategory });
-    } else {
-      setResults(null);
-    }
-  };
-
-  return (
-    <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-2xl mb-6 border border-slate-200 dark:border-slate-700 animate-fade-in">
-      <h3 className="font-bold text-slate-800 dark:text-white mb-4">
-        {t("diet_generator.quick_calculator")}
-      </h3>
-      <form
-        onSubmit={calculate}
-        className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end"
-      >
-        <div className="flex flex-col">
-          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-            {t("diet_generator.quick_calc.gender")}
-          </label>
-          <select
-            name="gender"
-            value={calcData.gender}
-            onChange={handleChange}
-            className={fieldClass}
-          >
-            <option value="female">{t("profile.gender_female")}</option>
-            <option value="male">{t("profile.gender_male")}</option>
-          </select>
-        </div>
-        <div className="flex flex-col">
-          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-            {t("diet_generator.quick_calc.age")}
-          </label>
-          <input
-            type="number"
-            name="age"
-            value={calcData.age}
-            onChange={handleChange}
-            className={fieldClass}
-          />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-            {t("diet_generator.quick_calc.weight")}
-          </label>
-          <input
-            type="number"
-            name="weight"
-            value={calcData.weight}
-            onChange={handleChange}
-            className={fieldClass}
-          />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-            {t("diet_generator.quick_calc.height")}
-          </label>
-          <input
-            type="number"
-            name="height"
-            value={calcData.height}
-            onChange={handleChange}
-            className={fieldClass}
-          />
-        </div>
-        <Button type="submit">
-          {t("diet_generator.quick_calc.calculate")}
-        </Button>
-      </form>
-
-      {results && (
-        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-4 items-center">
-          {[
-            [
-              t("diet_generator.nutrition.bmr_short", "BMR"),
-              `${results.bmr.toFixed(0)} kcal`,
-            ],
-            [
-              t("diet_generator.nutrition.tdee_short", "TDEE"),
-              `${results.tdee.toFixed(0)} kcal`,
-            ],
-            ["IMC", `${results.bmi.toFixed(1)} (${results.bmiCategory})`],
-          ].map(([l, v]) => (
-            <div key={l} className="text-center">
-              <p className="text-xs text-slate-500">{l}</p>
-              <p className="font-bold text-sage-600">{v}</p>
-            </div>
-          ))}
-          <Button
-            size="sm"
-            className="bg-sky-600 hover:bg-sky-700 shadow-sky-600/25"
-            onClick={() => onUseTDEE(results.tdee)}
-          >
-            {t("diet_generator.quick_calc.use_as_calorie_target")}
-          </Button>
-        </div>
-      )}
-    </div>
-  );
 };
 
 /* ------------------------------------------------------------- Diet generator */
@@ -222,20 +69,7 @@ const DietGenerator: React.FC = () => {
   const [showCalculator, setShowCalculator] = useState(false);
   const [tdeeAppliedMsg, setTdeeAppliedMsg] = useState("");
   const [showTemplates, setShowTemplates] = useState(false);
-  const [dietTemplates, setDietTemplates] = useState<
-    { id: string; name: string; plan: DietPlan }[]
-  >([]);
-
-  useEffect(() => {
-    if (currentUser?.uid) {
-      const loaded = loadUserState<
-        { id: string; name: string; plan: DietPlan }[]
-      >(currentUser.uid, "dietPlanTemplates", []);
-      setDietTemplates(loaded);
-    } else {
-      setDietTemplates([]);
-    }
-  }, [currentUser?.uid]);
+  const { templates: dietTemplates } = useDietTemplates(currentUser?.uid);
 
   const [generatedPlan, setGeneratedPlan] = useState<DietPlan | null>(null);
   const [loading, setLoading] = useState(false);
@@ -630,6 +464,25 @@ const DietGenerator: React.FC = () => {
     }, 4000);
   };
 
+  const handleApplyTemplate = (tmpl: DietTemplate) => {
+    updateFormData({
+      dailyCalories: tmpl.plan.dailyCalories,
+      dietType: tmpl.plan.dietType,
+      macros: {
+        protein: tmpl.plan.macronutrients.proteinPercentage,
+        carbs: tmpl.plan.macronutrients.carbsPercentage,
+        fat: tmpl.plan.macronutrients.fatPercentage,
+      },
+      mealsPerDay: tmpl.plan.meals.length,
+      durationDays: tmpl.plan.durationDays,
+    });
+    setShowTemplates(false);
+    setTdeeAppliedMsg(
+      `✅ ${t("diet_generator.template_loaded", { name: tmpl.name })}`,
+    );
+    setTimeout(() => setTdeeAppliedMsg(""), 4000);
+  };
+
   return (
     <div className="p-5 sm:p-6 lg:p-8 max-w-5xl mx-auto animate-fade-in">
       <PageHeader
@@ -686,53 +539,11 @@ const DietGenerator: React.FC = () => {
           </div>
         </div>
 
-        {showTemplates && dietTemplates.length > 0 && (
-          <div className="mb-4 p-4 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-2xl animate-fade-in">
-            <h4 className="text-sm font-bold text-violet-800 dark:text-violet-200 mb-3">
-              📋 {t("diet_generator.saved_templates")}
-            </h4>
-            <div className="space-y-2">
-              {dietTemplates.map((tmpl) => (
-                <div
-                  key={tmpl.id}
-                  className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl px-3 py-2 border border-violet-100 dark:border-violet-700"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">
-                      {tmpl.name}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {tmpl.plan.dailyCalories} kcal · {tmpl.plan.dietType}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      updateFormData({
-                        dailyCalories: tmpl.plan.dailyCalories,
-                        dietType: tmpl.plan.dietType,
-                        macros: {
-                          protein: tmpl.plan.macronutrients.proteinPercentage,
-                          carbs: tmpl.plan.macronutrients.carbsPercentage,
-                          fat: tmpl.plan.macronutrients.fatPercentage,
-                        },
-                        mealsPerDay: tmpl.plan.meals.length,
-                        durationDays: tmpl.plan.durationDays,
-                      });
-                      setShowTemplates(false);
-                      setTdeeAppliedMsg(
-                        `✅ ${t("diet_generator.template_loaded", { name: tmpl.name })}`,
-                      );
-                      setTimeout(() => setTdeeAppliedMsg(""), 4000);
-                    }}
-                    className="text-xs font-bold text-violet-600 hover:text-violet-800 bg-violet-100 hover:bg-violet-200 px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    {t("diet_generator.use_template")}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <DietTemplatesSection
+          isOpen={showTemplates}
+          templates={dietTemplates}
+          onApplyTemplate={handleApplyTemplate}
+        />
         {showCalculator && <QuickCalculator onUseTDEE={handleUseTDEE} />}
         {tdeeAppliedMsg && (
           <div className="mb-4 px-4 py-3 bg-sage-50 border border-sage-200 rounded-xl text-sm font-medium text-sage-700 animate-fade-in">
@@ -761,55 +572,10 @@ const DietGenerator: React.FC = () => {
               <Badge tone="sage">{t("diet_generator.active")}</Badge>
             </div>
 
-            <div className="mb-6 p-5 card">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-sky-100 dark:bg-sky-900/30 rounded-lg">
-                  <HeartIcon className="w-5 h-5 text-sky-600 dark:text-sky-400" />
-                </div>
-                <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">
-                  {t("diet_generator.clinical_context")}
-                </h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase mb-2">
-                    {t("diet_generator.care_mode")}
-                  </p>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${modeTone[formData.mode ?? ""] || "bg-slate-100 text-slate-700"}`}
-                  >
-                    {t("profile.modes." + (formData.mode ?? "general"))}
-                  </span>
-                </div>
-                {Array.isArray(formData.clinicalTags) &&
-                  formData.clinicalTags.length > 0 && (
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase mb-2">
-                        {t("diet_generator.monitored_conditions")}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {formData.clinicalTags.map((tag: string) => {
-                          const translatedTag = t(
-                            "clinical_tags." + tag,
-                            tag.replace(/_/g, " "),
-                          );
-                          return (
-                            <span
-                              key={tag}
-                              className="px-2 py-1 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-[11px] font-bold uppercase rounded border border-rose-100 dark:border-rose-800"
-                            >
-                              {translatedTag}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-              </div>
-              <p className="mt-4 text-xs text-slate-400 italic">
-                {t("diet_generator.on_behalf_of_patient")}
-              </p>
-            </div>
+            <ClinicalContextCard
+              mode={formData.mode}
+              clinicalTags={formData.clinicalTags}
+            />
 
             <div className="mb-6">
               <LabExamsModule
@@ -909,36 +675,14 @@ const DietGenerator: React.FC = () => {
         )}
 
         {saveSuccess && savedPatientData && (
-          <Card className="p-8 flex flex-col items-center text-center animate-scale-in">
-            <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-3xl mb-5">
-              🎉
-            </div>
-            <h3 className="text-xl font-extrabold text-slate-800 dark:text-white">
-              {t("diet_generator.success_title", {
-                name: savedPatientData.firstName,
-              })}
-            </h3>
-            <p className="text-slate-500 text-sm mt-2 mb-8">
-              {t("diet_generator.what_to_do_now")}
-            </p>
-            <div className="flex flex-wrap gap-3 justify-center">
-              <Button
-                onClick={() => navigate(`/patients/${savedPatientData.id}`)}
-                className="bg-sky-600 hover:bg-sky-700 shadow-sky-600/25"
-              >
-                {t("diet_generator.view_patient_profile")}
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => navigate("/email-admin")}
-              >
-                {t("diet_generator.send_by_email")}
-              </Button>
-              <Button variant="ghost" onClick={handleCreateAnother}>
-                {t("diet_generator.create_another_plan")}
-              </Button>
-            </div>
-          </Card>
+          <DietSuccessCard
+            savedPatientData={savedPatientData}
+            onViewPatientProfile={() =>
+              navigate(`/patients/${savedPatientData.id}`)
+            }
+            onSendByEmail={() => navigate("/email-admin")}
+            onCreateAnother={handleCreateAnother}
+          />
         )}
 
         {!saveSuccess && generatedPlan && (
