@@ -26,6 +26,10 @@ export interface UsePatientPortalDataReturn {
   /** True until the patient, diets and next appointment first resolve, so the
    *  portal shows a loading state instead of false "empty" sections (UI06). */
   loading: boolean;
+  /** UI06: why data could not be read after the retries — "denied" (access
+   *  revoked/unavailable) or "failed" (read error). Null when it loaded. */
+  loadError: "denied" | "failed" | null;
+  retryLoad: () => void;
 }
 
 const MAX_ACCESS_RETRIES = 4;
@@ -55,6 +59,7 @@ export function usePatientPortalData(
   // before the acceptance batch is visible to the rules on the server, so
   // the first reads may be denied. Retry a few times before settling.
   const [accessRetry, setAccessRetry] = useState(0);
+  const [loadError, setLoadError] = useState<"denied" | "failed" | null>(null);
 
   const refreshPatient = useCallback(async (): Promise<boolean> => {
     if (!patientProfile) return true;
@@ -89,7 +94,10 @@ export function usePatientPortalData(
       (key: "diets" | "appts") => (err?: { code?: string }) => {
         if (!isMounted) return;
         if (err?.code === "permission-denied" && canRetry) scheduleRetry();
-        else markLoaded(key);
+        else {
+          setLoadError(err?.code === "permission-denied" ? "denied" : "failed");
+          markLoaded(key);
+        }
       };
 
     void refreshPatient().then((ok) => {
@@ -146,6 +154,11 @@ export function usePatientPortalData(
     setLocalWeight: setLocalWeightState,
     setLocalWeightHistory: setLocalWeightHistoryState,
     refreshPatient,
+    loadError,
+    retryLoad: () => {
+      setLoadError(null);
+      setAccessRetry((n) => n + 1);
+    },
     loading:
       !!patientProfile && !(loaded.patient && loaded.diets && loaded.appts),
   };

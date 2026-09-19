@@ -573,7 +573,9 @@ describe("PDF Exporter — Passo 17: Verificação de Entrega Final", () => {
           status: "blocked",
         };
         expect(() =>
-          buildCustomLayoutPdfDocument(blockedPlan, undefined, { locale: "pt" }),
+          buildCustomLayoutPdfDocument(blockedPlan, undefined, {
+            locale: "pt",
+          }),
         ).toThrowError(/bloqueados/i);
       });
 
@@ -593,9 +595,13 @@ describe("PDF Exporter — Passo 17: Verificação de Entrega Final", () => {
           status: "awaiting_review",
           clinicalApproval: undefined,
         };
-        const outputReview = buildCustomLayoutPdfDocument(reviewPlan, undefined, {
-          locale: "pt",
-        }).output();
+        const outputReview = buildCustomLayoutPdfDocument(
+          reviewPlan,
+          undefined,
+          {
+            locale: "pt",
+          },
+        ).output();
         expect(outputReview).toContain("RASCUNHO");
       });
 
@@ -635,19 +641,25 @@ describe("PDF Exporter — Passo 17: Verificação de Entrega Final", () => {
         expect(output).not.toContain("Aten");
       });
 
-      it("triggers sodium alert when exceeding clinical limit (> 2000mg general)", () => {
-        const highSodiumPlan: DietPlan = {
+      // A1.9: screen and PDF share one ceiling (general 2300 mg, hypertension
+      // 2000 mg, renal 1500 mg); the PDF used 2000 mg for everyone before.
+      it("triggers sodium alert only above the shared general ceiling (> 2300mg)", () => {
+        const plan = (sodium: number): DietPlan => ({
           ...mockValidPlan,
           validation: {
             ...mockValidPlan.validation!,
             issues: [],
-            worstCaseAlternativeSodium: 2300,
+            worstCaseAlternativeSodium: sodium,
           },
-        };
-        const output = buildCustomLayoutPdfDocument(highSodiumPlan, undefined, {
+        });
+        const above = buildCustomLayoutPdfDocument(plan(2400), undefined, {
           locale: "pt",
         }).output();
-        expect(output).toContain("2300mg");
+        expect(above).toContain("2400mg");
+        const atCeiling = buildCustomLayoutPdfDocument(plan(2300), undefined, {
+          locale: "pt",
+        }).output();
+        expect(atCeiling).not.toContain("2300mg");
       });
 
       it("triggers sodium alert when exceeding renal clinical limit (> 1500mg for renal_ckd)", () => {

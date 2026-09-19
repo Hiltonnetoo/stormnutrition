@@ -40,7 +40,10 @@ describe("clinicalScreeningService", () => {
     });
 
     it("handles array inputs cleanly", () => {
-      expect(parseAllergies(["Castanhas", "Soja"])).toEqual(["castanhas", "soja"]);
+      expect(parseAllergies(["Castanhas", "Soja"])).toEqual([
+        "castanhas",
+        "soja",
+      ]);
     });
   });
 
@@ -94,7 +97,10 @@ describe("clinicalScreeningService", () => {
 
   describe("evaluateFoodCompatibility", () => {
     it("flags allergy violation as incompatible", () => {
-      const peanut = mockFood({ name: "Amendoim torrado", category: "Oleaginosas" });
+      const peanut = mockFood({
+        name: "Amendoim torrado",
+        category: "Oleaginosas",
+      });
       const ctx = buildUnifiedClinicalContext({ foodAllergies: "amendoim" });
       const res = evaluateFoodCompatibility(peanut, ctx);
 
@@ -104,7 +110,9 @@ describe("clinicalScreeningService", () => {
 
     it("flags hypertension high sodium as incompatible", () => {
       const saltyFood = mockFood({ name: "Carne seca salgada", sodium: 800 });
-      const ctx = buildUnifiedClinicalContext({ clinicalTags: ["hypertension"] });
+      const ctx = buildUnifiedClinicalContext({
+        clinicalTags: ["hypertension"],
+      });
       const res = evaluateFoodCompatibility(saltyFood, ctx);
 
       expect(res.status).toBe("incompatible");
@@ -112,8 +120,13 @@ describe("clinicalScreeningService", () => {
     });
 
     it("flags diabetes sugar food as incompatible", () => {
-      const candy = mockFood({ name: "Doce de leite", category: "Açúcares e Doces" });
-      const ctx = buildUnifiedClinicalContext({ clinicalTags: ["diabetes_t2"] });
+      const candy = mockFood({
+        name: "Doce de leite",
+        category: "Açúcares e Doces",
+      });
+      const ctx = buildUnifiedClinicalContext({
+        clinicalTags: ["diabetes_t2"],
+      });
       const res = evaluateFoodCompatibility(candy, ctx);
 
       expect(res.status).toBe("incompatible");

@@ -131,6 +131,7 @@ try {
       clinicName: "Clínica Vida & Saúde",
       clinicPhone: "(11) 98765-4321",
       specialty: "Nutrição Clínica e Esportiva",
+      professionalCrn: "CRN-3 00000 (fictício)",
       createdAt: new Date().toISOString(),
     });
 
@@ -141,6 +142,7 @@ try {
       clinicName: "Consultório Dr. Marcos",
       clinicPhone: "(21) 91234-5678",
       specialty: "Nutrição Funcional",
+      professionalCrn: "CRN-4 00000 (fictício)",
       createdAt: new Date().toISOString(),
     });
 
@@ -159,7 +161,10 @@ try {
       activityLevel: "moderately_active",
       nutritionalGoal: "hypertrophy",
       status: "Active",
-      clinicalTags: ["lactose_intolerance"],
+      // Lactose intolerance is a dietary restriction (cadastro: "lactose_free"),
+      // not a clinical tag; "lactose_intolerance" is not a valid ClinicalTag.
+      clinicalTags: [],
+      dietaryRestrictions: ["lactose_free"],
       allergies: "Lactose",
       portalUid: PATIENT_1_PORTAL_UID,
       createdAt: new Date().toISOString(),
@@ -229,6 +234,16 @@ try {
     console.log("5/7 Criando planos alimentares estruturados...");
     await setDoc(doc(db, `users/${NUTRI_1_ID}/diets/diet-ana-hipertrofia`), {
       version: 2,
+      // A6: released to the portal only through a professional approval
+      status: "clinically_approved",
+      clinicalApproval: {
+        approvedByUid: NUTRI_1_ID,
+        professionalName: "Dra. Clara Mendes",
+        professionalCrn: "CRN-3 00000 (fictício)",
+        approvedAt: new Date().toISOString(),
+        signature: "seed-synthetic",
+        version: 2,
+      },
       patientId: PATIENT_1_ID,
       patientName: "Ana Silva",
       title: "Plano Hipertrofia & Definição",

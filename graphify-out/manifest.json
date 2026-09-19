@@ -72,9 +72,9 @@
     "semantic_hash": ""
   },
   "src/components/DietPlanViewer.tsx": {
-    "mtime": 1789739885.785073,
-    "seen": 1789740013.1246321,
-    "ast_hash": "6db935945477f458efa3a4e06062ac4b",
+    "mtime": 1789848073.4519122,
+    "seen": 1789848792.111553,
+    "ast_hash": "c1f908c0d265f18d730f2dc5c36696b1",
     "semantic_hash": ""
   },
   "src/components/LanguageSelector.tsx": {
@@ -84,22 +84,22 @@
     "semantic_hash": ""
   },
   "src/components/MealOptionTable.tsx": {
-    "mtime": 1789820806.7419565,
-    "seen": 1789821875.400975,
-    "ast_hash": "f86129e3452405136f2b6eeb625ee0a1",
+    "mtime": 1789848161.4874823,
+    "seen": 1789848792.1115541,
+    "ast_hash": "de0a14974b93c3e4ef4282d85e8403ae",
     "semantic_hash": ""
   },
   "src/components/Sidebar.tsx": {
-    "mtime": 1789783923.6161294,
-    "seen": 1789785804.2327511,
-    "ast_hash": "39219228ce3eed95f5ba5716bc85e339",
+    "mtime": 1789848161.6755018,
+    "seen": 1789848792.111555,
+    "ast_hash": "3fc7eb978e151c19fceab57a194e676d",
     "semantic_hash": ""
   },
   "src/components/__tests__/MealOptionTable.test.tsx": {
-    "mtime": 1781133785.8848,
-    "seen": 1789681967.256522,
-    "ast_hash": "8e0079e393d58f410003d6ad37b130ea",
-    "semantic_hash": "8e0079e393d58f410003d6ad37b130ea"
+    "mtime": 1789848161.3097367,
+    "seen": 1789848792.111558,
+    "ast_hash": "93f10bec3ab6e5a0bfb3e06e19aebe58",
+    "semantic_hash": ""
   },
   "src/components/__tests__/Sidebar.test.tsx": {
     "mtime": 1781059598.499152,
@@ -108,15 +108,15 @@
     "semantic_hash": "663d9b0e279e31e67060ad30db14dddc"
   },
   "src/components/diet-generator/ClinicalTagSelector.tsx": {
-    "mtime": 1781133785.9177518,
-    "seen": 1789681967.256522,
-    "ast_hash": "32d39fd41f3584e79294c38d6b34dbbc",
-    "semantic_hash": "32d39fd41f3584e79294c38d6b34dbbc"
+    "mtime": 1789848161.3776546,
+    "seen": 1789848792.111565,
+    "ast_hash": "1e985900c3c518150aee06cd3c32d5b3",
+    "semantic_hash": ""
   },
   "src/components/diet-generator/DietPlanDisplay.tsx": {
-    "mtime": 1789832630.0795848,
-    "seen": 1789832678.3436959,
-    "ast_hash": "912a0fdb3f8cdd7522e2e13d0b44a16d",
+    "mtime": 1789848519.3785791,
+    "seen": 1789848792.111565,
+    "ast_hash": "5b758f02d01d6996d2e458541c7f3cd8",
     "semantic_hash": ""
   },
   "src/components/diet-generator/DietProgressBar.tsx": {
@@ -174,15 +174,15 @@
     "semantic_hash": ""
   },
   "src/components/modals/ClinicalReviewModal.tsx": {
-    "mtime": 1789783923.6188107,
-    "seen": 1789785804.232765,
-    "ast_hash": "5b4f210ed8f081f75dbc78f5fa5d90ae",
+    "mtime": 1789848161.502725,
+    "seen": 1789848792.1115708,
+    "ast_hash": "1d3a095db61b35aad8b0dcb1d567ca3c",
     "semantic_hash": ""
   },
   "src/components/modals/ExportDietModal.tsx": {
-    "mtime": 1789831180.7230828,
-    "seen": 1789831668.5005598,
-    "ast_hash": "ec8ac051421aef4c403cba9bddb93faa",
+    "mtime": 1789846177.6266773,
+    "seen": 1789848792.1115708,
+    "ast_hash": "cd98d9565f37733ed98116f60640b79c",
     "semantic_hash": ""
   },
   "src/components/modals/NewPatientModal.tsx": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "src/components/modals/PatientAccessModal.tsx": {
-    "mtime": 1789821654.7859566,
-    "seen": 1789821875.400992,
-    "ast_hash": "b8bd783e9e204fe8af33c02306be5ba5",
+    "mtime": 1789848161.533054,
+    "seen": 1789848792.111572,
+    "ast_hash": "2ebaed8e56b999980f80fbeca0c93f26",
     "semantic_hash": ""
   },
   "src/components/modals/PatientDietHistoryModal.tsx": {
@@ -246,9 +246,9 @@
     "semantic_hash": ""
   },
   "src/components/patient-form/Step6LabExams.tsx": {
-    "mtime": 1789783932.9317043,
-    "seen": 1789785804.2327712,
-    "ast_hash": "5fc7e16e682c6c5027e43fc73fe7f6b1",
+    "mtime": 1789848161.5713432,
+    "seen": 1789848792.111576,
+    "ast_hash": "7bd8118880e6e3907c18bbc586867f88",
     "semantic_hash": ""
   },
   "src/components/patient-form/Step6Summary.tsx": {
@@ -276,9 +276,9 @@
     "semantic_hash": ""
   },
   "src/components/patient-profile/WeightEvolutionChart.tsx": {
-    "mtime": 1789783923.6174846,
-    "seen": 1789785804.232779,
-    "ast_hash": "216c49b45d4cec8de0ef05fac0e53e8e",
+    "mtime": 1789848161.6537938,
+    "seen": 1789848792.111583,
+    "ast_hash": "bcfb30b7bc6b79496f8866271dee8cb9",
     "semantic_hash": ""
   },
   "src/components/settings/BillingSection.tsx": {
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/data/foods.ts": {
-    "mtime": 1789689475.729234,
-    "seen": 1789689663.9302201,
-    "ast_hash": "74b4970e39496744f596740aaf64fa0c",
+    "mtime": 1789847054.3377397,
+    "seen": 1789848792.111586,
+    "ast_hash": "b0ff56cf9e79c19db16324d9291b0f19",
     "semantic_hash": ""
   },
   "src/data/foodsExtra.ts": {
@@ -342,15 +342,15 @@
     "semantic_hash": ""
   },
   "src/locales/en/common.json": {
-    "mtime": 1789832540.4650614,
-    "seen": 1789832678.343728,
-    "ast_hash": "e36f0c421a892fb38c2d30fba6055ea2",
+    "mtime": 1789848033.8447514,
+    "seen": 1789848792.111594,
+    "ast_hash": "a351f1982e9d534862d3e64506eb226f",
     "semantic_hash": ""
   },
   "src/locales/pt/common.json": {
-    "mtime": 1789832506.8941443,
-    "seen": 1789832678.343728,
-    "ast_hash": "aacf99b751a8cb5d031150d6af916176",
+    "mtime": 1789848033.84377,
+    "seen": 1789848792.111594,
+    "ast_hash": "a3d5dad024c7d2b64ade29ed29820960",
     "semantic_hash": ""
   },
   "src/pages/Calendar.tsx": {
@@ -360,27 +360,27 @@
     "semantic_hash": ""
   },
   "src/pages/Dashboard.tsx": {
-    "mtime": 1789785209.8772638,
-    "seen": 1789785804.2327921,
-    "ast_hash": "2b1b8fd34f50f5780596f763a473f130",
+    "mtime": 1789848161.9085689,
+    "seen": 1789848792.111596,
+    "ast_hash": "a2118bafe1e6a7468f1245f7909f91af",
     "semantic_hash": ""
   },
   "src/pages/DietGenerator.tsx": {
-    "mtime": 1789831197.447365,
-    "seen": 1789831668.500585,
-    "ast_hash": "5569db24a1f70bf197c8a22ae0469483",
+    "mtime": 1789847269.7739954,
+    "seen": 1789848792.111596,
+    "ast_hash": "eb8004f4b8f8fae965baa4887663fe52",
     "semantic_hash": ""
   },
   "src/pages/EmailAdmin.tsx": {
-    "mtime": 1789783923.6216433,
-    "seen": 1789785804.2327921,
-    "ast_hash": "abee702457cb64e9dbced4ff7f2a7a64",
+    "mtime": 1789847890.0144625,
+    "seen": 1789848792.111597,
+    "ast_hash": "9f08a59b2ec82d50bfdae7401a76bd8e",
     "semantic_hash": ""
   },
   "src/pages/FoodDatabase.tsx": {
-    "mtime": 1789784799.145143,
-    "seen": 1789785804.2327921,
-    "ast_hash": "a06253b0a5238d3889b1529dde9fa7a4",
+    "mtime": 1789847890.028216,
+    "seen": 1789848792.111597,
+    "ast_hash": "f470fc9a32d4aa70786cf4a87296933d",
     "semantic_hash": ""
   },
   "src/pages/Home.tsx": {
@@ -390,9 +390,9 @@
     "semantic_hash": ""
   },
   "src/pages/Login.tsx": {
-    "mtime": 1789784541.3317394,
-    "seen": 1789785804.232793,
-    "ast_hash": "57cf7697d165c6ab86590b661c28fb58",
+    "mtime": 1789834149.5397515,
+    "seen": 1789848792.111598,
+    "ast_hash": "8198432dd4cdcf97461617d7c58a416e",
     "semantic_hash": ""
   },
   "src/pages/MetabolicCalculator.tsx": {
@@ -402,21 +402,21 @@
     "semantic_hash": ""
   },
   "src/pages/PatientPortal.tsx": {
-    "mtime": 1789825670.8850615,
-    "seen": 1789825853.698977,
-    "ast_hash": "cd4624c38d82a2b5e3e96d0e0428176b",
+    "mtime": 1789847972.773382,
+    "seen": 1789848792.111598,
+    "ast_hash": "6e349052020c9f84986f8346aecc93bb",
     "semantic_hash": ""
   },
   "src/pages/PatientProfile.tsx": {
-    "mtime": 1789737829.3901634,
-    "seen": 1789738357.671496,
-    "ast_hash": "990d21292ab73519d8640eee30f8f454",
+    "mtime": 1789848161.9748666,
+    "seen": 1789848792.1115992,
+    "ast_hash": "8f7cbf68acba40336185ab8c3bfe4a30",
     "semantic_hash": ""
   },
   "src/pages/Patients.tsx": {
-    "mtime": 1789823217.5174196,
-    "seen": 1789825853.698978,
-    "ast_hash": "bfa63bbfb2d2556432f4a12aa1adac40",
+    "mtime": 1789847890.042471,
+    "seen": 1789848792.1115992,
+    "ast_hash": "1d8d2a6017e0e46e6ab4430f910ba818",
     "semantic_hash": ""
   },
   "src/pages/Register.tsx": {
@@ -432,9 +432,9 @@
     "semantic_hash": ""
   },
   "src/pages/Settings.tsx": {
-    "mtime": 1789687499.882892,
-    "seen": 1789687608.106955,
-    "ast_hash": "714efd7fc4799bb770912b4fbdb3fe39",
+    "mtime": 1789847290.0620856,
+    "seen": 1789848792.1116002,
+    "ast_hash": "206826e5e5a96ce67e1f62686bc04101",
     "semantic_hash": ""
   },
   "src/pages/__tests__/Dashboard.test.tsx": {
@@ -444,9 +444,9 @@
     "semantic_hash": ""
   },
   "src/services/__tests__/dietAlgorithmService.test.ts": {
-    "mtime": 1789832463.7510698,
-    "seen": 1789832678.3437371,
-    "ast_hash": "62ff103f659f4eed1d09035530404729",
+    "mtime": 1789846178.1909935,
+    "seen": 1789848792.111604,
+    "ast_hash": "e7b68125b27a989d94168f3a15960018",
     "semantic_hash": ""
   },
   "src/services/__tests__/foodService.test.ts": {
@@ -480,15 +480,15 @@
     "semantic_hash": ""
   },
   "src/services/dietAlgorithmService.ts": {
-    "mtime": 1789832457.9143107,
-    "seen": 1789832678.343745,
-    "ast_hash": "2d33b21ea3b815856aacd8afa5383fb1",
+    "mtime": 1789848162.203493,
+    "seen": 1789848792.111616,
+    "ast_hash": "be9e75c4f688446fbec117f8c4e0ba37",
     "semantic_hash": ""
   },
   "src/services/dietService.ts": {
-    "mtime": 1789831302.9893305,
-    "seen": 1789831668.5005991,
-    "ast_hash": "eb9cb6f298dd376775fa66be62203c0b",
+    "mtime": 1789847191.1939461,
+    "seen": 1789848792.111616,
+    "ast_hash": "4daa1f7ee9e1dfae9a61426cb0db34e2",
     "semantic_hash": ""
   },
   "src/services/emailService.ts": {
@@ -552,9 +552,9 @@
     "semantic_hash": "4bb6b8603fa01ada1120d800691e751c"
   },
   "src/types/diet.ts": {
-    "mtime": 1789830946.3531296,
-    "seen": 1789831668.500604,
-    "ast_hash": "296e1047c34587c343b2e3a16add4c70",
+    "mtime": 1789847185.2475035,
+    "seen": 1789848792.1116219,
+    "ast_hash": "8354a82c38209bd88495dc0ae289c9f8",
     "semantic_hash": ""
   },
   "src/types/email.ts": {
@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "src/utils/pdfExporter.ts": {
-    "mtime": 1789831157.731154,
-    "seen": 1789831668.500611,
-    "ast_hash": "d4da71022ba75adba72f867be0208fea",
+    "mtime": 1789848162.3946667,
+    "seen": 1789848792.111628,
+    "ast_hash": "372cb288d46f539db6f335e113cb9956",
     "semantic_hash": ""
   },
   "tests-e2e/critical-flow.spec.ts": {
@@ -618,9 +618,9 @@
     "semantic_hash": "7e033161d9afec3128fdaf507a2ce6de"
   },
   "tests-e2e/journey.spec.ts": {
-    "mtime": 1789821372.75088,
-    "seen": 1789821875.401043,
-    "ast_hash": "67c29a0b37d839777c08addfdd850764",
+    "mtime": 1789847565.1907535,
+    "seen": 1789848792.1116319,
+    "ast_hash": "a2dbf522b571fa336ce01be16bf4429e",
     "semantic_hash": ""
   },
   "tests-rules/firestore.rules.test.ts": {
@@ -948,9 +948,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1789821302.7241676,
-    "seen": 1789821875.401064,
-    "ast_hash": "1bc44df4bcb4c1bdb45a12a8b2593036",
+    "mtime": 1789846187.3128464,
+    "seen": 1789848792.1116521,
+    "ast_hash": "5106633d9deaf531314022d9ed55d961",
     "semantic_hash": ""
   },
   "AGENTS.md": {
@@ -996,21 +996,21 @@
     "semantic_hash": ""
   },
   "o-que-precisa-ser-feito.md": {
-    "mtime": 1789832693.708603,
-    "seen": 1789833387.214941,
-    "ast_hash": "df499886aaa59c0f4526ee45e00e39a6",
+    "mtime": 1789848752.7440693,
+    "seen": 1789848792.11167,
+    "ast_hash": "fa53d90c5cd4ef8e6ebbd93e1bc06f02",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard.png": {
-    "mtime": 1789785682.5709748,
-    "seen": 1789785804.232851,
-    "ast_hash": "0cd4ab555f5a216699d340143f20fc32",
+    "mtime": 1789848691.0303092,
+    "seen": 1789848792.11167,
+    "ast_hash": "bbf87a50a17050bbe413fcfc2ff224b1",
     "semantic_hash": ""
   },
   "docs/screenshots/diet_generator.png": {
-    "mtime": 1789785687.1656604,
-    "seen": 1789785804.232851,
-    "ast_hash": "0417a2efd0f8493d8edc74a59438ff4d",
+    "mtime": 1789848695.656775,
+    "seen": 1789848792.111671,
+    "ast_hash": "5d5d7193001ec49acd9bb97d64ca515c",
     "semantic_hash": ""
   },
   "firebase.json": {
@@ -1020,15 +1020,15 @@
     "semantic_hash": ""
   },
   "scripts/seed-emulator.mjs": {
-    "mtime": 1789764292.4223993,
-    "seen": 1789764868.851198,
-    "ast_hash": "7fa907035f223199b5ce13ac4afd45ce",
+    "mtime": 1789848361.255028,
+    "seen": 1789848792.1115499,
+    "ast_hash": "9958ce5af2ab18176bbf2d2fb77e7d42",
     "semantic_hash": ""
   },
   "src/services/__tests__/dietService.test.ts": {
-    "mtime": 1789821370.82306,
-    "seen": 1789821875.401022,
-    "ast_hash": "7e21aaf20759475b5ee9a379e310b7b1",
+    "mtime": 1789848162.0615973,
+    "seen": 1789848792.111604,
+    "ast_hash": "27995e384240e470030edb64128057bc",
     "semantic_hash": ""
   },
   "tests-rules/dietPersistence.integration.test.ts": {
@@ -1224,21 +1224,21 @@
     "semantic_hash": ""
   },
   "src/components/patient-portal/PortalDietsSection.tsx": {
-    "mtime": 1789831258.0593972,
-    "seen": 1789831668.5005682,
-    "ast_hash": "8bac16d3384251b8c42a97f30a172e17",
+    "mtime": 1789847890.001019,
+    "seen": 1789848792.111579,
+    "ast_hash": "5272007c76fd13f3f9483a7cdb5643b4",
     "semantic_hash": ""
   },
   "src/components/patient-portal/PortalPasswordModal.tsx": {
-    "mtime": 1789784016.6767962,
-    "seen": 1789785804.232775,
-    "ast_hash": "4577abe2a4c303f71f8e8d4933a8cf58",
+    "mtime": 1789848139.2639673,
+    "seen": 1789848792.11158,
+    "ast_hash": "d44d364a4d26e2b8b62f5bee0b25b036",
     "semantic_hash": ""
   },
   "src/components/patient-portal/PortalWeightModal.tsx": {
-    "mtime": 1789698245.207547,
-    "seen": 1789738357.671479,
-    "ast_hash": "7e227276d7c558eee674bc1d42e34a06",
+    "mtime": 1789848139.2638273,
+    "seen": 1789848792.11158,
+    "ast_hash": "94504ee5be19e6cc83166386cac40f5e",
     "semantic_hash": ""
   },
   "src/components/patient-portal/SelfEvaluationForm.tsx": {
@@ -1254,15 +1254,15 @@
     "semantic_hash": ""
   },
   "src/components/patient-profile/ProfileAssessmentTab.tsx": {
-    "mtime": 1789783923.6179917,
-    "seen": 1789785804.2327769,
-    "ast_hash": "b20dc6f77a5ec09f293cb09b8247681e",
+    "mtime": 1789847691.3858414,
+    "seen": 1789848792.1115808,
+    "ast_hash": "cb21314a3197e2cb99c9d1ad48bbf3d5",
     "semantic_hash": ""
   },
   "src/components/patient-profile/ProfileDietsTab.tsx": {
-    "mtime": 1789820872.2223957,
-    "seen": 1789821875.401001,
-    "ast_hash": "1b482deab9bdba07ed13d3f83d773bef",
+    "mtime": 1789848073.452164,
+    "seen": 1789848792.1115808,
+    "ast_hash": "091536d48e35564f856f24a4ee96392e",
     "semantic_hash": ""
   },
   "src/components/patient-profile/ProfileEvolutionTab.tsx": {
@@ -1308,9 +1308,9 @@
     "semantic_hash": ""
   },
   "src/hooks/usePatientPortalData.ts": {
-    "mtime": 1789821134.4695866,
-    "seen": 1789821875.40101,
-    "ast_hash": "4f00d95cbf9214801e29cc40371ee8c8",
+    "mtime": 1789847953.4903677,
+    "seen": 1789848792.1115909,
+    "ast_hash": "dc2af23ba1140730da8d9786714e25ad",
     "semantic_hash": ""
   },
   "src/hooks/usePatientProfile.ts": {
@@ -1410,9 +1410,9 @@
     "semantic_hash": ""
   },
   "src/components/ChartDataTable.tsx": {
-    "mtime": 1789698720.0884585,
-    "seen": 1789738357.671458,
-    "ast_hash": "933b1785aac212866e32cd3a282fa7e8",
+    "mtime": 1789847889.987025,
+    "seen": 1789848792.111552,
+    "ast_hash": "323f996f9cb73bed381c266bb42294b4",
     "semantic_hash": ""
   },
   "src/components/Dialog.tsx": {
@@ -1506,15 +1506,15 @@
     "semantic_hash": ""
   },
   "src/utils/__tests__/pdfExporter.test.ts": {
-    "mtime": 1789831414.506621,
-    "seen": 1789831668.500607,
-    "ast_hash": "5e64c20ca36666bdffcc95c86cf35495",
+    "mtime": 1789848162.3550074,
+    "seen": 1789848792.111625,
+    "ast_hash": "889691d2046ed0fa5344103e6ef3bdb3",
     "semantic_hash": ""
   },
   "src/components/ErrorBoundary.tsx": {
-    "mtime": 1789783923.6165826,
-    "seen": 1789785804.2327502,
-    "ast_hash": "1e8de25666056c6cc33d2eccbb6ab42a",
+    "mtime": 1789848139.2635915,
+    "seen": 1789848792.111553,
+    "ast_hash": "f628a2381e8140d0fee5218821a93bb2",
     "semantic_hash": ""
   },
   "src/components/__tests__/ErrorBoundary.test.tsx": {
@@ -1638,9 +1638,9 @@
     "semantic_hash": ""
   },
   "docs/screenshots/manifest.json": {
-    "mtime": 1789785691.950934,
-    "seen": 1789785804.232737,
-    "ast_hash": "0d5f2338c43b6c69121f0599321b8640",
+    "mtime": 1789848703.613758,
+    "seen": 1789848792.1115441,
+    "ast_hash": "4c87f9d678e6bf081f0b1683ef705fdf",
     "semantic_hash": ""
   },
   "playwright.screenshots.config.ts": {
@@ -1662,21 +1662,21 @@
     "semantic_hash": ""
   },
   "tests-e2e/design-system.spec.ts": {
-    "mtime": 1789825827.5940142,
-    "seen": 1789825853.699004,
-    "ast_hash": "469d483ccddcc7c26b3741d9f24d1354",
+    "mtime": 1789847614.8761997,
+    "seen": 1789848792.1116312,
+    "ast_hash": "4136aec0b2929a0786173d1daf9d83d5",
     "semantic_hash": ""
   },
   "tests-e2e/screens.capture.ts": {
-    "mtime": 1789784932.4804664,
-    "seen": 1789785804.232821,
-    "ast_hash": "2becba541425d74a2153aa7e898fade3",
+    "mtime": 1789848361.2552922,
+    "seen": 1789848792.1116328,
+    "ast_hash": "4f0610e053f0bd7ee0f047d2c892fca8",
     "semantic_hash": ""
   },
   "docs/design-system.md": {
-    "mtime": 1789825827.5944154,
-    "seen": 1789825853.699033,
-    "ast_hash": "e04abbedf013d799b0e70b4464c30424",
+    "mtime": 1789848789.8849106,
+    "seen": 1789848792.111656,
+    "ast_hash": "b505900ade5262baaee5e7f1b1e35fa3",
     "semantic_hash": ""
   },
   "docs/evidencias-revisao-10.md": {
@@ -1704,33 +1704,33 @@
     "semantic_hash": ""
   },
   "feito.md": {
-    "mtime": 1789826151.7337854,
-    "seen": 1789831668.5006552,
-    "ast_hash": "764439d81fb14124ed9a522fb5bed5af",
+    "mtime": 1789848800.709812,
+    "seen": 1789859036.3854852,
+    "ast_hash": "13b683d763ba9cf2ac28f1b4b2411bbe",
     "semantic_hash": ""
   },
   "docs/screenshots/calendar.png": {
-    "mtime": 1789785685.2106545,
-    "seen": 1789785804.2328498,
-    "ast_hash": "60515893b1bd85fd6a5d0e48aa7d80a7",
+    "mtime": 1789848693.679394,
+    "seen": 1789848792.11167,
+    "ast_hash": "baca6b88f6cdd718700413862fbdfd13",
     "semantic_hash": ""
   },
   "docs/screenshots/calendar_mobile.png": {
-    "mtime": 1789785689.3572872,
-    "seen": 1789785804.2328498,
-    "ast_hash": "978411d898983dba13f14e81417558d8",
+    "mtime": 1789848697.9277716,
+    "seen": 1789848792.11167,
+    "ast_hash": "ccf4cb6605e1f95fb03f0c234373c45a",
     "semantic_hash": ""
   },
   "docs/screenshots/dashboard_mobile.png": {
-    "mtime": 1789785688.5330229,
-    "seen": 1789785804.232851,
-    "ast_hash": "91e1597afdb5f3c0d9149434d882f529",
+    "mtime": 1789848697.0949428,
+    "seen": 1789848792.111671,
+    "ast_hash": "c2c8960b8d836e9da9c87b05bf75013e",
     "semantic_hash": ""
   },
   "docs/screenshots/diet_generator_step1.png": {
-    "mtime": 1789785686.156836,
-    "seen": 1789785804.232852,
-    "ast_hash": "4574ce0eee4e83b2be78ad8db5c77ad7",
+    "mtime": 1789848694.653469,
+    "seen": 1789848792.111671,
+    "ast_hash": "c598bb68448975e4d5decbfaf6a9b9e2",
     "semantic_hash": ""
   },
   "docs/screenshots/historico/2026-09-18_antes_dashboard_devtools.png": {
@@ -1746,39 +1746,39 @@
     "semantic_hash": ""
   },
   "docs/screenshots/invitation_error.png": {
-    "mtime": 1789785690.5604706,
-    "seen": 1789785804.232853,
+    "mtime": 1789848702.1936777,
+    "seen": 1789848792.111673,
     "ast_hash": "6b714b16bcc44fc1a426ec82782def57",
     "semantic_hash": ""
   },
   "docs/screenshots/patient_profile.png": {
-    "mtime": 1789785684.3549507,
-    "seen": 1789785804.232853,
-    "ast_hash": "ddd9bc7df9b15fda2c4860f4b89af19e",
+    "mtime": 1789848692.7990396,
+    "seen": 1789848792.111673,
+    "ast_hash": "fa78b7dd2366c16cf57ab471ee50517e",
     "semantic_hash": ""
   },
   "docs/screenshots/patients.png": {
-    "mtime": 1789785683.4607515,
-    "seen": 1789785804.232853,
-    "ast_hash": "14588019a9921612795597efc8efd6af",
+    "mtime": 1789848691.9179547,
+    "seen": 1789848792.111673,
+    "ast_hash": "5c3463c36a2ee2026f85676401eb4a7a",
     "semantic_hash": ""
   },
   "docs/screenshots/patients_no_results.png": {
-    "mtime": 1789785685.2793977,
-    "seen": 1789785804.232853,
-    "ast_hash": "7a1cadb864b2fbf2d5eac7980b81f9df",
+    "mtime": 1789848693.7592542,
+    "seen": 1789848792.111674,
+    "ast_hash": "46bd49ba08a796b214387aec8c032890",
     "semantic_hash": ""
   },
   "docs/screenshots/portal.png": {
-    "mtime": 1789785691.9192467,
-    "seen": 1789785804.2328541,
-    "ast_hash": "793658ac420f04fdb407e985c18a64bb",
+    "mtime": 1789848703.5698843,
+    "seen": 1789848792.111674,
+    "ast_hash": "2eef56cf6cd2797fcf530138963ead9f",
     "semantic_hash": ""
   },
   "docs/screenshots/portal_mobile.png": {
-    "mtime": 1789785691.945953,
-    "seen": 1789785804.2328541,
-    "ast_hash": "4d418d5baab843bd501f88d2eb9afaa7",
+    "mtime": 1789848703.60917,
+    "seen": 1789848792.111674,
+    "ast_hash": "7ac073a21f1c1bb2ff02554d5fe7e756",
     "semantic_hash": ""
   },
   "src/components/__tests__/PatientAccessModal.email.test.tsx": {
@@ -1800,9 +1800,9 @@
     "semantic_hash": ""
   },
   "src/utils/dietEditing.ts": {
-    "mtime": 1789820779.852598,
-    "seen": 1789821875.4010382,
-    "ast_hash": "71b54b0b518a3b5729a84c9f8c885edc",
+    "mtime": 1789848162.3700438,
+    "seen": 1789848792.111627,
+    "ast_hash": "74169d80d350b9857f2a85dacf2a2e2c",
     "semantic_hash": ""
   },
   "src/components/__tests__/DietPlanDisplay.clinicalContext.test.tsx": {
@@ -1962,15 +1962,15 @@
     "semantic_hash": ""
   },
   "src/services/__tests__/clinicalScreeningService.test.ts": {
-    "mtime": 1789831586.3120496,
-    "seen": 1789831668.5005922,
-    "ast_hash": "0f9a52815cfd92349f006b1f6f003582",
+    "mtime": 1789846178.1573875,
+    "seen": 1789848792.111603,
+    "ast_hash": "d4d3f4a051e989bd2497aa0adb934e68",
     "semantic_hash": ""
   },
   "src/services/clinicalScreeningService.ts": {
-    "mtime": 1789831649.085298,
-    "seen": 1789831668.500598,
-    "ast_hash": "3c047d1b2c156bdda013f740b48a7c99",
+    "mtime": 1789846178.2760777,
+    "seen": 1789848792.111615,
+    "ast_hash": "c26c672911098cb6f1b4369354a12c08",
     "semantic_hash": ""
   },
   "docs/validacao-2026-09-19/diff-check.txt": {
@@ -1986,33 +1986,123 @@
     "semantic_hash": ""
   },
   "src/services/__tests__/mealArchetypeService.test.ts": {
-    "mtime": 1789832657.434868,
-    "seen": 1789832678.34374,
-    "ast_hash": "f6d084d7d031d92406cb6187ab274964",
+    "mtime": 1789846178.2373064,
+    "seen": 1789848792.111613,
+    "ast_hash": "fb3d3b756f6db571fbd9dd627bf4bfc7",
     "semantic_hash": ""
   },
   "src/services/__tests__/portionLimitsService.test.ts": {
-    "mtime": 1789832073.0241172,
-    "seen": 1789832678.343742,
-    "ast_hash": "784a1ed086ec2334fd9988d81f61f11f",
+    "mtime": 1789848162.1357222,
+    "seen": 1789848792.111614,
+    "ast_hash": "19138eebf469e5f1f20ce937f5f993b4",
     "semantic_hash": ""
   },
   "src/services/mealArchetypeService.ts": {
-    "mtime": 1789832446.9652314,
-    "seen": 1789832678.343749,
-    "ast_hash": "e442e65af0c5410833384b1bc93f4904",
+    "mtime": 1789846567.581762,
+    "seen": 1789848792.111619,
+    "ast_hash": "b2b7d56aec9e370b110f4e47b62a158d",
     "semantic_hash": ""
   },
   "src/services/portionLimitsService.ts": {
-    "mtime": 1789832028.6111722,
-    "seen": 1789832678.34375,
-    "ast_hash": "15948fb6ac5df35747019c85b5e02d21",
+    "mtime": 1789848162.3030949,
+    "seen": 1789848792.1116202,
+    "ast_hash": "b6d9209693a7ac8dae8d338cc2c24d99",
     "semantic_hash": ""
   },
   "src/services/__tests__/clinicalAcceptancePersonas.test.ts": {
-    "mtime": 1789833333.4243622,
-    "seen": 1789833387.2148669,
-    "ast_hash": "2ebc01d7367f635530306aeda9aa24ed",
+    "mtime": 1789846178.1534834,
+    "seen": 1789848792.111603,
+    "ast_hash": "63dff681fbe26cc13838094664fa1665",
+    "semantic_hash": ""
+  },
+  "src/components/__tests__/DietStatusBadge.test.tsx": {
+    "mtime": 1789848161.2991617,
+    "seen": 1789848792.111557,
+    "ast_hash": "5abda13d9a9c06868a507cffb6dc2ff3",
+    "semantic_hash": ""
+  },
+  "src/components/__tests__/clinicalApproval.test.tsx": {
+    "mtime": 1789848161.2662244,
+    "seen": 1789848792.111559,
+    "ast_hash": "44de7445f5da269f2a7947214ad761b1",
+    "semantic_hash": ""
+  },
+  "src/components/diet-generator/DietStatusBadge.tsx": {
+    "mtime": 1789848161.400138,
+    "seen": 1789848792.111566,
+    "ast_hash": "4accbca6d0f407b5cd815b73a7919bf8",
+    "semantic_hash": ""
+  },
+  "src/components/diet-generator/ValidationIssuesPanel.tsx": {
+    "mtime": 1789848161.4495451,
+    "seen": 1789848792.11157,
+    "ast_hash": "c39d8eeefc47eedfa1f4180a1486590e",
+    "semantic_hash": ""
+  },
+  "src/hooks/__tests__/usePatientPortalData.test.ts": {
+    "mtime": 1789848161.7592926,
+    "seen": 1789848792.111588,
+    "ast_hash": "5169626750a35ba7dc0111a932ac6895",
+    "semantic_hash": ""
+  },
+  "src/services/__tests__/generatorAudit.test.ts": {
+    "mtime": 1789848162.089499,
+    "seen": 1789848792.1116102,
+    "ast_hash": "77180866c4fc2c6bb1848d4e54399f8b",
+    "semantic_hash": ""
+  },
+  "src/services/professionalProfileService.ts": {
+    "mtime": 1789847241.6127346,
+    "seen": 1789848792.1116202,
+    "ast_hash": "9ddc302c0f3aa957300b8907ad480ac3",
+    "semantic_hash": ""
+  },
+  "src/utils/validationPresentation.ts": {
+    "mtime": 1789848162.4111438,
+    "seen": 1789848792.11163,
+    "ast_hash": "c30da9cb8052fb2dcd25d5ac5d534bd3",
+    "semantic_hash": ""
+  },
+  "tests-e2e/layout-stress.spec.ts": {
+    "mtime": 1789848162.7339556,
+    "seen": 1789848792.1116319,
+    "ast_hash": "4f8707791ec4326327293f2395b59c58",
+    "semantic_hash": ""
+  },
+  "vercel.json": {
+    "mtime": 1789834263.3287923,
+    "seen": 1789848792.111635,
+    "ast_hash": "61bd31a2b0ac08f10f13c932b32d6ca1",
+    "semantic_hash": ""
+  },
+  "docs/validacao-2026-09-19/fases-a1-a7/manifesto.txt": {
+    "mtime": 1789848789.977009,
+    "seen": 1789848792.111661,
+    "ast_hash": "9b5578383e775286764f890300553c30",
+    "semantic_hash": ""
+  },
+  "docs/validacao-2026-09-19/feito-antes-da-auditoria-de-producao.md": {
+    "mtime": 1789845868.5779338,
+    "seen": 1789848792.1116621,
+    "ast_hash": "764439d81fb14124ed9a522fb5bed5af",
+    "semantic_hash": ""
+  },
+  "docs/validacao-2026-09-19/plano-antes-da-auditoria-de-producao.md": {
+    "mtime": 1789845868.5754504,
+    "seen": 1789848792.111666,
+    "ast_hash": "351eb41cb5c62226b016aff89a91d936",
+    "semantic_hash": ""
+  },
+  "docs/validacao-2026-09-19/plano-antes-das-fases-a1-a7.md": {
+    "mtime": 1789848716.6568952,
+    "seen": 1789848792.111666,
+    "ast_hash": "8696e3c2c1139a09cd39c2467121dc9f",
+    "semantic_hash": ""
+  },
+  "docs/screenshots/diet_generator_warnings.png": {
+    "mtime": 1789848476.7200725,
+    "seen": 1789848792.1116722,
+    "ast_hash": "e73f7a9644025b92bdbaf6bc1287b6f0",
     "semantic_hash": ""
   }
 }

@@ -2,6 +2,13 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import i18n from "../i18n";
 import { translateMealName } from "./locale";
+import type { TFunction } from "i18next";
+import {
+  formatAlternativeGroup,
+  formatIssue,
+  getSodiumCeiling,
+  groupValidationIssues,
+} from "./validationPresentation";
 import type {
   DietPlan,
   Meal,
@@ -381,12 +388,41 @@ export function buildCustomLayoutPdfDocument(
 
   /* ----------------------- Clinical Warnings & Guidelines (Passo 17 item 3) */
   const issues = plan.validation?.issues || [];
-  const sodiumCeiling = plan.clinicalTags?.includes("renal_ckd") ? 1500 : 2000;
+  const sodiumCeiling = getSodiumCeiling(plan.clinicalTags);
+  // A1: the technical alert list belongs to the professional's working copy
+  // (not approved, watermarked as draft). The approved plan handed to the
+  // patient carries no internal warnings.
+  const isPatientCopy =
+    plan.status === "clinically_approved" || !!plan.clinicalApproval;
   const hasSodiumAlert =
+    !isPatientCopy &&
     plan.validation?.worstCaseAlternativeSodium != null &&
     plan.validation.worstCaseAlternativeSodium > sodiumCeiling;
+  const tf = t as unknown as TFunction;
+  const grouped = groupValidationIssues(isPatientCopy ? [] : issues);
+  const alertLines: { text: string; error: boolean }[] = [
+    ...grouped.blockers.map((i) => ({
+      text: formatIssue(i, tf, targetLocale),
+      error: true,
+    })),
+    ...[
+      ...grouped.daily,
+      ...grouped.sodium,
+      ...grouped.worstCase,
+      ...grouped.other,
+    ].map((i) => ({
+      text: formatIssue(i, tf, targetLocale),
+      error: false,
+    })),
+    ...grouped.alternativesByMeal.flatMap((meal) =>
+      meal.groups.map((g) => ({
+        text: `${translateMealName(meal.mealName, tf)} — ${formatAlternativeGroup(g, tf, targetLocale)}`,
+        error: false,
+      })),
+    ),
+  ];
 
-  if (issues.length > 0 || hasSodiumAlert) {
+  if (alertLines.length > 0 || hasSodiumAlert) {
     const alertHeading = t("pdf.clinical_alerts_title", {
       defaultValue:
         targetLocale === "en"
@@ -398,17 +434,9 @@ export function buildCustomLayoutPdfDocument(
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
 
-    issues.forEach((issue) => {
-      const isError = issue.level === "error";
-      const bulletSymbol = isError ? "[!] " : "[*] ";
-      const localizedMessage = issue.code
-        ? t(`diet_validation.issues.${issue.code}`, {
-            ...issue.details,
-            defaultValue: issue.message,
-          })
-        : issue.message;
+    alertLines.forEach(({ text, error: isError }) => {
       const issueLines = doc.splitTextToSize(
-        `${bulletSymbol}${localizedMessage}`,
+        `${isError ? "[!] " : "[*] "}${text}`,
         contentWidth - 8,
       );
       checkPageBreak(issueLines.length * 4.2 + 2);
@@ -592,11 +620,14 @@ export function buildCustomLayoutPdfDocument(
     doc.setFontSize(7.5);
     doc.setTextColor(...INK);
     const profName =
-      plan.clinicalApproval.professionalName || t("pdf.nutritionist", { defaultValue: "Nutricionista" });
+      plan.clinicalApproval.professionalName ||
+      t("pdf.nutritionist", { defaultValue: "Nutricionista" });
     const profCrn = plan.clinicalApproval.professionalCrn
       ? ` | CRN: ${plan.clinicalApproval.professionalCrn}`
       : "";
-    const appDate = new Date(plan.clinicalApproval.approvedAt).toLocaleString(dateLocale);
+    const appDate = new Date(plan.clinicalApproval.approvedAt).toLocaleString(
+      dateLocale,
+    );
     doc.text(
       `${profName}${profCrn} — Aprovado em: ${appDate}`,
       margin + 4,

@@ -342,7 +342,8 @@
     "warn_high_sodium": "High sodium",
     "warn_moderate_gi": "Moderate glycemic load",
     "and": "and",
-    "healthy_preparation": "healthy preparation"
+    "healthy_preparation": "healthy preparation",
+    "log_archetype_fallback": "Insufficient catalog for meal \"{{meal}}\": a food outside this meal's usual pattern was used."
   },
   "diet_validation": {
     "issues": {
@@ -355,23 +356,50 @@
       "VEGAN_VIOLATION": "Food \"{{foodName}}\" in meal \"{{mealName}}\" violates restriction \"vegan\": contains animal-derived ingredients.",
       "RESTRICTION_VIOLATION": "Food \"{{foodName}}\" in meal \"{{mealName}}\" violates prescribed dietary restrictions.",
       "ALLERGY_VIOLATION": "Food \"{{foodName}}\" in meal \"{{mealName}}\" contains patient allergen: {{reason}}.",
-      "CALORIE_DEVIATION": "Caloric variance of {{percent}}% compared to prescribed target ({{target}} kcal vs {{actual}} kcal).",
-      "PROTEIN_DEVIATION": "Protein variance of {{percent}}% compared to prescribed target ({{target}}g vs {{actual}}g).",
-      "CARBS_DEVIATION": "Carbohydrates variance of {{percent}}% compared to prescribed target ({{target}}g vs {{actual}}g).",
-      "FAT_DEVIATION": "Fat variance of {{percent}}% compared to prescribed target ({{target}}g vs {{actual}}g).",
-      "ALTERNATIVE_CALORIE_DEVIATION": "Alternative option \"{{alternativeName}}\" varies by {{percent}}% in calories compared to the main option in meal \"{{mealName}}\" ({{alternativeCalories}} kcal vs {{mainOptionCalories}} kcal).",
-      "ALTERNATIVE_MACRO_DEVIATION": "Alternative option \"{{alternativeName}}\" varies by {{percent}}% in {{nutrient}} compared to the main option in meal \"{{mealName}}\" ({{alternativeValue}}g vs {{mainValue}}g).",
+      "CALORIE_DEVIATION": "Calories: plan {{actual}} kcal · target {{target}} kcal ({{percent}}%).",
+      "PROTEIN_DEVIATION": "Protein: plan {{actual}} g · target {{target}} g ({{percent}}%).",
+      "CARBS_DEVIATION": "Carbohydrates: plan {{actual}} g · target {{target}} g ({{percent}}%).",
+      "FAT_DEVIATION": "Fat: plan {{actual}} g · target {{target}} g ({{percent}}%).",
+      "ALTERNATIVE_CALORIE_DEVIATION": "Alternative option \"{{alternativeName}}\" varies by {{percent}}% in calories compared to the main option in meal \"{{mealName}}\" ({{alternativeValue}} kcal vs {{mainValue}} kcal).",
+      "ALTERNATIVE_MACRO_DEVIATION": "Alternative option \"{{alternativeName}}\" varies by {{percent}}% in {{nutrient}} compared to the main option in meal \"{{mealName}}\" ({{alternativeValue}} g vs {{mainValue}} g).",
       "WORST_CASE_ALTERNATIVE_DEVIATION": "Alternative combinations vary daily intake between {{minCalories}} kcal and {{maxCalories}} kcal (target: {{targetCalories}} kcal).",
       "INVALID_NUTRIENT_VALUE": "Invalid value for field \"{{field}}\" in food \"{{foodName}}\" of meal \"{{mealName}}\".",
       "INVALID_TARGET_VALUE": "Prescribed nutritional targets contain non-numeric, negative or invalid values.",
-      "HIGH_SODIUM_CEILING_HYPERTENSION": "Worst-case sodium across alternative combinations reaches {{worstCaseAlternativeSodium}}mg (ceiling: {{limit}}mg).",
-      "HIGH_SODIUM_CEILING_RENAL": "Worst-case sodium across alternative combinations reaches {{worstCaseAlternativeSodium}}mg for renal patient (ceiling: {{limit}}mg).",
+      "HIGH_SODIUM_CEILING_HYPERTENSION": "Sodium in the worst combination: {{worstCaseAlternativeSodium}} mg (hypertension ceiling: {{limit}} mg).",
+      "HIGH_SODIUM_CEILING_RENAL": "Sodium in the worst combination: {{worstCaseAlternativeSodium}} mg (renal ceiling: {{limit}} mg).",
       "WORST_CASE_PROTEIN_DEVIATION": "Alternative combinations vary daily protein between {{min}} g and {{max}} g (target: {{target}} g).",
       "WORST_CASE_CARBS_DEVIATION": "Alternative combinations vary daily carbohydrates between {{min}} g and {{max}} g (target: {{target}} g).",
       "WORST_CASE_FAT_DEVIATION": "Alternative combinations vary daily fat between {{min}} g and {{max}} g (target: {{target}} g).",
       "ZERO_TARGET_PROTEIN": "The daily protein target is 0 g, but the plan reaches {{max}} g in some combination. Percentage tolerance does not apply; review manually.",
       "ZERO_TARGET_CARBS": "The daily carbohydrate target is 0 g, but the plan reaches {{max}} g in some combination. Percentage tolerance does not apply; review manually.",
       "ZERO_TARGET_FAT": "The daily fat target is 0 g, but the plan reaches {{max}} g in some combination. Percentage tolerance does not apply; review manually."
+    },
+    "nutrients": {
+      "calories": "calories",
+      "protein": "protein",
+      "carbs": "carbohydrates",
+      "fat": "fat"
+    },
+    "alternative_line": "Alternative {{index}} ({{items}}): {{deviations}}",
+    "deviation_part": "{{nutrient}} {{percent}}% ({{alternative}} vs {{main}} in the main option)",
+    "summary": {
+      "blockers_one": "{{count}} blocker",
+      "blockers_other": "{{count}} blockers",
+      "daily_one": "{{count}} daily target out of tolerance",
+      "daily_other": "{{count}} daily targets out of tolerance",
+      "sodium_one": "sodium above ceiling",
+      "sodium_other": "sodium above ceiling",
+      "alternatives_one": "{{count}} alternative differs in {{meals}} meal(s)",
+      "alternatives_other": "{{count}} alternatives differ in {{meals}} meal(s)"
+    },
+    "groups": {
+      "daily": "Daily targets",
+      "sodium": "Sodium",
+      "alternatives": "Alternatives that differ from the main option",
+      "worst_case": "In the worst combination of alternatives",
+      "meal_alternatives_one": "{{meal}}: {{count}} alternative",
+      "meal_alternatives_other": "{{meal}}: {{count}} alternatives",
+      "other": "Other warnings"
     }
   },
   "food": {
@@ -922,7 +950,10 @@
       "template_name_required": "Enter a name for the template.",
       "issue_error": "Error",
       "issue_warning": "Warning",
-      "status_approved": "Approved by the professional"
+      "status_approved": "Approved by the professional",
+      "status_blocked": "Blocked: incompatible with restrictions or targets",
+      "status_draft": "Draft (not approved)",
+      "status_needs_reapproval": "Earlier plan: needs a new approval"
     },
     "save_error": "Could not save the meal plan. Check your connection and try again.",
     "generation_failed": "Failed to generate meal plan.",
@@ -947,7 +978,8 @@
       "PLAN_INFEASIBLE": "Could not generate a feasible plan satisfying all clinical constraints and targets.",
       "CATALOG_EXHAUSTED": "Not enough foods available in catalog after applying all clinical restrictions."
     },
-    "review_outdated": "The plan changed since it was reviewed (content, targets, restrictions or alerts). Check the current alerts and confirm the review again."
+    "review_outdated": "The plan changed since it was reviewed (content, targets, restrictions or alerts). Check the current alerts and confirm the review again.",
+    "approval_credentials_required": "Enter your CRN to approve the plan."
   },
   "meal_table": {
     "breakfast": "Breakfast",
@@ -1175,6 +1207,12 @@
         "recent_login": "For security reasons, please sign out and sign back in to change your password.",
         "generic_error": "Failed to update password. Try again later."
       }
+    },
+    "load_error": {
+      "denied_title": "Plan access unavailable",
+      "denied_desc": "Your access may have been revoked or is still being activated. Try again shortly or contact your nutritionist.",
+      "failed_title": "Could not load your data",
+      "failed_desc": "Check your connection and try again."
     }
   },
   "patient_form": {
@@ -1453,7 +1491,12 @@
       "high": "HIGH",
       "restriction": "Specific filter ({{tag}})",
       "respected": "RESPECTED",
-      "disclaimer": "This plan was generated using the Storm Nutrition nutritional algorithm based on validated clinical guidelines. It is the nutritionist's duty to review and attest to the adequacy of the recommended foods to the patient's individual conditions."
+      "disclaimer": "This plan was generated using the Storm Nutrition nutritional algorithm based on validated clinical guidelines. It is the nutritionist's duty to review and attest to the adequacy of the recommended foods to the patient's individual conditions.",
+      "approve_with_alerts": "By confirming, you approve this plan with the alerts listed above.",
+      "approver": "Approval by {{name}}",
+      "crn_label": "Professional registration (CRN)",
+      "crn_hint": "Required to approve. Saved to your profile.",
+      "crn_value": "CRN {{crn}}"
     }
   },
   "a11y": {

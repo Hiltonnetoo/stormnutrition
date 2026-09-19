@@ -125,6 +125,17 @@ test("professional screens — desktop", async ({ page }) => {
     timeout: 15000,
   });
   await shot(page, "diet_generator.png", "Gerador — plano gerado", DESKTOP);
+  // A1/UI12: grouped warnings panel of the generated plan
+  const panel = page.locator('[data-testid="validation-issues"]');
+  if (await panel.count()) {
+    await panel.first().scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(OUT, "diet_generator_warnings.png") });
+    manifest.push({
+      ...manifest[manifest.length - 1],
+      file: "diet_generator_warnings.png",
+      screen: "Gerador — avisos agrupados",
+    });
+  }
 });
 
 test("professional screens — mobile", async ({ page }) => {

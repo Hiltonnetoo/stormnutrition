@@ -59,13 +59,66 @@ describe("portionLimitsService", () => {
   });
 
   describe("formatHouseholdMeasure", () => {
-    it("formats olive oil with spoons and ml", () => {
+    // A5: the measure follows the catalog's reference (15 ml = 1 colher de
+    // sopa) and the standard spoons (chá 5 ml, sobremesa 10 ml). The old
+    // expectation assumed an 8 ml tablespoon, contradicting the catalog.
+    it("formats olive oil in ml with standard spoons", () => {
       const azeite = mockFood({
         name: "Azeite de oliva",
         category: "Óleos e Gorduras",
+        portion: "15",
+        unit: "ml (1 colher de sopa)",
       });
-      expect(formatHouseholdMeasure(azeite, 5)).toContain("5ml (1 colher de sobremesa)");
-      expect(formatHouseholdMeasure(azeite, 10)).toContain("10ml (1 colher de sopa)");
+      expect(formatHouseholdMeasure(azeite, 5)).toBe("5ml (1 colher de chá)");
+      expect(formatHouseholdMeasure(azeite, 10)).toBe(
+        "10ml (1 colher de sobremesa)",
+      );
+      expect(formatHouseholdMeasure(azeite, 15)).toBe(
+        "15ml (1 colher de sopa)",
+      );
+      expect(formatHouseholdMeasure(azeite, 20)).toBe(
+        "20ml (1 e 1/2 colheres de sopa)",
+      );
+    });
+
+    it("never shows solid fats in ml and scales catalog references", () => {
+      const banha = mockFood({
+        name: "Banha de porco",
+        category: "Óleos e Gorduras",
+        portion: "15",
+        unit: "g (1 colher de sopa)",
+      });
+      expect(formatHouseholdMeasure(banha, 14)).toBe("14g (1 colher de sopa)");
+      const creme = mockFood({
+        name: "Creme de leite",
+        category: "Leite e Derivados",
+        portion: "15",
+        unit: "g (1 colher de sopa)",
+      });
+      expect(formatHouseholdMeasure(creme, 100)).toBe(
+        "100g (6 e 1/2 colheres de sopa)",
+      );
+      const castanha = mockFood({
+        name: "Castanha-do-pará",
+        category: "Oleaginosas",
+        portion: "15",
+        unit: "g (3 unidades)",
+      });
+      expect(formatHouseholdMeasure(castanha, 10)).toBe("10g (2 unidades)");
+      const maca = mockFood({
+        name: "Maçã",
+        category: "Frutas",
+        portion: "100",
+        unit: "g",
+      });
+      expect(formatHouseholdMeasure(maca, 65)).toBe("65g (1/2 unidade média)");
+      const leite = mockFood({
+        name: "Leite desnatado",
+        category: "Leite e Derivados",
+        portion: "200",
+        unit: "ml",
+      });
+      expect(formatHouseholdMeasure(leite, 300)).toBe("300ml (1 e 1/2 copos)");
     });
 
     it("formats eggs with unit counts", () => {
@@ -86,8 +139,12 @@ describe("portionLimitsService", () => {
         name: "Feijão carioca cozido",
         category: "Leguminosas",
       });
-      expect(formatHouseholdMeasure(arroz, 120)).toContain("120g (4 colheres de sopa)");
-      expect(formatHouseholdMeasure(feijao, 80)).toContain("80g (1 concha média)");
+      expect(formatHouseholdMeasure(arroz, 120)).toContain(
+        "120g (4 colheres de sopa)",
+      );
+      expect(formatHouseholdMeasure(feijao, 80)).toContain(
+        "80g (1 concha média)",
+      );
     });
   });
 });

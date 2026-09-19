@@ -1,4 +1,11 @@
 import React, { useId, useRef, useState } from "react";
+import {
+  ClockIcon,
+  TrendingUpIcon,
+  ClipboardListIcon,
+  UtensilsIcon,
+  DocumentTextIcon,
+} from "../components/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
@@ -55,12 +62,32 @@ const PatientProfile: React.FC = () => {
 
   if (!patient) return null;
 
-  const tabs: { id: TabId; icon: string; label: string }[] = [
-    { id: "timeline", icon: "🕒", label: t("profile.tabs.timeline") },
-    { id: "evolution", icon: "📈", label: t("profile.tabs.evolution") },
-    { id: "exams", icon: "🧪", label: t("profile.tabs.exams") },
-    { id: "diets", icon: "🍲", label: t("profile.tabs.diets") },
-    { id: "assessment", icon: "📝", label: t("profile.tabs.assessment") },
+  const tabs: { id: TabId; icon: React.ReactNode; label: string }[] = [
+    {
+      id: "timeline",
+      icon: <ClockIcon className="w-4 h-4" />,
+      label: t("profile.tabs.timeline"),
+    },
+    {
+      id: "evolution",
+      icon: <TrendingUpIcon className="w-4 h-4" />,
+      label: t("profile.tabs.evolution"),
+    },
+    {
+      id: "exams",
+      icon: <ClipboardListIcon className="w-4 h-4" />,
+      label: t("profile.tabs.exams"),
+    },
+    {
+      id: "diets",
+      icon: <UtensilsIcon className="w-4 h-4" />,
+      label: t("profile.tabs.diets"),
+    },
+    {
+      id: "assessment",
+      icon: <DocumentTextIcon className="w-4 h-4" />,
+      label: t("profile.tabs.assessment"),
+    },
   ];
 
   return (
@@ -100,7 +127,7 @@ const PatientProfile: React.FC = () => {
           setActiveTab(tabs[next].id);
           tabRefs.current[tabs[next].id]?.focus();
         }}
-        className="flex gap-1.5 overflow-x-auto no-scrollbar no-export p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl w-full"
+        className="flex gap-1.5 overflow-x-auto no-scrollbar no-export p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl w-full relative"
       >
         {tabs.map((tab) => {
           const selected = activeTab === tab.id;

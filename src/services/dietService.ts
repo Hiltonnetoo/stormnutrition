@@ -31,6 +31,8 @@ import type {
   DietMode,
   CalculatedDietTotals,
   PlanValidationResult,
+  DietPlanStatus,
+  ClinicalApproval,
   PlanValidationIssue,
   PlanValidationStatus,
   ValidateDietPlanOptions,
@@ -569,6 +571,47 @@ const assertReviewMatches = (
   }
 };
 
+/** A6: approving requires the professional's registration (CRN). */
+export class ApprovalCredentialsError extends Error {
+  readonly code = "APPROVAL_CREDENTIALS_REQUIRED";
+  constructor() {
+    super("APPROVAL_CREDENTIALS_REQUIRED");
+    this.name = "ApprovalCredentialsError";
+  }
+}
+
+/**
+ * A6: status and clinical approval are derived only from the revalidation of
+ * the version being saved — never taken from the client payload, so a plan
+ * cannot arrive "approved" and an old approval never survives an edit.
+ */
+const deriveApprovalState = (
+  revalidated: PlanValidationResult,
+  options?: ValidateDietPlanOptions,
+): { status: DietPlanStatus; clinicalApproval: ClinicalApproval | null } => {
+  const status: DietPlanStatus =
+    revalidated.status === "infeasible"
+      ? "blocked"
+      : revalidated.isApproved
+        ? "clinically_approved"
+        : revalidated.status === "requires_review"
+          ? "awaiting_review"
+          : "draft";
+  if (!revalidated.isApproved) return { status, clinicalApproval: null };
+  const crn = options?.approverCrn?.trim();
+  if (!crn) throw new ApprovalCredentialsError();
+  const approval: ClinicalApproval = {
+    approvedByUid: options?.approvedByUid ?? revalidated.approvedByUid ?? "",
+    professionalCrn: crn,
+    approvedAt: revalidated.approvedAt ?? new Date().toISOString(),
+    signature: revalidated.issuesSignature ?? "",
+    version: 2,
+  };
+  const name = options?.approverName?.trim();
+  if (name) approval.professionalName = name;
+  return { status, clinicalApproval: approval };
+};
+
 export const validateAndSerializeDietPlan = (
   plan: DietPlan,
   validationOptions?: ValidateDietPlanOptions,
@@ -699,29 +742,11 @@ export const validateAndSerializeDietPlan = (
   const { calculatedTotals: _revalTotals, ...revalidatedClean } = revalidated;
   dto.validation = revalidatedClean;
 
-  if (plan.status) {
-    dto.status = plan.status;
-  } else {
-    if (revalidated.status === "infeasible") {
-      dto.status = "blocked";
-    } else if (revalidated.status === "requires_review") {
-      dto.status = revalidated.isApproved ? "clinically_approved" : "awaiting_review";
-    } else {
-      dto.status = revalidated.isApproved ? "clinically_approved" : "draft";
-    }
-  }
-
-  if (plan.clinicalApproval) {
-    dto.clinicalApproval = {
-      approvedByUid: plan.clinicalApproval.approvedByUid,
-      professionalName: plan.clinicalApproval.professionalName,
-      professionalCrn: plan.clinicalApproval.professionalCrn,
-      approvedAt: plan.clinicalApproval.approvedAt,
-      signature: plan.clinicalApproval.signature,
-      version: plan.clinicalApproval.version || 2,
-      ...(plan.clinicalApproval.notes ? { notes: plan.clinicalApproval.notes } : {}),
-    };
-    dto.status = "clinically_approved";
+  // A6: derived from the revalidation, never from the payload.
+  const approvalState = deriveApprovalState(revalidated, validationOptions);
+  dto.status = approvalState.status;
+  if (approvalState.clinicalApproval) {
+    dto.clinicalApproval = approvalState.clinicalApproval;
   }
 
   if (
@@ -981,6 +1006,15 @@ export const validateAndSerializeDietUpdate = (
       const { calculatedTotals: _revalTotals, ...revalidatedClean } =
         revalidated;
       dto.validation = revalidatedClean;
+      // A6: an edit re-derives status and approval; null removes a stale one.
+      const approvalState = deriveApprovalState(revalidated, {
+        ...options,
+        approverName: validationOptions?.approverName,
+        approverCrn: validationOptions?.approverCrn,
+      });
+      dto.status = approvalState.status;
+      (dto as { clinicalApproval?: ClinicalApproval | null }).clinicalApproval =
+        approvalState.clinicalApproval;
       didRevalidate = true;
     }
   }
@@ -1039,7 +1073,9 @@ export const validateAndSerializeDietUpdate = (
       approvedAt: partial.clinicalApproval.approvedAt,
       signature: partial.clinicalApproval.signature,
       version: partial.clinicalApproval.version || 2,
-      ...(partial.clinicalApproval.notes ? { notes: partial.clinicalApproval.notes } : {}),
+      ...(partial.clinicalApproval.notes
+        ? { notes: partial.clinicalApproval.notes }
+        : {}),
     };
     dto.status = "clinically_approved";
   }

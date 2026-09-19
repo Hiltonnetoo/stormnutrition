@@ -146,7 +146,7 @@ export class ErrorBoundary extends Component<
             <button
               type="button"
               onClick={this.handleReset}
-              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-sage-600 hover:bg-sage-700 text-white text-xs sm:text-sm font-semibold transition-colors focus-ring"
+              className="btn btn-primary btn-sm w-full sm:w-auto"
             >
               {t("error_boundary.btn_retry", "Tentar novamente")}
             </button>
@@ -155,7 +155,7 @@ export class ErrorBoundary extends Component<
               <button
                 type="button"
                 onClick={this.handleReload}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition-colors focus-ring"
+                className="btn btn-secondary btn-sm w-full sm:w-auto"
               >
                 {t("error_boundary.btn_reload", "Recarregar página")}
               </button>
@@ -163,7 +163,7 @@ export class ErrorBoundary extends Component<
               <button
                 type="button"
                 onClick={this.handleGoHome}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold transition-colors focus-ring"
+                className="btn btn-secondary btn-sm w-full sm:w-auto"
               >
                 {t("error_boundary.btn_home", "Ir para o Início")}
               </button>

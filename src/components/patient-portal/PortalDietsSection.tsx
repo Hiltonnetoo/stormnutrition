@@ -17,10 +17,10 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
     const isV2 = (d as DietPlan).version === 2;
     if (!isV2) return true; // Preservar planos legados V1
     const d2 = d as DietPlan;
-    if (d2.status) {
-      return d2.status === "clinically_approved";
-    }
-    return !!d2.clinicalApproval || !!d2.validation?.isApproved;
+    // A6: only a professional's approval releases a plan. Plans saved before
+    // 19/09/2026 (no status, automatic "isApproved") stay hidden until the
+    // professional approves them again.
+    return d2.status === "clinically_approved" || !!d2.clinicalApproval;
   });
 
   return (
@@ -193,7 +193,7 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
                     )}
 
                     {/* Meals */}
-                    <div className="flex overflow-x-auto md:grid md:grid-cols-2 gap-4 pb-2 no-scrollbar snap-x snap-mandatory">
+                    <div className="flex overflow-x-auto md:grid md:grid-cols-2 gap-4 pb-2 no-scrollbar snap-x snap-mandatory relative">
                       {d2.meals?.map((meal: Meal, mIdx: number) => (
                         <div
                           key={mIdx}

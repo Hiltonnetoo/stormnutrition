@@ -137,6 +137,13 @@ export const MEAL_ARCHETYPES: Record<MealArchetype, MealArchetypeDefinition> = {
     ],
     // Forbid heavy meats, fish and beans at breakfast
     forbiddenKeywords: [
+      "arroz",
+      "macarrao",
+      "quinoa",
+      "lombo",
+      "linguica",
+      "salsicha",
+      "peru",
       "bovino",
       "bovina",
       "carne",
@@ -197,6 +204,13 @@ export const MEAL_ARCHETYPES: Record<MealArchetype, MealArchetypeDefinition> = {
       "Cereais e Derivados",
     ],
     forbiddenKeywords: [
+      "arroz",
+      "macarrao",
+      "quinoa",
+      "lombo",
+      "grao-de-bico",
+      "ervilha",
+      "soja",
       "bovino",
       "bovina",
       "carne",
@@ -304,6 +318,14 @@ export const MEAL_ARCHETYPES: Record<MealArchetype, MealArchetypeDefinition> = {
       "Óleos e Gorduras",
     ],
     forbiddenKeywords: [
+      "arroz",
+      "macarrao",
+      "quinoa",
+      "lombo",
+      "grao-de-bico",
+      "ervilha",
+      "soja",
+      "linguica",
       "bovino",
       "bovina",
       "carne",
@@ -363,6 +385,8 @@ export const MEAL_ARCHETYPES: Record<MealArchetype, MealArchetypeDefinition> = {
       "Leguminosas",
     ],
     forbiddenKeywords: [
+      "pao",
+      "cereal",
       "iogurte",
       "leite em po",
       "aveia",
@@ -423,6 +447,12 @@ export const MEAL_ARCHETYPES: Record<MealArchetype, MealArchetypeDefinition> = {
       "Cereais e Derivados",
     ],
     forbiddenKeywords: [
+      "macarrao",
+      "quinoa",
+      "lentilha",
+      "grao-de-bico",
+      "ervilha",
+      "soja",
       "carne",
       "frango",
       "peixe",
@@ -458,6 +488,13 @@ export const MEAL_ARCHETYPES: Record<MealArchetype, MealArchetypeDefinition> = {
 /**
  * Checks whether a given food is culinarily suitable for a meal archetype.
  */
+const LIGHT_MEAL_ARCHETYPES: MealArchetype[] = [
+  "breakfast",
+  "morning_snack",
+  "afternoon_snack",
+  "supper",
+];
+
 export const isFoodSuitableForArchetype = (
   food: Food,
   archetype: MealArchetype,
@@ -471,6 +508,18 @@ export const isFoodSuitableForArchetype = (
   }
 
   const normName = normalize(food.name);
+
+  // A2: at breakfast and snacks the meat category is allowed only for the
+  // listed exceptions (eggs; "frango desfiado" in the afternoon snack).
+  // Keyword blocklists alone let pork loin or cold cuts through.
+  if (
+    food.category === "Carnes e Derivados" &&
+    LIGHT_MEAL_ARCHETYPES.includes(archetype)
+  ) {
+    return (def.allowedSpecificKeywords ?? []).some((kw) =>
+      normName.includes(normalize(kw)),
+    );
+  }
 
   // 2. Check forbidden keywords
   const hasForbidden = def.forbiddenKeywords.some((kw) =>

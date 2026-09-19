@@ -1,120 +1,125 @@
-# Feito — inventário de entregas e evidências
+# Feito — entregas comprovadas
 
-## Atualização de 19/09/2026 — correções efetivamente executadas
+Atualizado em **19/09/2026, após auditoria do código em produção**. Este arquivo lista **apenas o que foi feito e comprovado** por teste, execução ou inspeção registrada. O que falta, inclusive partes incompletas destas mesmas entregas, está em [o-que-precisa-ser-feito.md](o-que-precisa-ser-feito.md).
 
-- Bloqueio de escrita do paciente arquivado em `firestore.rules`. Quatro regressões reproduziram a falha antes da correção; verificam peso, histórico, adesão e avaliação, incluindo sucesso do mesmo payload após restauração pelo profissional.
-- Selo de condição clínica alterado de sucesso/“Respeitado” para informação/“Condição considerada”, em PT/EN; duas regressões verificam que o aviso clínico continua exigindo revisão.
-- Revalidação local com logs preservados e manifesto completo SHA-256. Na integração, corrigidos import não usado no portal e inclusão indevida de artefatos de cobertura na análise TypeScript; o teste visual passou a verificar tokens/cursor/geometria do contrato atual de desabilitado. Uma espera instável por silêncio de rede no teste de acessibilidade foi substituída por conteúdo visível e ausência de carregamento, preservando as verificações axe.
-- Backlog restaurado com passos e critérios para UI ainda não comprovada; resumo anterior preservado. README deixa de usar contagens fixas antigas e diferencia validação local, CI remota e demo.
-- Grafo de código atualizado via `graphify update .`. Alterações preexistentes de outros autores preservadas; não houve commit, push nem deploy nesta revisão.
+Versão anterior deste arquivo (com relatos de 18/09 e tabelas que ficaram desatualizadas): [feito-antes-da-auditoria-de-producao.md](docs/validacao-2026-09-19/feito-antes-da-auditoria-de-producao.md).
 
-Resultados e limites: [validação atual](docs/validacao-2026-09-19/README.md). Este registro não afirma que toda a matriz visual foi encerrada nem mede ganho de eficiência. As notas abaixo descrevem a revisão histórica de 18/09 e não o estado de execução desta atualização.
+## Como ler
+
+- **Comprovado:** há teste que falharia sem a entrega e execução registrada no estado indicado, ou medição reproduzível descrita no próprio item.
+- **Local × remoto × produção:** a validação local não prova CI remota nem implantação; cada uma é registrada à parte.
+- Uma entrega que só cumpriu parte dos critérios aparece aqui **apenas pela parte comprovada**, com link para o restante no backlog.
 
 ---
 
-**Revisão documental e estática: 18/09/2026.** Projeto Storm Nutrition / Isanutri V5. Consulte [pendências atuais](o-que-precisa-ser-feito.md) para o que falta; não use este documento como certificação integral da aplicação.
+## 1. Publicação (situação em 19/09/2026)
 
-## 1. O que significa “feito” neste registro
-
-- **Implementação encontrada:** há evidência no código atual; não equivale a teste aprovado nesta revisão.
-- **Executado nesta revisão:** ação efetivamente realizada pelo revisor, listada na seção 4.
-- **Execução histórica relatada:** outro documento informa resultado; autoria, cenário e limitações são preservados. Não foi repetido nem automaticamente confirmado.
-- **Eficiência:** não foi medida nesta revisão em tempo, custo ou produtividade. Há medições históricas de performance, discriminadas abaixo. Uma arquitetura reutilizável é uma qualidade observável, não uma medição de eficiência operacional.
-
-Nenhuma aplicação, build, teste unitário, emulador ou E2E foi executado nesta revisão. Nenhum código de produto foi alterado. A árvore contém mudanças não commitadas; HEAD sozinho não identifica o conjunto revisado.
-
-## 2. Entregas encontradas na implementação atual
-
-| Entrega | Evidência principal | O que está presente / limite |
-| --- | --- | --- |
-| Fundação visual | `src/index.css` | Tokens sage/slate, tipografia, sombras, animações, foco e redução de movimento; composição e aliases ainda precisam de revisão |
-| Componentes compartilhados | `src/components/ui.tsx` | Button, Card, Badge, Input, PageHeader, estados e Modal; adoção parcial em telas |
-| Shell responsivo | `src/components/AppShell.tsx`, Sidebar/Breadcrumbs | Navegação desktop, drawer mobile, skip link, foco ao navegar e título por rota; não validado visualmente nesta execução |
-| Diálogos acessíveis | `src/components/Dialog.tsx`, `src/hooks/useDialog.ts`, documentação de acessibilidade | Primitivo compartilhado e testes existentes; não declarar auditoria assistiva completa |
-| Internacionalização | `src/locales/pt/common.json`, `src/locales/en/common.json` e i18n | PT/EN estruturado e testes de paridade; há textos fixos/novas chaves faltantes no backlog |
-| Área profissional | Páginas e componentes de dashboard, pacientes, perfil, agenda, alimentos, calculadora e relatórios | Estrutura funcional e componentes por domínio existentes; cada fluxo exige sua evidência própria |
-| Portal | `src/pages/PatientPortal.tsx`, `src/components/patient-portal/` | Plano, adesão, peso, senha e autoavaliação estruturados; identidade visual e regressões pendentes |
-| Runtime declarado | `.github/workflows/ci.yml`, `.nvmrc`, `package.json` | Java 21 nos dois jobs e Node mínimo 20.19.0; checkout limpo ainda precisa de prova identificável |
-| Inicialização defensiva | `src/index.tsx`, configValidation, firebase.config, mountApp | Diagnóstico antes de importar a aplicação; configuração sintética e guard de ambiente E2E presentes |
-| Autenticação/convite | AuthContext, AcceptInvitation, invitationService | Estado de ativação e lote de aceite no Firestore; comprovação final e legados ainda pendentes |
-| Autorização de vínculo | `firestore.rules` | Papel do profissional, vínculo cruzado, identidade/expiração e convite vigente; não significa ausência de outras lacunas |
-| Peso e avaliação | `firestore.rules`, evaluationService | Append de peso com autoria; protocolo preserva ID/data e transição pending/completed; allowlist completa e regressões ainda pendentes |
-| Emissão de convite | `src/services/invitationService.ts` | Removido retorno antecipado por consulta; seleção do convite pelo ponteiro em transação |
-| Revogação/exclusão | `src/services/patientService.ts`, regras | Limpeza de ponteiro e bloqueios durante exclusão; tratamento de limpeza parcial/concorrência ainda requer aceite |
-| E-mail isolado | `src/services/emailService.ts` | Isolamento prevalece sobre `real`; comportamento padrão simulado; falta comprovar matriz adversarial completa |
-| Persistência de dieta | `src/services/dietService.ts` | Sanitização, recálculo e revalidação com mesclagem de contexto; não confundir presença do contrato com todas as regressões aprovadas |
-| Assinatura de alertas | `src/services/dietAlgorithmService.ts`, tipos | Autor/data e assinatura por códigos/quantidade adicionados; identidade da revisão ainda insuficiente para encerrar R06 |
-| Macros das alternativas | `src/services/dietAlgorithmService.ts` | Mínimos/máximos combinatórios de proteína/carboidrato/gordura implementados; metas zero, traduções e testes ainda pendentes |
-| PDF | `src/utils/pdfExporter.ts`, ExportDietModal | Exportação e apresentação de dados/alertas existem; comprovação da versão editada e revisão de layout não executadas aqui |
-| Suites e CI | `.github/workflows/ci.yml`, testes unitários/regras/E2E/performance | Infraestrutura e cenários versionados; existência não comprova passagem nem cobertura integral |
-| Demonstração | `scripts/seed-emulator.mjs`, `config/emulator/.env`, guia demo | Preparação sintética e configuração dedicada existentes; não executadas pelo revisor |
-| Monitoramento/documentação | README, ADRs, guias de configuração, baseline, acessibilidade e performance | Documentação e mecanismos presentes; métricas e conclusões precisam de conciliação ao estado final |
-
-As 20 etapas originais e os adendos não são declarados integralmente concluídos por esta tabela. Seus relatos foram preservados no [histórico integral](docs/historico-plano-antes-reorganizacao-ui-2026-09-18.md). O escopo ativo consolidado está em R01–R09 e UI01–UI12 do plano atual.
-
-## 3. Resultados históricos existentes — não reexecutados nesta revisão
-
-| Fonte | Relato existente | Como interpretar |
-| --- | --- | --- |
-| `docs/performance.md` | Medições de consultas com 300 pacientes, 1.500 dietas e 903 consultas; comparação de bundle/rotas; data e método registrados | É a fonte apropriada para desempenho histórico. Não demonstra tempo de uso, custo real em produção ou performance do estado local posterior |
-| `docs/accessibility.md` | 31 estados avaliados com axe, reflow/teclado e correções de diálogo; limitações assistivas declaradas | Relato de execução anterior, não revisão visual atual de todo o sistema nem conformidade integral |
-| Plano histórico, seção 9.4 | 361 testes/42 arquivos, 72 regras, 17 E2E e build relatados | Contagens históricas não foram reproduzidas nesta revisão e não fecham lacunas dos testes atuais |
-| `docs/evidencias-revisao-10.md` | Relata `npm test` com sucesso e aponta “task-11273”/“HEAD atual” | Índice insuficiente: associa R01–R05 a acessibilidade/logs e R08–R09 a serialização, em vez dos critérios originais. Corrigir em R09; não tratar como prova completa |
-| Baseline/ADRs/README | Decisões e medições de momentos diferentes | Preservar data/estado; não reunir como se fossem uma única execução final |
-
-Nenhuma medida nova de “eficiência” foi calculada. O uso do grafo, componentes existentes e inspeção dirigida evitou reimplementar trabalho já presente, mas isso não permite atribuir percentual de ganho.
-
-## 4. Trabalho efetivamente realizado nesta revisão
-
-1. Consultado o grafo existente para localizar componentes, tokens e consumidores; referências confirmadas nos fontes atuais.
-2. Lidos CSS/tokens, primitivas UI, shell, padrões das páginas públicas/profissionais/portal, componentes de formulário/dados e fontes dos achados. A matriz no backlog explicita áreas cuja renderização ainda falta validar.
-3. Comparadas as mudanças atuais de runtime, regras, convites, validação de dietas e E2E com as pendências anteriores para evitar pedidos obsoletos de reimplementação.
-4. Inspecionadas visualmente as duas imagens versionadas: `dashboard.png` contém painel de rede; `diet_generator.png` contém resposta de autenticação inválida. Não são capturas das telas esperadas.
-5. Consultadas as superfícies de navegador disponíveis: nenhuma aba estava disponível na conexão. Não foi iniciado servidor nem alterado ambiente para produzir uma aparente validação visual.
-6. Preservado integralmente o plano anterior em `docs/historico-plano-antes-reorganizacao-ui-2026-09-18.md` antes da reorganização.
-7. Criado este inventário e reorganizado `o-que-precisa-ser-feito.md` em pendências técnicas, auditoria de UI, matriz de cobertura e protocolo de entrega.
-8. Verificada a integridade da cópia histórica e a consistência documental de IDs/links locais e espaços no diff. Isso verifica os documentos, não o funcionamento da aplicação.
-
-## 5. Decisões de organização e limites
-
-- Manter a marca, fonte e paleta predominantes; priorizar consistência e legibilidade sobre redesign completo.
-- Tratar tema claro como escopo atual: o bootstrap remove `.dark`. Estilos escuros residuais não provam um tema utilizável.
-- Separar defeito estático (ex.: tamanho de botão sobrescrito pela variante) de hipótese renderizada (ex.: cabeçalho estourar em inglês a 320 px).
-- Manter históricos, evidências e backlog separados para não reabrir correções já implementadas nem encerrar validações ausentes.
-- Não introduzir novos limites clínicos, serviços externos ou mudanças de produção a partir desta revisão de UI.
-
-## 6. Como acrescentar novas entregas
-
-Só mover uma pendência para conclusão validada quando seus critérios forem demonstrados. Registrar ID R/UI, comportamento, arquivos, teste/captura, resultado, data, ambiente e commit/estado dos fontes. Se só houver leitura do código, registrar “implementação encontrada”; se execução for relatada por outra IA, atribuir a fonte. Falha ou ausência de teste continua no backlog.
-
-## Seção 3 — Design system e UI (execução de 18/09/2026)
-
-Executado localmente contra os emuladores (`demo-storm`, seed sintético). O estado de cada item e as evidências estão em [docs/evidencias-revisao-10.md](docs/evidencias-revisao-10.md) (seção 3), e o contrato está em [docs/design-system.md](docs/design-system.md). **Validados:** UI01, UI03 e UI11 (UI11 ainda depende de revisão humana externa). **Em implementação, com entregas comprovadas:** UI02, UI04–UI10 e UI12. Não declarar a UI inteira aprovada.
-
-| Entrega comprovada | Evidência |
+| Fato | Evidência |
 | --- | --- |
-| Componentes em `@layer components`; botão = base + variante (cor) + tamanho (geometria); sem `!important` | `tests-e2e/design-system.spec.ts` (galeria com estilos computados) |
-| Tokens semânticos derivados da paleta ajustada; `Badge` semântico com ícone; token inválido `slate-855` corrigido | galeria (contraste ≥ 4,5:1 renderizado), `designSystem.test.tsx` |
-| Tema claro documentado como escopo; `dark:` como legado | `docs/design-system.md` §1 |
-| Texto operacional com mínimo de 12 px; reflow a 320 px sem overflow | `accessibility.spec.ts` (reflow) |
-| `IconButton`, `Select`, `Textarea`, `Checkbox`, `Avatar`; `window.prompt` → diálogo com validação | `design-system.spec.ts`, `designSystem.test.tsx` |
-| Estado vazio de pacientes PT/EN, "sem resultados" separado; carregamento real no portal; alertas `WORST_CASE_*` traduzidos | `designSystem.test.tsx`, `design-system.spec.ts`, paridade i18n |
-| Portal e perfil com a marca e os ícones do sistema; agenda e alimentos legíveis a 375 px; `StepProgress` único; status do plano distintos; sem animações infinitas no trabalho | `design-system.spec.ts`, `patient-portal.spec.ts` |
-| 12 capturas reais com manifesto; diagnósticos antigos preservados em `historico/` | `docs/screenshots/README.md`, `manifest.json` |
+| Código enviado para `origin/main` (`dd0d241`) | `git log` / `git status` limpos |
+| Frontend publicado na Vercel (projeto `stormnutricion`) com esse código | Publicado às 13:13 (UTC−3); os chunks publicados contêm `clinically_approved`, `EXCLUDE_ALLERGEN` e os arquétipos de refeição |
+| Último commit com CI remota verde: `9bec01f` (run 35447715912) | `gh run list` |
 
-Verificações no estado final: vitest 43/367 aprovados; Playwright 22/22 aprovados + capturas 4/4; build aprovado. `type-check`, `lint` e `format:check` falham só em arquivos de R08/R09 e do serviço de convites, alterados por outro autor e fora da seção 3.
+**Não comprovado (backlog E0):** CI verde nos commits P0–P2 (falha em Prettier) e publicação das regras do Firestore no projeto de produção.
 
-## Seção 2 — Pendências técnicas R01–R09 (execução de 19/09/2026)
+---
 
-Todos os itens estão **validados localmente**, com evidência por requisito e critério 11.3 em [docs/evidencias-revisao-10.md](docs/evidencias-revisao-10.md) (índice no topo). CI remota e implantação: **não executadas**. Revisão humana: pendente.
+## 2. Gerador de dietas — partes do P0–P2 que funcionam
 
-| Entrega comprovada | Evidência principal |
+> Atualização (19/09, 17h): as limitações da coluna "Limite" desta tabela foram tratadas nas fases A1–A7. Ver a **seção 7**; o que ainda falta está no backlog.
+
+Verificado em 19/09/2026 por auditoria reproduzível no código de `dd0d241` (perfis com chaves reais do cadastro, metas 2000 kcal / 120 / 225 / 67 g, 6 refeições, sementes 1–25; método em [o-que-precisa-ser-feito.md §0.4](o-que-precisa-ser-feito.md)). A suíte local está verde (51 arquivos, 485 testes); as limitações dela estão no backlog, item A7.
+
+| Entrega | Evidência | Limite (ver backlog) |
+| --- | --- | --- |
+| **Sem aprovação automática:** o validador não marca `isApproved`; aprovar exige ação do profissional com a assinatura da versão revisada | 0 de 120 planos gerados aprovados sem ação humana; `dietAlgorithmService.test.ts` (R06) | Nome e CRN do aprovador ainda não são capturados (A6) |
+| **Estados do plano** (`draft`, `blocked`, `awaiting_review`, `clinically_approved`) e **bloqueio de exportação** de plano `blocked` (botões desabilitados no modal e erro no PDF); marca d'água em rascunho | `ExportDietModal.tsx`, `pdfExporter.ts`; `clinicalAcceptancePersonas.test.ts` › "ESTADO 'blocked' / 'draft' / 'awaiting_review'" | Selo e portal ainda aceitam `validation.isApproved` de planos antigos (A6) |
+| **Restrições e alergias invioláveis na geração:** 0 vazamentos em 25 sementes para `dairy_free`, `gluten_free`, `vegan`, `vegetarian`, alergia a amendoim/castanhas e alergia a camarão/frutos do mar | Auditoria de vazamento (categoria do catálogo + nome); `clinicalScreeningService.test.ts`; registro `EXCLUDE_*` no log de decisões | Em `lactose_free`, o parmesão entra de propósito (exceção de queijo curado em `foodService.ts`); a decisão clínica e o excesso de repetição estão no backlog (A2) |
+| **Registro de decisões traduzido** (ex.: "Removendo alimentos com lactose…", "Controle glicêmico…") | Auditoria de textos PT/EN sem chaves cruas | — |
+| **Fim da descrição genérica "Preparação saudável"** | 0 ocorrências em 120 planos | — |
+| **Limite de gorduras de adição:** azeite e óleos entre 5 e 20 ml; nenhuma porção acima de 300 g | 0 violações em 120 planos; `portionLimitsService.test.ts` | Medidas caseiras e unidades ainda incoerentes (A5) |
+| **Alerta de sódio só acima do teto clínico** (sem alerta para qualquer valor > 0) | 0 alertas abaixo do teto na auditoria | Tela e PDF usam tetos diferentes para paciente geral (A1.9) |
+| **Bloqueios separados dos avisos** na tela (vermelho × âmbar) | `DietPlanDisplay.tsx` | Volume, redação e agrupamento dos avisos (A1) |
+| **Tipos de refeição** (`mealArchetypeService.ts`) classificam as refeições e restringem parte dos alimentos | `mealArchetypeService.test.ts` | Ainda passam arroz/macarrão no café, carne no café sob alergia, leguminosas no café vegano e pão no jantar (A2) |
+
+---
+
+## 3. Segurança, dados e ambiente — R01–R09 (validados localmente em 19/09/2026)
+
+Evidência por requisito e critério em [docs/evidencias-revisao-10.md](docs/evidencias-revisao-10.md) (índice no topo) e [docs/validacao-2026-09-19/README.md](docs/validacao-2026-09-19/README.md).
+
+| Entrega | Evidência principal |
 | --- | --- |
-| Versões reais do ambiente: Node `^22.22.2 \|\| ^24.15.0 \|\| >=26` (o lockfile exigia), `.nvmrc`/CI alinhados; reprodução em cópia limpa sem `.env.local` | log da reprodução limpa + execução de referência (seção 11.5 inteira com exit 0) |
-| Contrato da resposta de autoavaliação e da adesão; datas futuras negadas; históricos gravados como armazenado + novo (bug de reordenação corrigido) | regras "15. R02", `evaluationService.test` R02-C |
-| Convites estritos provados caso a caso, sem estado parcial; legado com mensagem de reemissão | regras "16. R03", `invitationService.test` |
-| Reuso só com destinatário/validade estritos; limpeza incompleta e falta de permissão visíveis (bug do erro oculto corrigido) | regras "17. R04", `patientLifecycle.test`, `PatientAccessModal.email.test` |
-| Isolamento de e-mail em matriz adversarial (0 chamadas ao provedor) | `emailService.test` R05 |
-| Aprovação clínica ligada à versão revisada (assinatura por conteúdo e contexto) | `dietAlgorithmService.test` e `dietService.test` R06, `journey.spec` |
-| Macros combinados com limites e meta zero; mensagens PT/EN na UI e no PDF | `dietAlgorithmService.test` R07, `validationIssues.test`, `pdfExporter.test` |
-| Edição real de porção (novo controle), persistência pelo ID e PDF com os valores editados; check-in obrigatório; portal resistente à ativação recente | `dietEditing.test`, `journey.spec`, `patient-portal.spec` |
+| Versões reais do ambiente: Node `^22.22.2 \|\| ^24.15.0 \|\| >=26` (exigido pelo lockfile), `.nvmrc` 22.22.2, CI com `node-version-file`, Java 21; reprodução em cópia limpa sem `.env.local` | Execução da seção 11.5 inteira com exit 0 (cópia limpa e estado de referência) |
+| Autoavaliação: campos e faixas permitidos; o protocolo só se encerra respondendo; datas futuras negadas; históricos de peso, adesão e avaliação gravados como armazenado + novo (bug de reordenação corrigido); concorrência sem perda de registro | `tests-rules/firestore.rules.test.ts` › "15. R02"; `evaluationService.test.ts` › "R02-C" |
+| Paciente arquivado não grava peso, histórico, adesão nem autoavaliação; o mesmo envio volta a ser aceito após a restauração | 4 regressões de regras que falharam antes da correção e passaram depois ([log antes](docs/validacao-2026-09-19/regras-antes.txt), [depois](docs/validacao-2026-09-19/regras-depois.txt)) |
+| Convites estritos: 7 variantes inválidas recusadas sem aceite parcial; convite em formato antigo recebe mensagem de reemissão | regras "16. R03"; `invitationService.test.ts` |
+| Recuperação de convite: reuso só com destinatário e validade estritos; convite substituído revogado; limpeza incompleta e falta de permissão visíveis no modal (bug do erro oculto corrigido) | regras "17. R04"; `patientLifecycle.test.ts`; `PatientAccessModal.email.test.tsx` |
+| E-mail isolado: emulador, demo e teste nunca chamam o provedor, mesmo com transporte `real` e chaves; a tela distingue simulado de entregue | `emailService.test.ts` › "R05"; `PatientAccessModal.email.test.tsx` |
+| Revisão clínica ligada à versão revisada (assinatura por conteúdo, metas, restrições, catálogo e alertas); revisão desatualizada não é salva | `dietAlgorithmService.test.ts` e `dietService.test.ts` › "R06"; `journey.spec.ts` |
+| Macros combinados das alternativas com limites e meta zero; textos PT/EN desses códigos na tela e no PDF | `dietAlgorithmService.test.ts` › "R07"; `validationIssues.test.ts`; `pdfExporter.test.ts` |
+| Edição real de porção pela tela, persistência pelo mesmo ID e PDF com os valores editados; check-in do portal obrigatório no teste; portal resistente à ativação recente | `dietEditing.test.ts`; `journey.spec.ts`; `patient-portal.spec.ts` |
+| Selo de condição clínica informativo ("Condição considerada"), sem prometer "respeitado"; plano com alerta continua exigindo revisão | 2 regressões PT/EN ([antes](docs/validacao-2026-09-19/contexto-antes.txt), [depois](docs/validacao-2026-09-19/contexto-depois.txt)) |
+| Índice de evidências reescrito por requisito; README e guias com versões e comandos atuais, sem contagens fixas | `docs/evidencias-revisao-10.md`, `README.md`, `docs/deployment-and-config.md` |
+
+---
+
+## 4. UI e design system (validados em 18–19/09/2026)
+
+Contrato em [docs/design-system.md](docs/design-system.md). **Itens encerrados:** UI01, UI03 e UI11 (UI11 ainda depende de avaliação humana externa). Dos demais UI, só as partes abaixo estão comprovadas; o restante está no backlog (§3).
+
+| Entrega | Evidência |
+| --- | --- |
+| **UI01:** componentes em `@layer components`; botão = base + variante (cor) + tamanho (geometria), sem `!important`; utilitários vencem componentes | `tests-e2e/design-system.spec.ts` (galeria com estilos computados) |
+| **UI03:** tema claro documentado como escopo; `dark:` tratado como legado; token inválido `slate-855` corrigido | `docs/design-system.md` §1 |
+| **UI11:** 12 capturas reais com dados sintéticos e manifesto (rota, viewport, idioma, tema, data, versão); diagnósticos antigos preservados em `docs/screenshots/historico/` | `npm run screenshots`; `docs/screenshots/README.md`, `manifest.json` |
+| Tokens semânticos derivados da paleta ajustada; `Badge` semântico com ícone; contraste renderizado ≥ 4,5:1 nos estados ativos | galeria do design system; `designSystem.test.tsx` |
+| Texto operacional com no mínimo 12 px; reflow a 320 px sem rolagem horizontal nas telas da jornada | `accessibility.spec.ts` (reflow) |
+| `IconButton`, `Select`, `Textarea`, `Checkbox`, `Avatar` com iniciais; `window.prompt` do modelo de dieta trocado por diálogo com validação | `design-system.spec.ts`; `designSystem.test.tsx` |
+| Estado vazio de pacientes em PT/EN; "sem resultados" separado de "sem pacientes"; carregamento real nas seções de dados do portal | `designSystem.test.tsx`; `design-system.spec.ts` |
+| Portal e cabeçalho do perfil com a marca e os ícones do sistema; agenda (contagem por dia + lista) e alimentos (macros visíveis) legíveis a 375 px; indicador de etapas único; sem animações infinitas nas telas de trabalho | `design-system.spec.ts`; `patient-portal.spec.ts` |
+
+---
+
+## 5. Performance e acessibilidade (registros existentes)
+
+- Custo de consultas: `npm run test:perf:queries` (15 testes, exit 0 em 19/09); método e medições em [docs/performance.md](docs/performance.md).
+- Acessibilidade automatizada (axe WCAG A/AA, teclado, diálogos, reflow) na jornada principal: `tests-e2e/accessibility.spec.ts`; relato e limites em [docs/accessibility.md](docs/accessibility.md). Não equivale a auditoria com leitor de tela nem a conformidade integral.
+
+---
+
+## 6. Como acrescentar entregas
+
+Mover um item do backlog para cá só quando todos os critérios de aceite dele tiverem teste e execução no estado final. Registrar: ID, comportamento, arquivos, teste (arquivo + nome), comando, resultado, data, ambiente e commit. Se só parte foi comprovada, registrar essa parte e manter o restante no backlog.
+
+---
+
+## 7. Fases E0–A7 e parte da UI (execução de 19/09/2026, 13h–17h)
+
+**Estado:** comprovado **localmente** na árvore de trabalho (base `dd0d241`, sem commit). Verificação final com exit 0 em todas as etapas: formatação, lint (0 erros), tipos, build, 509 testes unitários, 101 de regras, 15 de performance, 26 E2E e capturas ([log](docs/validacao-2026-09-19/fases-a1-a7/verificacao-final.log)). **Ainda não publicado:** produção e CI dependem do push autorizado (backlog E0).
+
+Auditoria permanente: `src/services/__tests__/generatorAudit.test.ts` (9 perfis com as chaves reais do cadastro × 20 sementes = 180 planos).
+
+| Item | Antes (medido) | Depois (medido) | Evidência |
+| --- | --- | --- | --- |
+| **E0.1** formatação da CI | Prettier falhava em 14 arquivos | `format:check` exit 0; actions `checkout/setup-node/setup-java` em v5 | log final |
+| **A1** avisos | 31–49 linhas por plano; "protein" no texto PT; `{{alternativeCalories}}` literal; ponto decimal; uma linha por macro | **5,3 linhas por plano (máx. 13)**; resumo no topo; bloqueios, metas diárias, sódio e alternativas agrupados por refeição (recolhível); uma linha por alternativa; números no formato do idioma; modal de revisão lista os alertas; PDF do paciente sem a lista técnica; teto de sódio único; aviso por item em texto visível | `generatorAudit` (A1, teto de avisos), `design-system.spec` (painel), `validationPresentation.ts`, `ValidationIssuesPanel.tsx`, `pdfExporter.test` |
+| **A2** tipo de refeição e variedade | arroz/macarrão/carne no café; leguminosas no café vegano; pão no jantar; mesmo alimento 3+ vezes | 0 itens atípicos por refeição; 0 alimentos com mais de 2 usos nas opções principais do dia; o mesmo alimento não ocupa dois papéis numa opção; sódio por item garantido pela porção | `generatorAudit` (A2), personas de aceitação |
+| **A3** metas diárias | 0 de 120 planos dentro de kcal ±10 % e macros ±20 % | **≥ 95 % dos planos não veganos** (154–159 de 160 nas medições). Com 3 refeições grandes, mediana de 2,5 % de desvio calórico (antes, 40 % dos planos acima de 15 %). Solver de mínimos quadrados com limites, gordura de adição opcional, compensação entre refeições e acompanhamento automático | `generatorAudit` (A3); teste estatístico de `dietAlgorithmService` |
+| **A4** alternativas | limite fixo de 5 %; 32 de 1440 alternativas acima de 20 % em kcal | limite configurável (proposta: 20 %, 5 g, 50 kcal); **0 alternativas acima de 20 %** (não equivalentes são descartadas); reescala não reinsere gordura omitida | `generatorAudit` (A4) |
+| **A5** medidas caseiras | "Creme de leite 100 g (1 colher de sopa)"; manteiga e banha em ml; "1 colheres" | medida calculada pela referência do catálogo (15 ml = 1 colher de sopa; chá e sobremesa abaixo disso); sólidos sempre em g; frutas por peso de referência; plural correto; edição de porção usa a mesma medida | `portionLimitsService.test`, `generatorAudit` (A5) |
+| **A6** aprovação | CRN inexistente; `status`/`clinicalApproval` aceitos do cliente; edição mantinha aprovação antiga; portal aceitava `isApproved` automático antigo | status e aprovação derivados só da revalidação; aprovar exige CRN (modal pede e salva em `users/{uid}`; campo também em Configurações); edição remove aprovação antiga; portal só mostra `clinically_approved`; PDF aprovado sai com carimbo e CRN | `dietService.test` (A6), `clinicalApproval.test.tsx`, `journey.spec` (PDF com CRN) |
+| **A7** auditoria | testes de aceitação só por nomes, 1 perfil e sementes fixas | suíte permanente por categoria do catálogo, 9 perfis × 20 sementes, com limites de A1–A5 | `generatorAudit.test.ts` |
+| **UI02/UI09** | status só no gerador; textos "bloqueado"/"rascunho" sem tradução | `DietStatusBadge` único no gerador, visualizador e histórico; plano salvo antes sem `status` mostra "precisa de nova aprovação" | `DietStatusBadge.test.tsx` |
+| **UI04/UI08** | não testado | 10 telas do profissional sem rolagem horizontal a 375 e 768 px e com texto a 200 % (corrigido: tabelas com texto ampliado escapavam do contêiner de rolagem) | `layout-stress.spec.ts` |
+| **UI05** | botões locais duplicados no portal e na tela de erro | usam `btn` + variantes do design system | suíte de componentes |
+| **UI06** | portal mostrava falha como "sem dados" | portal diferencia carregando, sem dados, acesso indisponível e falha, com "tentar novamente" | `usePatientPortalData.test.ts` |
+| **UI07** | emojis funcionais em dashboard, perfil, notificações, modais, exames e seletores | ícones SVG com nome acessível; exceções decorativas documentadas em `docs/design-system.md` | suíte de componentes |
+| Dados sintéticos | seed com condição inválida (`lactose_intolerance`) e dieta sem aprovação | seed com restrição `lactose_free`, CRN fictício e dieta aprovada | `scripts/seed-emulator.mjs` |
+
+Contratos de teste alterados de propósito (com justificativa no próprio teste):
+- ⚠️ do item → texto visível;
+- teto geral de sódio do PDF 2000 → 2300 mg (igual à tela);
+- aprovação exige CRN;
+- medidas de óleo seguem a referência do catálogo;
+- jornada E2E aceita g ou ml na porção editada.

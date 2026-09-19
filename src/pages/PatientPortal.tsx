@@ -8,7 +8,7 @@ import PortalWeightModal from "../components/patient-portal/PortalWeightModal";
 import PortalPasswordModal from "../components/patient-portal/PortalPasswordModal";
 import PortalDietsSection from "../components/patient-portal/PortalDietsSection";
 import { usePatientPortalData } from "../hooks/usePatientPortalData";
-import { LoadingState, Alert } from "../components/ui";
+import { LoadingState, Alert, ErrorState } from "../components/ui";
 import { LogoIcon, ShieldIcon } from "../components/icons";
 
 /* ------------------------------------------------------------- Section shell */
@@ -43,6 +43,8 @@ const PatientPortal: React.FC = () => {
     setLocalWeightHistory,
     refreshPatient,
     loading,
+    loadError,
+    retryLoad,
   } = usePatientPortalData(patientProfile);
 
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
@@ -144,6 +146,16 @@ const PatientPortal: React.FC = () => {
         {loading ? (
           <div className="bg-white rounded-2xl shadow-soft border border-slate-200/70">
             <LoadingState className="py-6" />
+          </div>
+        ) : loadError ? (
+          // UI06: a read failure or unavailable access is never shown as
+          // "no appointments / no plan".
+          <div className="bg-white rounded-2xl shadow-soft border border-slate-200/70">
+            <ErrorState
+              title={t(`patient_portal.load_error.${loadError}_title`)}
+              message={t(`patient_portal.load_error.${loadError}_desc`)}
+              onRetry={retryLoad}
+            />
           </div>
         ) : (
           <>

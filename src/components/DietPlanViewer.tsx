@@ -7,6 +7,7 @@ import {
   getBMICategory,
 } from "../services/metabolicCalculations";
 import MealOptionTable from "./MealOptionTable";
+import DietStatusBadge from "./diet-generator/DietStatusBadge";
 import { translateMealName } from "../utils/locale";
 
 interface DietPlanViewerProps {
@@ -71,6 +72,10 @@ const DietPlanViewer: React.FC<DietPlanViewerProps> = ({ plan, patient }) => {
             days: plan.durationDays,
           })}
         </p>
+        {/* UI02/UI09: same state badge as the generator */}
+        <div className="mt-2">
+          <DietStatusBadge plan={plan} />
+        </div>
       </div>
 
       <div className="text-center bg-sage-50 dark:bg-sage-900/30 p-4 rounded-2xl mb-6">

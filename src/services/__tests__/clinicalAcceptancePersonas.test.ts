@@ -116,7 +116,9 @@ describe("Passo P2 — Validação Empírica, Personas Clínicas e Testes de Ace
         (e) => e.code === "LIMIT_GI_DIABETES",
       );
       const restrictDietLog = planResult.decisionLog.find(
-        (e) => e.code === "RESTRICT_DIET_TYPE" || e.code === "EXCLUDE_SUGARS_DIABETES",
+        (e) =>
+          e.code === "RESTRICT_DIET_TYPE" ||
+          e.code === "EXCLUDE_SUGARS_DIABETES",
       );
       expect(giLog).toBeDefined();
       expect(restrictDietLog).toBeDefined();
@@ -180,7 +182,9 @@ describe("Passo P2 — Validação Empírica, Personas Clínicas e Testes de Ace
         { restrictions: ["gluten_free"] },
       );
       expect(val.status).not.toBe("infeasible");
-      const glutenIssues = val.issues.filter((i) => i.code === "GLUTEN_VIOLATION");
+      const glutenIssues = val.issues.filter(
+        (i) => i.code === "GLUTEN_VIOLATION",
+      );
       expect(glutenIssues).toHaveLength(0);
     });
 
@@ -231,7 +235,8 @@ describe("Passo P2 — Validação Empírica, Personas Clínicas e Testes de Ace
       );
       expect(val.status).not.toBe("infeasible");
       const veganViolations = val.issues.filter(
-        (i) => i.code === "VEGAN_VIOLATION" || i.code === "VEGETARIAN_VIOLATION",
+        (i) =>
+          i.code === "VEGAN_VIOLATION" || i.code === "VEGETARIAN_VIOLATION",
       );
       expect(veganViolations).toHaveLength(0);
     });
@@ -377,8 +382,8 @@ describe("Passo P2 — Validação Empírica, Personas Clínicas e Testes de Ace
   /* -------------------------------------------------------------------------- */
   describe("2. Bateria de Multi-Sementes: Ausência de Pares Bizarros e Consistência Gastronômica", () => {
     const seeds = [
-      10, 42, 77, 101, 222, 333, 444, 555, 666, 777,
-      888, 999, 1234, 2345, 3456, 4567, 5678, 6789, 7890, 8901,
+      10, 42, 77, 101, 222, 333, 444, 555, 666, 777, 888, 999, 1234, 2345, 3456,
+      4567, 5678, 6789, 7890, 8901,
     ];
 
     it("comprova ausência de pares bizarros em 20 sementes pseudo-aleatórias", () => {
@@ -399,7 +404,9 @@ describe("Passo P2 — Validação Empírica, Personas Clínicas e Testes de Ace
           const allOptions = [meal.mainOption, ...meal.alternatives];
 
           for (const opt of allOptions) {
-            const itemNames = (opt.items || []).map((i) => i.name.toLowerCase());
+            const itemNames = (opt.items || []).map((i) =>
+              i.name.toLowerCase(),
+            );
 
             // 1. Café da Manhã e Lanches: NUNCA feijão, lentilha, grão-de-bico ou carnes pesadas
             if (
@@ -445,7 +452,10 @@ describe("Passo P2 — Validação Empírica, Personas Clínicas e Testes de Ace
 
             // 4. Incompatibilidades culinárias absurdas
             const hasMeat = itemNames.some(
-              (n) => n.includes("carne") || n.includes("patinho") || n.includes("frango"),
+              (n) =>
+                n.includes("carne") ||
+                n.includes("patinho") ||
+                n.includes("frango"),
             );
             const hasAcaiOrPapaya = itemNames.some(
               (n) => n.includes("açaí") || n.includes("mamão"),
@@ -483,7 +493,7 @@ describe("Passo P2 — Validação Empírica, Personas Clínicas e Testes de Ace
           expect(meal.alternatives.length).toBeGreaterThanOrEqual(1);
           for (const alt of meal.alternatives) {
             const divergence = Math.abs(alt.calories - mainCals) / mainCals;
-            expect(divergence).toBeLessThanOrEqual(0.20);
+            expect(divergence).toBeLessThanOrEqual(0.2);
           }
         }
       }
@@ -525,7 +535,8 @@ describe("Passo P2 — Validação Empírica, Personas Clínicas e Testes de Ace
           fat: 20,
           mainOption: {
             name: "Peito de Frango, Arroz e Azeite",
-            portion: "1 filé (120g), 1 escumadeira (150g) e 1 colher de sopa (10ml)",
+            portion:
+              "1 filé (120g), 1 escumadeira (150g) e 1 colher de sopa (10ml)",
             calories: 700,
             protein: 45,
             carbs: 85,

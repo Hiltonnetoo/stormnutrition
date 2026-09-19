@@ -342,7 +342,8 @@
     "warn_high_sodium": "Sódio elevado",
     "warn_moderate_gi": "Carga glicêmica moderada",
     "and": "e",
-    "healthy_preparation": "preparação saudável"
+    "healthy_preparation": "preparação saudável",
+    "log_archetype_fallback": "Catálogo insuficiente para a refeição \"{{meal}}\": foi usado um alimento fora do padrão desta refeição."
   },
   "diet_validation": {
     "issues": {
@@ -355,23 +356,50 @@
       "VEGAN_VIOLATION": "Alimento \"{{foodName}}\" na refeição \"{{mealName}}\" viola a restrição \"vegan\": contém derivados de origem animal.",
       "RESTRICTION_VIOLATION": "Alimento \"{{foodName}}\" na refeição \"{{mealName}}\" viola restrições prescritas.",
       "ALLERGY_VIOLATION": "Alimento \"{{foodName}}\" na refeição \"{{mealName}}\" contém alérgeno do paciente: {{reason}}.",
-      "CALORIE_DEVIATION": "Variação calórica de {{percent}}% em relação à meta prescrita ({{target}} kcal vs {{actual}} kcal).",
-      "PROTEIN_DEVIATION": "Variação de proteína de {{percent}}% em relação à meta ({{target}}g vs {{actual}}g).",
-      "CARBS_DEVIATION": "Variação de carboidratos de {{percent}}% em relação à meta ({{target}}g vs {{actual}}g).",
-      "FAT_DEVIATION": "Variação de gorduras de {{percent}}% em relação à meta ({{target}}g vs {{actual}}g).",
-      "ALTERNATIVE_CALORIE_DEVIATION": "Opção alternativa \"{{alternativeName}}\" varia {{percent}}% em calorias em relação à principal na refeição \"{{mealName}}\" ({{alternativeCalories}} kcal vs {{mainOptionCalories}} kcal).",
-      "ALTERNATIVE_MACRO_DEVIATION": "Opção alternativa \"{{alternativeName}}\" varia {{percent}}% em {{nutrient}} em relação à principal na refeição \"{{mealName}}\" ({{alternativeValue}}g vs {{mainValue}}g).",
+      "CALORIE_DEVIATION": "Calorias: plano {{actual}} kcal · meta {{target}} kcal ({{percent}}%).",
+      "PROTEIN_DEVIATION": "Proteína: plano {{actual}} g · meta {{target}} g ({{percent}}%).",
+      "CARBS_DEVIATION": "Carboidratos: plano {{actual}} g · meta {{target}} g ({{percent}}%).",
+      "FAT_DEVIATION": "Gorduras: plano {{actual}} g · meta {{target}} g ({{percent}}%).",
+      "ALTERNATIVE_CALORIE_DEVIATION": "Opção alternativa \"{{alternativeName}}\" varia {{percent}}% em calorias em relação à principal na refeição \"{{mealName}}\" ({{alternativeValue}} kcal × {{mainValue}} kcal).",
+      "ALTERNATIVE_MACRO_DEVIATION": "Opção alternativa \"{{alternativeName}}\" varia {{percent}}% em {{nutrient}} em relação à principal na refeição \"{{mealName}}\" ({{alternativeValue}} g × {{mainValue}} g).",
       "WORST_CASE_ALTERNATIVE_DEVIATION": "A combinação de alternativas varia o consumo diário entre {{minCalories}} kcal e {{maxCalories}} kcal (meta: {{targetCalories}} kcal).",
       "INVALID_NUTRIENT_VALUE": "Valor inválido para o campo \"{{field}}\" no alimento \"{{foodName}}\" da refeição \"{{mealName}}\".",
       "INVALID_TARGET_VALUE": "Metas nutricionais prescritas contêm valores não numéricos, negativos ou inválidos.",
-      "HIGH_SODIUM_CEILING_HYPERTENSION": "Pior cenário de sódio nas combinações de alternativas atinge {{worstCaseAlternativeSodium}}mg (limite: {{limit}}mg).",
-      "HIGH_SODIUM_CEILING_RENAL": "Pior cenário de sódio nas combinações de alternativas atinge {{worstCaseAlternativeSodium}}mg para paciente renal (limite: {{limit}}mg).",
+      "HIGH_SODIUM_CEILING_HYPERTENSION": "Sódio na pior combinação: {{worstCaseAlternativeSodium}} mg (teto para hipertensão: {{limit}} mg).",
+      "HIGH_SODIUM_CEILING_RENAL": "Sódio na pior combinação: {{worstCaseAlternativeSodium}} mg (teto renal: {{limit}} mg).",
       "WORST_CASE_PROTEIN_DEVIATION": "A combinação de alternativas varia a proteína diária entre {{min}} g e {{max}} g (meta: {{target}} g).",
       "WORST_CASE_CARBS_DEVIATION": "A combinação de alternativas varia os carboidratos diários entre {{min}} g e {{max}} g (meta: {{target}} g).",
       "WORST_CASE_FAT_DEVIATION": "A combinação de alternativas varia as gorduras diárias entre {{min}} g e {{max}} g (meta: {{target}} g).",
       "ZERO_TARGET_PROTEIN": "A meta diária de proteína é 0 g, mas o plano chega a {{max}} g em alguma combinação. A tolerância percentual não se aplica; revise manualmente.",
       "ZERO_TARGET_CARBS": "A meta diária de carboidratos é 0 g, mas o plano chega a {{max}} g em alguma combinação. A tolerância percentual não se aplica; revise manualmente.",
       "ZERO_TARGET_FAT": "A meta diária de gorduras é 0 g, mas o plano chega a {{max}} g em alguma combinação. A tolerância percentual não se aplica; revise manualmente."
+    },
+    "nutrients": {
+      "calories": "calorias",
+      "protein": "proteína",
+      "carbs": "carboidratos",
+      "fat": "gorduras"
+    },
+    "alternative_line": "Alternativa {{index}} ({{items}}): {{deviations}}",
+    "deviation_part": "{{nutrient}} {{percent}}% ({{alternative}} × {{main}} na principal)",
+    "summary": {
+      "blockers_one": "{{count}} bloqueio",
+      "blockers_other": "{{count}} bloqueios",
+      "daily_one": "{{count}} meta diária fora da tolerância",
+      "daily_other": "{{count}} metas diárias fora da tolerância",
+      "sodium_one": "sódio acima do teto",
+      "sodium_other": "sódio acima do teto",
+      "alternatives_one": "{{count}} alternativa com diferença em {{meals}} refeição(ões)",
+      "alternatives_other": "{{count}} alternativas com diferença em {{meals}} refeição(ões)"
+    },
+    "groups": {
+      "daily": "Metas diárias",
+      "sodium": "Sódio",
+      "alternatives": "Alternativas diferentes da opção principal",
+      "worst_case": "Na pior combinação de alternativas",
+      "meal_alternatives_one": "{{meal}}: {{count}} alternativa",
+      "meal_alternatives_other": "{{meal}}: {{count}} alternativas",
+      "other": "Outros avisos"
     }
   },
   "food": {
@@ -922,7 +950,10 @@
       "template_name_required": "Informe um nome para o modelo.",
       "issue_error": "Erro",
       "issue_warning": "Atenção",
-      "status_approved": "Aprovado pelo profissional"
+      "status_approved": "Aprovado pelo profissional",
+      "status_blocked": "Bloqueado: incompatível com restrições ou metas",
+      "status_draft": "Rascunho (não aprovado)",
+      "status_needs_reapproval": "Plano anterior: precisa de nova aprovação"
     },
     "save_error": "Não foi possível salvar o plano alimentar. Verifique sua conexão e tente novamente.",
     "generation_failed": "Falha ao gerar o plano.",
@@ -947,7 +978,8 @@
       "PLAN_INFEASIBLE": "Não foi possível gerar um plano compatível com todas as restrições clínicas e metas calóricas configuradas.",
       "CATALOG_EXHAUSTED": "Não há alimentos suficientes disponíveis no catálogo após aplicar todas as restrições clínicas."
     },
-    "review_outdated": "O plano mudou desde a revisão (conteúdo, metas, restrições ou alertas). Confira os alertas atuais e confirme a revisão novamente."
+    "review_outdated": "O plano mudou desde a revisão (conteúdo, metas, restrições ou alertas). Confira os alertas atuais e confirme a revisão novamente.",
+    "approval_credentials_required": "Informe seu CRN para aprovar o plano."
   },
   "meal_table": {
     "breakfast": "Café da Manhã",
@@ -1175,6 +1207,12 @@
         "recent_login": "Por segurança, faça logout e login novamente antes de alterar a sua senha.",
         "generic_error": "Falha ao atualizar senha. Tente novamente mais tarde."
       }
+    },
+    "load_error": {
+      "denied_title": "Acesso ao plano indisponível",
+      "denied_desc": "Seu acesso pode ter sido revogado ou ainda está sendo ativado. Tente novamente em instantes ou fale com seu nutricionista.",
+      "failed_title": "Não foi possível carregar seus dados",
+      "failed_desc": "Verifique sua conexão e tente novamente."
     }
   },
   "patient_form": {
@@ -1453,7 +1491,12 @@
       "high": "ALTO",
       "restriction": "Filtro específico ({{tag}})",
       "respected": "RESPEITADO",
-      "disclaimer": "Este plano foi gerado por meio do algoritmo nutricional Storm Nutrition baseado em diretrizes clínicas validadas. É dever do nutricionista revisar e atestar a adequação dos alimentos recomendados às condições individuais do paciente."
+      "disclaimer": "Este plano foi gerado por meio do algoritmo nutricional Storm Nutrition baseado em diretrizes clínicas validadas. É dever do nutricionista revisar e atestar a adequação dos alimentos recomendados às condições individuais do paciente.",
+      "approve_with_alerts": "Ao confirmar, você aprova este plano com os alertas listados acima.",
+      "approver": "Aprovação por {{name}}",
+      "crn_label": "CRN do profissional",
+      "crn_hint": "Obrigatório para aprovar. Fica salvo no seu perfil.",
+      "crn_value": "CRN {{crn}}"
     }
   },
   "a11y": {

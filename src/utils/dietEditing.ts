@@ -1,5 +1,7 @@
 import type { DietPlan, Meal, MealOption, MealOptionItem } from "../types";
 import { recalculateDietTotals } from "../services/dietService";
+import { brazilianFoods } from "../data/foods";
+import { formatHouseholdMeasure } from "../services/portionLimitsService";
 
 /** Which option of a meal is edited: the main one or alternative `n`. */
 export type OptionKey = "main" | number;
@@ -31,7 +33,15 @@ export const rescaleItemPortion = (
   return {
     ...item,
     portionGrams: grams,
-    portion: `${grams}${item.unit && item.unit !== "g" ? ` ${item.unit}` : "g"}`,
+    // A5: same household measure as the generator when the food is known
+    portion: (() => {
+      const food = brazilianFoods.find(
+        (f) => f.id === item.foodId || f.name === item.name,
+      );
+      return food
+        ? formatHouseholdMeasure(food, grams)
+        : `${grams}${item.unit && item.unit !== "g" ? ` ${item.unit}` : "g"}`;
+    })(),
     calories: Math.round(item.calories * factor),
     protein: round1(item.protein * factor),
     carbs: round1(item.carbs * factor),

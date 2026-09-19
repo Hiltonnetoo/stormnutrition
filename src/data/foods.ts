@@ -990,7 +990,7 @@ const coreFoods: Food[] = [
     nameEn: "Lard",
     category: "Óleos e Gorduras",
     portion: "15",
-    unit: "ml (1 colher de sopa)",
+    unit: "g (1 colher de sopa)",
     calories: 115,
     protein: 0,
     carbs: 0,

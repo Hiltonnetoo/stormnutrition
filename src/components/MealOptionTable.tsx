@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { MealOption, MealOptionItem } from "../types";
 import NutritionLabel from "./diet-generator/NutritionLabel";
 import { Dialog } from "./Dialog";
+import { AlertTriangleIcon } from "./icons";
 
 interface Props {
   mainOption: MealOption;
@@ -175,7 +176,7 @@ const OptionTable: React.FC<{
             )}
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto relative">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-700">
@@ -207,18 +208,16 @@ const OptionTable: React.FC<{
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <td className="px-3 py-2 text-slate-800 dark:text-slate-200 font-medium text-xs sm:text-sm">
-                    <div className="flex items-center gap-1.5">
-                      {item.name}
-                      {item.clinicalWarnings &&
-                        item.clinicalWarnings.length > 0 && (
-                          <span
-                            title={item.clinicalWarnings.join(", ")}
-                            className="cursor-help text-red-500 hover:text-red-600 transition-colors"
-                          >
-                            ⚠️
-                          </span>
-                        )}
-                    </div>
+                    <div className="flex items-center gap-1.5">{item.name}</div>
+                    {/* A1: item warning visible as text (touch/keyboard),
+                        not an emoji that only shows on hover. */}
+                    {item.clinicalWarnings &&
+                      item.clinicalWarnings.length > 0 && (
+                        <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-amber-800">
+                          <AlertTriangleIcon className="h-3.5 w-3.5 shrink-0" />
+                          {item.clinicalWarnings.join(" · ")}
+                        </p>
+                      )}
                   </td>
                   <td className="px-3 py-2 text-right">
                     {onPortionChange && item.portionGrams ? (

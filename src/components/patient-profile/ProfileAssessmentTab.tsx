@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { CheckCircleIcon, ClockIcon } from "../icons";
 import { useTranslation } from "react-i18next";
 import type { Patient } from "../../types";
 import { Card, Button } from "../ui";
@@ -190,7 +191,11 @@ export const ProfileAssessmentTab: React.FC<ProfileAssessmentTabProps> = ({
                   <div
                     className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg ${evalItem.status === "completed" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}
                   >
-                    {evalItem.status === "completed" ? "✅" : "⏳"}
+                    {evalItem.status === "completed" ? (
+                      <CheckCircleIcon aria-hidden="true" className="w-6 h-6" />
+                    ) : (
+                      <ClockIcon aria-hidden="true" className="w-6 h-6" />
+                    )}
                   </div>
                   <div>
                     <p className="font-bold text-slate-800 dark:text-white">

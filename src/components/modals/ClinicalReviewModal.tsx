@@ -1,12 +1,21 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { ClipboardListIcon, CheckCircleIcon } from "../icons";
 import { useTranslation } from "react-i18next";
 import type { DietPlan } from "../../types";
-import { Modal, Button } from "../ui";
+import { Modal, Button, Input } from "../ui";
+import { useAuth } from "../../contexts/AuthContext";
+import {
+  getProfessionalCredentials,
+  saveProfessionalCrn,
+  type ProfessionalCredentials,
+} from "../../services/professionalProfileService";
+import ValidationIssuesPanel from "../diet-generator/ValidationIssuesPanel";
 
 interface ClinicalReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  /** A6: called with the approving professional's name and CRN. */
+  onConfirm: (approver: ProfessionalCredentials) => void;
   plan: DietPlan;
 }
 
@@ -17,6 +26,48 @@ const ClinicalReviewModal: React.FC<ClinicalReviewModalProps> = ({
   plan,
 }) => {
   const { t } = useTranslation();
+  const { currentUser } = useAuth();
+  const [approver, setApprover] = useState<ProfessionalCredentials | null>(
+    null,
+  );
+  const [crnInput, setCrnInput] = useState("");
+  const [savingCrn, setSavingCrn] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !currentUser) return;
+    let active = true;
+    getProfessionalCredentials(currentUser.uid)
+      .then((c) => {
+        if (!active) return;
+        setApprover({
+          name: c.name || currentUser.displayName || "",
+          crn: c.crn,
+        });
+        setCrnInput(c.crn);
+      })
+      .catch(
+        () =>
+          active &&
+          setApprover({ name: currentUser.displayName || "", crn: "" }),
+      );
+    return () => {
+      active = false;
+    };
+  }, [isOpen, currentUser]);
+
+  const crn = crnInput.trim();
+  const handleConfirm = async () => {
+    if (!approver || !crn || !currentUser) return;
+    if (crn !== approver.crn) {
+      setSavingCrn(true);
+      try {
+        await saveProfessionalCrn(currentUser.uid, crn);
+      } finally {
+        setSavingCrn(false);
+      }
+    }
+    onConfirm({ name: approver.name, crn });
+  };
   const totalSodium = plan.meals.reduce(
     (acc, meal) => acc + (meal.micros?.sodium || 0),
     0,
@@ -39,18 +90,16 @@ const ClinicalReviewModal: React.FC<ClinicalReviewModalProps> = ({
       size="lg"
       title={t("modals.clinical_review.title")}
       description={t("modals.clinical_review.subtitle")}
-      icon={
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sage-50 text-sage-600 text-xl">
-          📋
-        </span>
-      }
+      icon={<ClipboardListIcon className="w-5 h-5" />}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
             {t("modals.clinical_review.back_btn")}
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={!approver || !crn}
+            loading={savingCrn}
             className="bg-sky-600 hover:bg-sky-700 shadow-sky-600/25"
           >
             {t("modals.clinical_review.confirm_btn")}
@@ -59,6 +108,43 @@ const ClinicalReviewModal: React.FC<ClinicalReviewModalProps> = ({
       }
     >
       <div className="space-y-6 py-1">
+        {/* A6: who approves, with CRN (asked once, saved to the profile). */}
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-800">
+            {t("modals.clinical_review.approver", {
+              name: approver?.name || "—",
+            })}
+          </p>
+          {approver && !approver.crn ? (
+            <div className="mt-2">
+              <Input
+                name="professionalCrn"
+                label={t("modals.clinical_review.crn_label")}
+                hint={t("modals.clinical_review.crn_hint")}
+                value={crnInput}
+                onChange={(e) => setCrnInput(e.target.value)}
+                maxLength={30}
+              />
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-slate-600">
+              {t("modals.clinical_review.crn_value", {
+                crn: approver?.crn || "…",
+              })}
+            </p>
+          )}
+        </div>
+
+        {/* A1: the professional sees exactly which alerts they approve. */}
+        {(plan.validation?.issues?.length ?? 0) > 0 && (
+          <div className="space-y-2">
+            <ValidationIssuesPanel issues={plan.validation?.issues} compact />
+            <p className="text-sm font-semibold text-slate-800">
+              {t("modals.clinical_review.approve_with_alerts")}
+            </p>
+          </div>
+        )}
+
         {/* Alignment */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-700">
@@ -118,7 +204,11 @@ const ClinicalReviewModal: React.FC<ClinicalReviewModalProps> = ({
         {/* Checklist */}
         <div>
           <h3 className="text-sm font-bold text-slate-800 dark:text-white mb-3 flex items-center gap-2">
-            <span>✅</span> {t("modals.clinical_review.checklist")}
+            <CheckCircleIcon
+              aria-hidden="true"
+              className="w-4 h-4 text-emerald-700"
+            />{" "}
+            {t("modals.clinical_review.checklist")}
           </h3>
           <div className="space-y-2">
             <div className="flex items-center justify-between p-3 border border-slate-100 dark:border-slate-700 rounded-xl">

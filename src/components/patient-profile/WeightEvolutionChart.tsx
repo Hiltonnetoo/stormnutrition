@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { TrendingUpIcon } from "../icons";
 import { useTranslation } from "react-i18next";
 import ChartDataTable from "../ChartDataTable";
 import { WeightRecord } from "../../types";
@@ -37,7 +38,10 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
   if (!data || data.length === 0) {
     return (
       <div className="h-64 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
-        <span className="text-4xl mb-2">📊</span>
+        <TrendingUpIcon
+          aria-hidden="true"
+          className="w-10 h-10 mb-2 text-slate-400"
+        />
         <p className="text-gray-400 font-medium">
           {t("profile.evolution.no_measurements")}
         </p>
@@ -52,9 +56,10 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
       <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
         <div className="flex justify-between items-center mb-6">
           <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <span aria-hidden="true" className="text-blue-500">
-              📈
-            </span>{" "}
+            <TrendingUpIcon
+              aria-hidden="true"
+              className="w-5 h-5 text-sage-700"
+            />
             {t("profile.evolution.weight_evolution_title")}
           </h3>
           <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg">
@@ -109,9 +114,10 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-          <span aria-hidden="true" className="text-blue-500">
-            📈
-          </span>{" "}
+          <TrendingUpIcon
+            aria-hidden="true"
+            className="w-5 h-5 text-sage-700"
+          />
           {t("profile.evolution.weight_evolution_title")}
         </h3>
 

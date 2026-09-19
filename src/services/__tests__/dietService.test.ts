@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  ApprovalCredentialsError,
   DietReviewOutdatedError,
   validateAndSerializeDietPlan,
   validateAndSerializeDietUpdate,
@@ -467,10 +468,45 @@ describe("dietService - Data Transfer Object and Validation", () => {
         allowApprovedReview: true,
         approvedByUid: "nutri-1",
         reviewedSignature: signatureOf(plan),
+        approverName: "Dra. Teste",
+        approverCrn: "CRN-3 00000",
       });
       expect(dto.validation?.isApproved).toBe(true);
       expect(dto.validation?.approvedByUid).toBe("nutri-1");
       expect(dto.validation?.approvedAt).toBeDefined();
+      // A6: the approval record carries the professional's identity
+      expect(dto.status).toBe("clinically_approved");
+      expect(dto.clinicalApproval).toMatchObject({
+        approvedByUid: "nutri-1",
+        professionalName: "Dra. Teste",
+        professionalCrn: "CRN-3 00000",
+        signature: signatureOf(plan),
+      });
+    });
+
+    it("A6: approving without CRN is refused; status/approval from the payload are ignored", () => {
+      const plan = reviewPlan();
+      expect(() =>
+        validateAndSerializeDietPlan(plan, {
+          allowApprovedReview: true,
+          approvedByUid: "nutri-1",
+          reviewedSignature: signatureOf(plan),
+        }),
+      ).toThrow(ApprovalCredentialsError);
+      const forged = {
+        ...plan,
+        status: "clinically_approved",
+        clinicalApproval: {
+          approvedByUid: "x",
+          professionalCrn: "fake",
+          approvedAt: "2026-01-01",
+          signature: "s",
+          version: 2,
+        },
+      } as DietPlan;
+      const dto = validateAndSerializeDietPlan(forged);
+      expect(dto.status).toBe("awaiting_review");
+      expect(dto.clinicalApproval).toBeUndefined();
     });
 
     it("R06-B: approving a version that is not the one being saved is refused", () => {
@@ -495,6 +531,8 @@ describe("dietService - Data Transfer Object and Validation", () => {
         allowApprovedReview: true,
         approvedByUid: "nutri-1",
         reviewedSignature: signatureOf(plan),
+        approverName: "Dra. Teste",
+        approverCrn: "CRN-3 00000",
       });
       const existing = { ...plan, ...approved } as DietPlan;
       const update = validateAndSerializeDietUpdate(
@@ -505,6 +543,16 @@ describe("dietService - Data Transfer Object and Validation", () => {
         existing,
       );
       expect(update.validation?.isApproved).toBe(false);
+      // A6: the stale approval is removed and the status re-derived
+      // (the new tags may even make it infeasible → "blocked")
+      expect(update.status).toBe(
+        update.validation?.status === "infeasible"
+          ? "blocked"
+          : "awaiting_review",
+      );
+      expect(
+        (update as { clinicalApproval?: unknown }).clinicalApproval,
+      ).toBeNull();
       expect(update.validation?.issuesSignature).not.toBe(
         approved.validation?.issuesSignature,
       );

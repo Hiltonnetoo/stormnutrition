@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { AlertTriangleIcon, CheckCircleIcon } from "../icons";
 import { useTranslation } from "react-i18next";
 import type { Patient, LabTest } from "../../types";
 import { labCategories, interpretTest } from "../../data/labTests";
@@ -51,17 +52,19 @@ const Step6LabExams: React.FC<Step6Props> = ({ data, onDataChange }) => {
     if (!value) return null;
     return interpretTest(name, value) === "alert" ? (
       <span
+        className="inline-flex text-rose-700"
         title={t("patient_form.exams.status_alert")}
-        className="text-rose-500"
       >
-        ⚠️
+        <AlertTriangleIcon aria-hidden="true" className="w-4 h-4" />
+        <span className="sr-only">{t("patient_form.exams.status_alert")}</span>
       </span>
     ) : (
       <span
+        className="inline-flex text-emerald-700"
         title={t("patient_form.exams.status_normal")}
-        className="text-emerald-500"
       >
-        ✅
+        <CheckCircleIcon aria-hidden="true" className="w-4 h-4" />
+        <span className="sr-only">{t("patient_form.exams.status_normal")}</span>
       </span>
     );
   };

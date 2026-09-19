@@ -1592,7 +1592,9 @@ describe("dietAlgorithmService", () => {
         seed: 42,
       });
 
-      const breakfast = result.meals.find((m) => m.mealName === "Café da Manhã");
+      const breakfast = result.meals.find(
+        (m) => m.mealName === "Café da Manhã",
+      );
       const morningSnack = result.meals.find(
         (m) => m.mealName === "Lanche da Manhã",
       );
@@ -1604,7 +1606,13 @@ describe("dietAlgorithmService", () => {
       expect(morningSnack).toBeDefined();
       expect(afternoonSnack).toBeDefined();
 
-      const forbiddenBreakfastSnack = ["feijão", "lentilha", "patinho", "alcatra", "picanha"];
+      const forbiddenBreakfastSnack = [
+        "feijão",
+        "lentilha",
+        "patinho",
+        "alcatra",
+        "picanha",
+      ];
 
       const checkNoForbidden = (meal: Meal) => {
         const allOpts = [meal.mainOption, ...meal.alternatives];
@@ -1655,7 +1663,7 @@ describe("dietAlgorithmService", () => {
         const mainCal = meal.mainOption.calories;
         for (const alt of meal.alternatives) {
           const divergence = Math.abs(alt.calories - mainCal) / mainCal;
-          expect(divergence).toBeLessThanOrEqual(0.20);
+          expect(divergence).toBeLessThanOrEqual(0.2);
         }
       }
     });

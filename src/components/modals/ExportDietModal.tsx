@@ -157,7 +157,9 @@ const ExportDietModal: React.FC<ExportDietModalProps> = ({
         </button>
         <button
           onClick={() => handleExport("screenshot")}
-          disabled={isLoading || !isScreenshotAvailable || plan.status === "blocked"}
+          disabled={
+            isLoading || !isScreenshotAvailable || plan.status === "blocked"
+          }
           title={
             !isScreenshotAvailable
               ? t("modals.export_diet.screenshot_unavailable")

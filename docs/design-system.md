@@ -90,3 +90,23 @@ npm run screenshots         # UI11: capturas reais + docs/screenshots/manifest.j
 ```
 
 A galeria de variantes (`design-system.spec.ts`) injeta botões, campos e badges na página com o bundle real e confere: geometria sm/md/lg em qualquer ordem de classes, precedência de utilitário, ícone, desabilitado, carregamento, texto longo, erro por `aria-invalid` e contraste renderizado ≥ 4,5:1 de primário, perigo e badges semânticos.
+
+## 8. Decisões de 19/09/2026 (fases A1–A7 e UI)
+
+- **Avisos do plano (A1):** apresentados por `src/utils/validationPresentation.ts` na tela, no modal de revisão e no PDF. A ordem é: bloqueios, metas diárias, sódio e alternativas (agrupadas por refeição, recolhíveis, uma linha por alternativa). Números seguem o idioma (`Intl.NumberFormat`) e os nutrientes vêm de `diet_validation.nutrients.*`. O PDF do paciente (plano aprovado) não traz a lista técnica.
+- **Status do plano (UI02/UI09):** `DietStatusBadge` é o único selo, com o mesmo tom, ícone e texto em todas as superfícies. Aprovado = marca (escudo); aguardando revisão = atenção; bloqueado = perigo; rascunho = neutro; plano salvo antes do status = atenção, "precisa de nova aprovação".
+- **Aprovação (A6):** só por profissional com CRN. Status e aprovação são derivados no serviço, nunca aceitos do cliente. O CRN fica em `users/{uid}.professionalCrn`.
+- **Tolerâncias propostas (aguardam o nutricionista responsável):**
+  - alternativa × principal: ±20 %, com mínimo de 5 g ou 50 kcal;
+  - sódio por item: renal < 300 mg, hipertensão ≤ 400 mg;
+  - teto diário de sódio: 2300/2000/1500 mg.
+- **Medidas caseiras (A5):** derivadas da referência do catálogo (15 ml = 1 colher de sopa; chá 5 ml; sobremesa 10 ml; copo 200 ml); sólidos sempre em g.
+- **Emojis (UI07):** indicadores funcionais usam SVG com nome acessível. Exceções decorativas mantidas de propósito:
+  - banner de boas-vindas (`OnboardingBanner`);
+  - comemoração ao salvar (`DietSuccessCard` 🎉);
+  - ilustração das opções de aferição (`Step5Anthropometric`);
+  - estado vazio da comparação (`DietComparisonModal` 📊);
+  - título de modelos (`DietTemplatesSection` 📋);
+  - 🤖 na avaliação;
+  - landing page.
+- **Tabelas com rolagem (UI04/UI08):** todo contêiner `overflow-x-auto` também é `relative`, para que elementos absolutos (ex.: `sr-only`) não escapem do recorte e criem rolagem na página.

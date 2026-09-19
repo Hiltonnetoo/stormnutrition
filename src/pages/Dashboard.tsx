@@ -2,10 +2,10 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/AuthContext";
 import {
+  BarChart3Icon,
+  CheckCircleIcon,
   UsersIcon,
   UtensilsIcon,
-  CheckCircleIcon,
-  BarChart3Icon,
 } from "../components/icons";
 import { useDashboardData } from "../hooks/useDashboardData";
 import {
@@ -43,7 +43,6 @@ const Dashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xl">👋</span>
             <span className="text-sm font-medium text-slate-500">
               {greeting()}
             </span>

@@ -8,6 +8,10 @@ import {
   auth,
 } from "../services/firebaseService";
 import { loadUserState, saveUserState } from "../utils/localStorage";
+import {
+  getProfessionalCredentials,
+  saveProfessionalCrn,
+} from "../services/professionalProfileService";
 import { PageHeader, Card, Input, Button } from "../components/ui";
 import { CheckCircleIcon, XCircleIcon } from "../components/icons";
 import BillingSection from "../components/settings/BillingSection";
@@ -59,12 +63,17 @@ const Settings: React.FC = () => {
   const [clinicSpecialty, setClinicSpecialty] = useState("");
   const [clinicPhone, setClinicPhone] = useState("");
   const [clinicSaved, setClinicSaved] = useState(false);
+  // A6: CRN lives in users/{uid} (used to sign diet approvals)
+  const [professionalCrn, setProfessionalCrn] = useState("");
 
   useEffect(() => {
     if (currentUser?.uid) {
       setClinicName(loadUserState(currentUser.uid, "clinicName", ""));
       setClinicSpecialty(loadUserState(currentUser.uid, "clinicSpecialty", ""));
       setClinicPhone(loadUserState(currentUser.uid, "clinicPhone", ""));
+      getProfessionalCredentials(currentUser.uid)
+        .then((c) => setProfessionalCrn(c.crn))
+        .catch(() => setProfessionalCrn(""));
     } else {
       setClinicName("");
       setClinicSpecialty("");
@@ -72,8 +81,9 @@ const Settings: React.FC = () => {
     }
   }, [currentUser?.uid]);
 
-  const handleSaveClinic = () => {
+  const handleSaveClinic = async () => {
     if (currentUser?.uid) {
+      await saveProfessionalCrn(currentUser.uid, professionalCrn);
       saveUserState(currentUser.uid, "clinicName", clinicName);
       saveUserState(currentUser.uid, "clinicSpecialty", clinicSpecialty);
       saveUserState(currentUser.uid, "clinicPhone", clinicPhone);
@@ -338,6 +348,14 @@ const Settings: React.FC = () => {
               value={clinicSpecialty}
               onChange={(e) => setClinicSpecialty(e.target.value)}
               placeholder={t("settings.clinic_specialty_placeholder")}
+            />
+            <Input
+              label={t("modals.clinical_review.crn_label")}
+              id="professionalCrn"
+              value={professionalCrn}
+              onChange={(e) => setProfessionalCrn(e.target.value)}
+              hint={t("modals.clinical_review.crn_hint")}
+              maxLength={30}
             />
             <Input
               label={t("settings.clinic_phone")}

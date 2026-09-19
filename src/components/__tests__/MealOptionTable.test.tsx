@@ -107,12 +107,15 @@ describe("MealOptionTable Component", () => {
       />,
     );
 
-    // Warning symbol should be visible
-    expect(screen.getByText("⚠️")).toBeInTheDocument();
+    // A1.10: the item warning is visible text (usable by touch and screen
+    // readers), no longer an emoji whose text only appeared on hover.
+    expect(screen.queryByText("⚠️")).toBeNull();
+    expect(screen.getAllByText("Sódio elevado").length).toBeGreaterThanOrEqual(
+      1,
+    );
 
     // Clinical note text should render
     expect(screen.getByText("Clinical Note:")).toBeInTheDocument();
-    expect(screen.getByText("Sódio elevado")).toBeInTheDocument();
   });
 
   it("handles collapsible alternatives correctly", () => {

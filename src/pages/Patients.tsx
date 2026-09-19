@@ -374,7 +374,7 @@ const Patients: React.FC = () => {
     return (
       <>
         {/* Desktop table */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto relative">
           <table className="min-w-full text-left text-sm">
             <caption className="sr-only">{t("patients.title")}</caption>
             <thead>

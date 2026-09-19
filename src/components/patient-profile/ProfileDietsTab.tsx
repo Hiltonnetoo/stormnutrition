@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { Patient, DietPlan } from "../../types";
 import { Button, CloseButton } from "../ui";
+import DietStatusBadge from "../diet-generator/DietStatusBadge";
 import {
   CheckCircleIcon,
   DownloadIcon,
@@ -174,6 +175,13 @@ export const ProfileDietsTab: React.FC<ProfileDietsTabProps> = ({
                   <p className="text-xs text-slate-500 mt-0.5">
                     {diet.dailyCalories} kcal · {diet.dietType}
                   </p>
+                  {/* UI02/UI09: approval state visible in the history (only
+                      approved plans reach the patient portal) */}
+                  {(diet as DietPlan).version === 2 && (
+                    <div className="mt-2">
+                      <DietStatusBadge plan={diet as DietPlan} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { PaperAirplaneIcon, ShieldIcon, AlertTriangleIcon } from "../icons";
 import { useTranslation } from "react-i18next";
 import type { Patient, PatientInvitation } from "../../types";
 import {
@@ -230,11 +231,7 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
       onClose={onClose}
       title={t("modals.patient_access.title")}
       description={`${patient.firstName} ${patient.lastName}`}
-      icon={
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-50 text-teal-600 text-xl">
-          ✉️
-        </span>
-      }
+      icon={<PaperAirplaneIcon className="w-5 h-5" />}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -274,7 +271,11 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
         {alreadyHasAccess && !success && (
           <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 text-sm text-amber-700 dark:text-amber-300">
             <p className="font-bold mb-1">
-              🔑 {t("modals.patient_access.active_access")}
+              <ShieldIcon
+                aria-hidden="true"
+                className="inline w-4 h-4 mr-1 align-[-2px]"
+              />
+              {t("modals.patient_access.active_access")}
             </p>
             {t("modals.patient_access.active_access_desc")}
             <div className="mt-3">
@@ -328,7 +329,10 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
               {revokeConfirmOpen && (
                 <div className="mt-3 p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs space-y-2">
                   <p className="font-semibold text-rose-800 dark:text-rose-300">
-                    ⚠️{" "}
+                    <AlertTriangleIcon
+                      aria-hidden="true"
+                      className="inline w-4 h-4 mr-1 align-[-2px]"
+                    />
                     {t("modals.patient_access.revoke_confirm_title", {
                       defaultValue: "Confirmar revogação de acesso ao portal?",
                     })}
@@ -504,7 +508,10 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
         {success && activeInvitation && (
           <div className="space-y-4">
             <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-xl p-5 text-center">
-              <div className="text-3xl mb-2">✉️</div>
+              <PaperAirplaneIcon
+                aria-hidden="true"
+                className="w-8 h-8 mx-auto mb-2 text-emerald-700"
+              />
               <p className="font-bold text-emerald-800 dark:text-emerald-300">
                 {t("modals.patient_access.success_title")}
               </p>

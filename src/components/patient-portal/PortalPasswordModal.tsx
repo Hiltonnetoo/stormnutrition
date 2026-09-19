@@ -192,7 +192,7 @@ export const PortalPasswordModal: React.FC<{
               type="button"
               onClick={onClose}
               disabled={passwordChangeLoading}
-              className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 focus-ring"
+              className="btn btn-secondary flex-1"
             >
               {t("patient_portal.password_modal.cancel_btn", {
                 defaultValue: "Cancel",
@@ -202,7 +202,7 @@ export const PortalPasswordModal: React.FC<{
               type="submit"
               disabled={passwordChangeLoading}
               aria-busy={passwordChangeLoading || undefined}
-              className="flex-1 py-2.5 rounded-xl bg-sage-600 text-white text-sm font-bold hover:bg-sage-700 transition-colors disabled:opacity-50 focus-ring"
+              className="btn btn-primary flex-1"
             >
               {passwordChangeLoading
                 ? t("a11y.saving")

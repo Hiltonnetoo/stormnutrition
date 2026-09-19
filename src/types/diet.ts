@@ -176,6 +176,12 @@ export interface MacroTolerances {
   carbsPercent?: number;
   /** Maximum allowed percentage deviation for fats (default ±20%) */
   fatPercent?: number;
+  /** Alternative vs main option: relative threshold for a warning (%). */
+  alternativePercent?: number;
+  /** Alternative vs main option: minimum absolute difference in grams. */
+  alternativeMinGrams?: number;
+  /** Alternative vs main option: minimum absolute difference in kcal. */
+  alternativeMinKcal?: number;
 }
 
 export interface WorstCaseAlternativeTotals {
@@ -214,6 +220,9 @@ export interface ValidateDietPlanOptions {
    *  `issuesSignature` shown in the review dialog). Approval is granted only
    *  when it matches the version being saved. */
   reviewedSignature?: string;
+  /** A6: identity of the approving professional (required to approve). */
+  approverName?: string;
+  approverCrn?: string;
 }
 
 export interface PlanValidationResult {

@@ -8,15 +8,19 @@ import type { Patient } from "../types";
 import i18n from "../i18n";
 import { formatDateWithLocale } from "../utils/locale";
 import {
+  BarChart3Icon,
+  CheckCircleIcon,
+  ClipboardListIcon,
+  CloseIcon,
+  DocumentTextIcon,
+  LogInIcon,
+  LogoIcon,
+  PaperAirplaneIcon,
+  ScaleIcon,
+  SearchIcon,
+  TargetIcon,
   UsersIcon,
   UtensilsIcon,
-  LogoIcon,
-  BarChart3Icon,
-  ClipboardListIcon,
-  PaperAirplaneIcon,
-  LogInIcon,
-  TargetIcon,
-  SearchIcon,
 } from "./icons";
 
 const CalendarIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -160,7 +164,7 @@ const deriveNotifications = (patients: Patient[]): NotifItem[] => {
       .forEach((e) => {
         items.push({
           id: `eval_${e.id}`,
-          icon: "📝",
+          icon: "evaluation",
           text: i18n.t("notifications.completed_self_evaluation", { name }),
           time: formatDateWithLocale(e.completionDate!, i18n.language),
           patientId: p.id,
@@ -174,7 +178,7 @@ const deriveNotifications = (patients: Patient[]): NotifItem[] => {
       .forEach((w) => {
         items.push({
           id: `weight_${p.id}_${w.date}`,
-          icon: "⚖️",
+          icon: "weight",
           text: i18n.t("notifications.registered_weight", {
             name,
             weight: w.weight,
@@ -278,9 +282,10 @@ const NotificationBell: React.FC<{ onNavigate?: () => void }> = ({
               </div>
             ) : notifications.length === 0 ? (
               <div className="px-4 py-8 text-center">
-                <p aria-hidden="true" className="text-2xl mb-2">
-                  🔕
-                </p>
+                <CheckCircleIcon
+                  aria-hidden="true"
+                  className="w-7 h-7 mx-auto mb-2 text-slate-400"
+                />
                 <p className="text-sm text-slate-400">
                   {t("notifications.no_activity")}
                 </p>
@@ -298,7 +303,16 @@ const NotificationBell: React.FC<{ onNavigate?: () => void }> = ({
                   }}
                   className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left cursor-pointer"
                 >
-                  <span className="text-lg shrink-0 mt-0.5">{n.icon}</span>
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 mt-0.5 text-sage-700"
+                  >
+                    {n.icon === "weight" ? (
+                      <ScaleIcon className="w-5 h-5" />
+                    ) : (
+                      <DocumentTextIcon className="w-5 h-5" />
+                    )}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-slate-700 dark:text-slate-200 font-medium leading-snug">
                       {n.text}
@@ -375,7 +389,7 @@ const GlobalSearch: React.FC<{ onNavigate?: () => void }> = ({
             aria-label={t("a11y.clear_search")}
             className="text-slate-500 hover:text-slate-700 text-xs cursor-pointer rounded focus-ring"
           >
-            <span aria-hidden="true">✕</span>
+            <CloseIcon aria-hidden="true" className="w-3.5 h-3.5" />
           </button>
         )}
       </div>

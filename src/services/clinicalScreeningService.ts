@@ -89,7 +89,15 @@ const ALLERGEN_KEYWORD_MAP: Record<string, string[]> = {
     "creme de leite",
   ],
   ovo: ["ovo", "omelete", "clara de ovo", "gema de ovo"],
-  peixe: ["peixe", "salmao", "tilapia", "atum", "sardinha", "bacalhau", "pescada"],
+  peixe: [
+    "peixe",
+    "salmao",
+    "tilapia",
+    "atum",
+    "sardinha",
+    "bacalhau",
+    "pescada",
+  ],
   "frutos do mar": [
     "camarao",
     "crustaceo",
@@ -172,7 +180,11 @@ export const matchFoodAllergen = (
 
   // Check specific keywords mapping
   for (const [categoryKey, keywords] of Object.entries(ALLERGEN_KEYWORD_MAP)) {
-    if (normalizedToken === categoryKey || normalizedToken.includes(categoryKey) || categoryKey.includes(normalizedToken)) {
+    if (
+      normalizedToken === categoryKey ||
+      normalizedToken.includes(categoryKey) ||
+      categoryKey.includes(normalizedToken)
+    ) {
       for (const kw of keywords) {
         if (normalizedName.includes(kw)) {
           return { matches: true, matchedKeyword: kw };
@@ -218,7 +230,10 @@ export const buildUnifiedClinicalContext = (params: {
   }
 
   // 2. Diabetes
-  if (clinicalTagsSet.has("diabetes_t1") || clinicalTagsSet.has("diabetes_t2")) {
+  if (
+    clinicalTagsSet.has("diabetes_t1") ||
+    clinicalTagsSet.has("diabetes_t2")
+  ) {
     restrictionsSet.add("diabetes");
   } else if (restrictionsSet.has("diabetes")) {
     clinicalTagsSet.add("diabetes_t2");
@@ -321,7 +336,8 @@ export const evaluateFoodCompatibility = (
       return {
         status: "incompatible",
         code: "DIABETES_VIOLATION",
-        reason: "Alimento da categoria Açúcares e Doces contraindicado para diabetes",
+        reason:
+          "Alimento da categoria Açúcares e Doces contraindicado para diabetes",
         matchedConstraint: "diabetes",
         source: "clinical_tag",
       };
@@ -353,7 +369,11 @@ export const evaluateFoodCompatibility = (
   }
 
   // 4. Mode-specific checks
-  if (context.mode === "clinical" && food.sodium !== undefined && food.sodium >= 600) {
+  if (
+    context.mode === "clinical" &&
+    food.sodium !== undefined &&
+    food.sodium >= 600
+  ) {
     return {
       status: "incompatible",
       code: "CLINICAL_MODE_VIOLATION",

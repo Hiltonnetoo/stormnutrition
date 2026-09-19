@@ -26,6 +26,7 @@ import {
   getPortionBoundaries,
 } from "./portionLimitsService";
 import type {
+  MacroTolerances,
   CalculatedDietTotals,
   Food,
   Meal,
@@ -313,6 +314,38 @@ export const computeReviewSignature = (input: {
   return `v2_${input.issues.length}_${fnv1a(payload, 0x811c9dc5)}${fnv1a(payload, 0x01000193)}`;
 };
 
+/**
+ * A1/A4 — whether an alternative's difference from the main option is worth
+ * a warning. Relative threshold (percent) AND an absolute floor, so small
+ * values do not raise alerts for irrelevant grams. Defaults are proposals
+ * pending sign-off by the responsible nutritionist (see docs/design-system.md
+ * and o-que-precisa-ser-feito.md A4); both are configurable per plan.
+ */
+export const DEFAULT_ALTERNATIVE_TOLERANCE = {
+  // Proposal (A4, pending sign-off): same ±20% as the daily macro tolerance,
+  // ignoring differences under 5 g of a macro or 50 kcal.
+  percent: 20,
+  minGrams: 5,
+  minKcal: 50,
+};
+
+export const isAlternativeDeviationRelevant = (
+  nutrient: "calories" | "protein" | "carbs" | "fat",
+  percent: number,
+  absoluteDiff: number,
+  tolerances?: MacroTolerances,
+): boolean => {
+  const limit =
+    tolerances?.alternativePercent ?? DEFAULT_ALTERNATIVE_TOLERANCE.percent;
+  const floor =
+    nutrient === "calories"
+      ? (tolerances?.alternativeMinKcal ??
+        DEFAULT_ALTERNATIVE_TOLERANCE.minKcal)
+      : (tolerances?.alternativeMinGrams ??
+        DEFAULT_ALTERNATIVE_TOLERANCE.minGrams);
+  return Math.abs(percent) > limit && Math.abs(absoluteDiff) > floor;
+};
+
 export function validateDietPlan(
   meals: Meal[],
   targets: { calories: number; protein: number; carbs: number; fat: number },
@@ -411,7 +444,13 @@ export function validateDietPlan(
 
     // Alternative options variance against main option (R07: +/- 5% margin for macros and calories)
     if (meal.alternatives && meal.alternatives.length > 0) {
-      for (const alt of meal.alternatives) {
+      for (const [altPosition, alt] of meal.alternatives.entries()) {
+        // A1: position and items let every surface label the alternative
+        // unambiguously ("Alternativa 2 (A + B + C)").
+        const altLabel = {
+          alternativeIndex: altPosition + 1,
+          alternativeItems: (alt.items || []).map((it) => it.name),
+        };
         const checkDev = (
           nutrient: "calories" | "protein" | "carbs" | "fat",
           codeStr: string,
@@ -422,7 +461,14 @@ export function validateDietPlan(
           if (mainVal > 0) {
             const diff = altVal - mainVal;
             const pct = Math.round((diff / mainVal) * 100);
-            if (Math.abs(pct) > 5) {
+            if (
+              isAlternativeDeviationRelevant(
+                nutrient,
+                pct,
+                diff,
+                options?.tolerances,
+              )
+            ) {
               issues.push({
                 level: "warning",
                 code: codeStr,
@@ -430,6 +476,7 @@ export function validateDietPlan(
                 details: {
                   mealName: meal.mealName,
                   alternativeName: alt.name,
+                  ...altLabel,
                   nutrient,
                   mainValue: mainVal,
                   alternativeValue: altVal,
@@ -450,6 +497,7 @@ export function validateDietPlan(
                 details: {
                   mealName: meal.mealName,
                   alternativeName: alt.name,
+                  ...altLabel,
                   nutrient,
                   mainValue: mainVal,
                   alternativeValue: altVal,
@@ -1166,7 +1214,8 @@ export const generateAlgorithmicDietPlan = (
 
   // Safety net: filter any remaining clinical incompatibilities
   applyExclusion(
-    (f) => evaluateFoodCompatibility(f, unifiedContext).status !== "incompatible",
+    (f) =>
+      evaluateFoodCompatibility(f, unifiedContext).status !== "incompatible",
     "EXCLUDE_CLINICALLY_INCOMPATIBLE",
     i18next.t(
       "diet.log_exclude_incompatible",
@@ -1180,16 +1229,80 @@ export const generateAlgorithmicDietPlan = (
     0,
   );
 
+  // A3: share of the food's energy that comes from the role's nutrient.
+  const ROLE_MIN_SHARE: Record<"P" | "C" | "F", number> = {
+    P: 0.25,
+    C: 0.45,
+    F: 0.6,
+  };
+  const roleShare = (food: Food, role: "P" | "C" | "F"): number => {
+    const kcal =
+      (food.protein || 0) * 4 + (food.carbs || 0) * 4 + (food.fat || 0) * 9;
+    if (kcal <= 0) return 0;
+    const part =
+      role === "P"
+        ? (food.protein || 0) * 4
+        : role === "C"
+          ? (food.carbs || 0) * 4
+          : (food.fat || 0) * 9;
+    return part / kcal;
+  };
   const generatedMeals: Meal[] = [];
+  const dayPlanned = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  const dayActual = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  // Per-item sodium ceiling for sodium-restricted patients. The catalog
+  // filters limit sodium per 100 g; a large portion of an accepted food could
+  // still exceed the per-item contract of the acceptance personas (renal
+  // < 350 mg, hypertension <= 400 mg). The portion is capped instead.
+  const isRenalContext =
+    unifiedContext.clinicalTags.includes("renal_ckd") ||
+    unifiedContext.restrictions.includes("renal");
+  const isHypertensiveContext =
+    unifiedContext.clinicalTags.includes("hypertension") ||
+    unifiedContext.restrictions.includes("hypertension");
+  const ITEM_SODIUM_CAP_MG = isRenalContext
+    ? 300
+    : isHypertensiveContext
+      ? 400
+      : Number.POSITIVE_INFINITY;
+  const capPortionBySodium = (food: Food, grams: number): number => {
+    const perGram = (food.sodium || 0) / (Number(food.portion) || 100);
+    if (!Number.isFinite(ITEM_SODIUM_CAP_MG) || perGram <= 0) return grams;
+    return Math.max(
+      1,
+      Math.min(grams, Math.floor(ITEM_SODIUM_CAP_MG / perGram)),
+    );
+  };
+  // A2: variety — a food may appear at most MAX_SAME_FOOD_PER_DAY times in
+  // the main options of the day (alternatives are not counted).
+  const MAX_SAME_FOOD_PER_DAY = 2;
+  const mainUsage = new Map<string, number>();
+  const overusedIds = () =>
+    [...mainUsage.entries()]
+      .filter(([, n]) => n >= MAX_SAME_FOOD_PER_DAY)
+      .map(([id]) => id);
 
   for (const mealConfig of mealPlanConfig.meals) {
     const normalizedPercentage =
       (mealConfig.caloriePercentage / totalMealPercentage) * 100;
     const factor = normalizedPercentage / 100;
-    const mealTargetCalories = nutritionalTargets.calories * factor;
-    const mealProtein = nutritionalTargets.protein * factor;
-    const mealCarbs = nutritionalTargets.carbs * factor;
-    const mealFat = nutritionalTargets.fat * factor;
+    // A3: error diffusion — each meal also absorbs what the previous main
+    // options missed (or exceeded), within 0.6–1.6× of its own share, so the
+    // day's totals converge to the targets.
+    const plannedShare = (key: "calories" | "protein" | "carbs" | "fat") =>
+      nutritionalTargets[key] * factor;
+    const carried = (key: "calories" | "protein" | "carbs" | "fat") => {
+      const base = plannedShare(key);
+      const adjusted = base + (dayPlanned[key] - dayActual[key]);
+      return Math.min(base * 1.6, Math.max(base * 0.6, adjusted));
+    };
+    const mealTargetCalories = carried("calories");
+    const mealProtein = carried("protein");
+    const mealCarbs = carried("carbs");
+    const mealFat = carried("fat");
+    for (const key of ["calories", "protein", "carbs", "fat"] as const) {
+      dayPlanned[key] += plannedShare(key);
+    }
 
     const archetype = classifyMealArchetype(mealConfig.name, mealConfig.time);
     const archDef = MEAL_ARCHETYPES[archetype];
@@ -1212,9 +1325,12 @@ export const generateAlgorithmicDietPlan = (
             isFoodSuitableForArchetype(f, archetype) &&
             !excludeFoodIds.includes(f.id),
         );
-        if (prefCandidates.length > 0) {
-          const idx = Math.floor(rng() * prefCandidates.length);
-          return prefCandidates[idx];
+        const prefDominant = prefCandidates.filter(
+          (f) => roleShare(f, role) >= ROLE_MIN_SHARE[role],
+        );
+        if (prefDominant.length > 0) {
+          const idx = Math.floor(rng() * prefDominant.length);
+          return prefDominant[idx];
         }
       }
 
@@ -1225,8 +1341,18 @@ export const generateAlgorithmicDietPlan = (
           isFoodSuitableForArchetype(f, archetype) &&
           !excludeFoodIds.includes(f.id),
       );
+      if (candidates.length === 0 && slot) {
+        // 4. A2: the slot's fallback categories, still suitable for the meal
+        candidates = availableFoods.filter(
+          (f) =>
+            slot.fallbackCategories.includes(f.category) &&
+            isFoodSuitableForArchetype(f, archetype) &&
+            !excludeFoodIds.includes(f.id),
+        );
+      }
       if (candidates.length === 0) {
-        // 3. Categories in template + suitable for archetype
+        // 3. Template categories + suitable, allowing an excluded food again
+        // (repetition is preferred over a food atypical for the meal)
         candidates = availableFoods.filter(
           (f) =>
             categories.includes(f.category) &&
@@ -1234,20 +1360,60 @@ export const generateAlgorithmicDietPlan = (
         );
       }
       if (candidates.length === 0) {
-        // 4. Fallback to any food in template categories (for small/custom catalogs)
-        candidates = availableFoods.filter((f) => categories.includes(f.category));
+        // 5. A2: any food allowed for this meal type (e.g. nuts or fruit as
+        // the protein slot of a vegan breakfast) — never a forbidden one.
+        candidates = availableFoods.filter(
+          (f) =>
+            isFoodSuitableForArchetype(f, archetype) &&
+            !excludeFoodIds.includes(f.id),
+        );
+      }
+      if (candidates.length === 0) {
+        // 6. Last resort (tiny custom catalogs only): template categories,
+        // recorded in the decision log so the professional sees it.
+        candidates = availableFoods.filter((f) =>
+          categories.includes(f.category),
+        );
+        if (candidates.length > 0) {
+          decisionLog.push({
+            code: "ARCHETYPE_FALLBACK",
+            type: "warning",
+            reason: i18next.t("diet.log_archetype_fallback", {
+              meal: mealConfig.name,
+              defaultValue: `Catálogo insuficiente para a refeição "${mealConfig.name}": foi usado um alimento fora do padrão desta refeição.`,
+            }),
+            affectedCount: candidates.length,
+          } as DecisionEntry);
+        }
       }
       if (candidates.length === 0) {
         const roleName =
-          role === "P" ? "Proteínas" : role === "C" ? "Carboidratos" : "Gorduras";
+          role === "P"
+            ? "Proteínas"
+            : role === "C"
+              ? "Carboidratos"
+              : "Gorduras";
         throw new InfeasiblePlanError(
           `Catálogo esgotado: nenhum alimento compatível para ${roleName} (${categories.join(", ")}) na refeição "${mealConfig.name}" após aplicar as restrições selecionadas.`,
           "CATALOG_EXHAUSTED",
-          { role, categories, mealName: mealConfig.name, restrictions, clinicalTags, mode },
+          {
+            role,
+            categories,
+            mealName: mealConfig.name,
+            restrictions,
+            clinicalTags,
+            mode,
+          },
         );
       }
-      const idx = Math.floor(rng() * candidates.length);
-      return candidates[idx];
+      // A3: prefer foods where the role's nutrient dominates (a "protein"
+      // that is mostly fat, like heavy cream, makes the meal unsolvable).
+      const dominant = candidates.filter(
+        (f) => roleShare(f, role) >= ROLE_MIN_SHARE[role],
+      );
+      const pool = dominant.length > 0 ? dominant : candidates;
+      const idx = Math.floor(rng() * pool.length);
+      return pool[idx];
     };
 
     const calculateStats = (food: Food, portionGrams: number) => {
@@ -1343,6 +1509,13 @@ export const generateAlgorithmicDietPlan = (
       return item;
     };
 
+    /**
+     * A3 — joint portion solver. Finds the three portions (grams) that best
+     * match the meal's protein, carbs, fat and calories at the same time,
+     * each within its culinary bounds (getPortionBoundaries). Projected
+     * coordinate descent on a weighted least-squares objective; errors are
+     * relative to each target so no nutrient dominates by scale.
+     */
     const solvePortions = (
       pFood: Food,
       cFood: Food,
@@ -1352,61 +1525,70 @@ export const generateAlgorithmicDietPlan = (
       targetC: number,
       targetF: number,
     ): { pPortion: number; cPortion: number; fPortion: number } => {
-      let pGrams = pFood.protein > 0 ? (targetP / pFood.protein) * (Number(pFood.portion) || 100) : 100;
-      let cGrams = cFood.carbs > 0 ? (targetC / cFood.carbs) * (Number(cFood.portion) || 100) : 100;
-      let fGrams = fFood.fat > 0 ? (targetF / fFood.fat) * (Number(fFood.portion) || 100) : 15;
-
-      pGrams = clampPortion(pFood, pGrams);
-      cGrams = clampPortion(cFood, cGrams);
-      fGrams = clampPortion(fFood, fGrams);
-
-      const currentStats = (p: number, c: number, f: number) =>
-        calculateStats(pFood, p).calories +
-        calculateStats(cFood, c).calories +
-        calculateStats(fFood, f).calories;
-
-      for (let iter = 0; iter < 3; iter++) {
-        const currentCals = currentStats(pGrams, cGrams, fGrams);
-        const calGap = targetCalories - currentCals;
-        if (Math.abs(calGap) <= 12) break;
-
-        const cCalPerGram = Math.max(0.5, (cFood.calories || 100) / (Number(cFood.portion) || 100));
-        const pCalPerGram = Math.max(0.5, (pFood.calories || 100) / (Number(pFood.portion) || 100));
-
-        const nextC = clampPortion(cFood, cGrams + (calGap * 0.6) / cCalPerGram);
-        const nextP = clampPortion(pFood, pGrams + (calGap * 0.4) / pCalPerGram);
-
-        if (nextC === cGrams && nextP === pGrams) {
-          const bC = getPortionBoundaries(cFood);
-          const bP = getPortionBoundaries(pFood);
-          if (calGap > 0) {
-            if (cGrams < bC.maxGrams) {
-              const addC = Math.min(bC.maxGrams - cGrams, Math.round(calGap / cCalPerGram));
-              cGrams += addC;
-            } else if (pGrams < bP.maxGrams) {
-              const addP = Math.min(bP.maxGrams - pGrams, Math.round(calGap / pCalPerGram));
-              pGrams += addP;
+      const foods = [pFood, cFood, fFood];
+      const perGram = foods.map((food) => {
+        const base = Number(food.portion) || 100;
+        return [
+          (food.protein || 0) / base,
+          (food.carbs || 0) / base,
+          (food.fat || 0) / base,
+          (food.calories || 0) / base,
+        ];
+      });
+      const targets = [targetP, targetC, targetF, targetCalories];
+      const weights = [
+        1 / Math.max(targetP, 5) ** 2,
+        1 / Math.max(targetC, 5) ** 2,
+        1 / Math.max(targetF, 3) ** 2,
+        2 / Math.max(targetCalories, 50) ** 2,
+      ];
+      const bounds = foods.map((food) => getPortionBoundaries(food));
+      const x = foods.map((food, i) => {
+        const main = i === 0 ? food.protein : i === 1 ? food.carbs : food.fat;
+        const share = i === 0 ? targetP : i === 1 ? targetC : targetF;
+        const guess =
+          main > 0
+            ? (share / main) * (Number(food.portion) || 100)
+            : bounds[i].minGrams;
+        return Math.min(
+          bounds[i].maxGrams,
+          Math.max(bounds[i].minGrams, guess),
+        );
+      });
+      // The added-fat source may go below its culinary minimum (down to 0):
+      // when the protein and carb foods already bring the meal's fat, it is
+      // left out instead of forcing extra fat (diagnóstico nº 4).
+      const lower = [bounds[0].minGrams, bounds[1].minGrams, 0];
+      const optimize = (free: number[], iterations: number) => {
+        for (let iter = 0; iter < iterations; iter++) {
+          for (const i of free) {
+            let grad = 0;
+            let curv = 0;
+            for (let k = 0; k < 4; k++) {
+              const total = perGram.reduce(
+                (acc, row, j) => acc + row[k] * x[j],
+                0,
+              );
+              grad += weights[k] * perGram[i][k] * (total - targets[k]);
+              curv += weights[k] * perGram[i][k] ** 2;
             }
-          } else {
-            if (cGrams > bC.minGrams) {
-              const remC = Math.min(cGrams - bC.minGrams, Math.round(Math.abs(calGap) / cCalPerGram));
-              cGrams -= remC;
-            } else if (pGrams > bP.minGrams) {
-              const remP = Math.min(pGrams - bP.minGrams, Math.round(Math.abs(calGap) / pCalPerGram));
-              pGrams -= remP;
-            }
+            if (curv <= 0) continue;
+            x[i] = Math.min(
+              bounds[i].maxGrams,
+              Math.max(lower[i], x[i] - grad / curv),
+            );
           }
-          break;
         }
-
-        cGrams = nextC;
-        pGrams = nextP;
+      };
+      optimize([0, 1, 2], 60);
+      if (x[2] < bounds[2].minGrams) {
+        x[2] = x[2] < bounds[2].minGrams / 2 ? 0 : bounds[2].minGrams;
+        optimize([0, 1], 40);
       }
-
       return {
-        pPortion: Math.round(pGrams),
-        cPortion: Math.round(cGrams),
-        fPortion: Math.round(fGrams),
+        pPortion: clampPortion(pFood, Math.round(x[0])),
+        cPortion: clampPortion(cFood, Math.round(x[1])),
+        fPortion: x[2] > 0 ? clampPortion(fFood, Math.round(x[2])) : 0,
       };
     };
 
@@ -1414,73 +1596,52 @@ export const generateAlgorithmicDietPlan = (
       pFood: Food,
       cFood: Food,
       fFood: Food,
-      portions: { pPortion: number; cPortion: number; fPortion: number },
+      solvedPortions: { pPortion: number; cPortion: number; fPortion: number },
+      complement?: { food: Food; grams: number } | null,
     ): MealOption => {
-      const pS = calculateStats(pFood, portions.pPortion);
-      const cS = calculateStats(cFood, portions.cPortion);
-      const fS = calculateStats(fFood, portions.fPortion);
+      // A3: a portion of 0 means the food was left out (optional fat source);
+      // `complement` is a side (e.g. beans, vegetables, fruit) added when the
+      // three main foods cannot reach the meal's energy within their bounds.
+      const parts = (
+        [
+          [pFood, solvedPortions.pPortion],
+          [cFood, solvedPortions.cPortion],
+          [fFood, solvedPortions.fPortion],
+          ...(complement ? [[complement.food, complement.grams]] : []),
+        ] as [Food, number][]
+      )
+        .filter(([, grams]) => grams > 0)
+        .map(([food, grams]) => {
+          const portion = capPortionBySodium(food, grams);
+          return { food, portion, stats: calculateStats(food, portion) };
+        });
 
-      const items: MealOptionItem[] = [
-        createItem(pFood, portions.pPortion, pS),
-        createItem(cFood, portions.cPortion, cS),
-        createItem(fFood, portions.fPortion, fS),
-      ];
+      const items: MealOptionItem[] = parts.map((part) =>
+        createItem(part.food, part.portion, part.stats),
+      );
 
       const andStr = i18next.t("diet.and", "e");
+      const joinList = (values: string[]) =>
+        values.length <= 1
+          ? values.join("")
+          : `${values.slice(0, -1).join(", ")} ${andStr} ${values[values.length - 1]}`;
+      const sumMicro = (key: keyof Micronutrients) =>
+        parts.reduce(
+          (acc, part) =>
+            acc + ((part.stats.micros?.[key] as number | undefined) ?? 0),
+          0,
+        );
+      const hasMicro = (key: keyof Micronutrients) =>
+        parts.some((part) => part.stats.micros?.[key] != null);
 
       const optionMicros: Micronutrients = {
-        fiber: parseFloat(
-          (
-            (pS.micros?.fiber ?? 0) +
-            (cS.micros?.fiber ?? 0) +
-            (fS.micros?.fiber ?? 0)
-          ).toFixed(1),
-        ),
-        sodium:
-          (pS.micros?.sodium ?? 0) +
-          (cS.micros?.sodium ?? 0) +
-          (fS.micros?.sodium ?? 0),
+        fiber: parseFloat(sumMicro("fiber").toFixed(1)),
+        sodium: sumMicro("sodium"),
       };
-
-      if (
-        pS.micros?.iron != null ||
-        cS.micros?.iron != null ||
-        fS.micros?.iron != null
-      ) {
-        optionMicros.iron = parseFloat(
-          (
-            (pS.micros?.iron ?? 0) +
-            (cS.micros?.iron ?? 0) +
-            (fS.micros?.iron ?? 0)
-          ).toFixed(1),
-        );
-      }
-
-      if (
-        pS.micros?.calcium != null ||
-        cS.micros?.calcium != null ||
-        fS.micros?.calcium != null
-      ) {
-        optionMicros.calcium =
-          (pS.micros?.calcium ?? 0) +
-          (cS.micros?.calcium ?? 0) +
-          (fS.micros?.calcium ?? 0);
-      }
-
-      if (
-        pS.micros?.vitaminC != null ||
-        cS.micros?.vitaminC != null ||
-        fS.micros?.vitaminC != null
-      ) {
-        optionMicros.vitaminC =
-          (pS.micros?.vitaminC ?? 0) +
-          (cS.micros?.vitaminC ?? 0) +
-          (fS.micros?.vitaminC ?? 0);
-      }
-
-      const householdP = formatHouseholdMeasure(pFood, portions.pPortion);
-      const householdC = formatHouseholdMeasure(cFood, portions.cPortion);
-      const householdF = formatHouseholdMeasure(fFood, portions.fPortion);
+      if (hasMicro("iron"))
+        optionMicros.iron = parseFloat(sumMicro("iron").toFixed(1));
+      if (hasMicro("calcium")) optionMicros.calcium = sumMicro("calcium");
+      if (hasMicro("vitaminC")) optionMicros.vitaminC = sumMicro("vitaminC");
 
       const prepDesc =
         (i18next.language === "en"
@@ -1488,23 +1649,71 @@ export const generateAlgorithmicDietPlan = (
           : archDef.defaultPreparationDesc.pt) ||
         archDef.defaultPreparationDesc.pt;
 
+      const sum = (key: "calories" | "protein" | "carbs" | "fat") =>
+        parts.reduce((acc, part) => acc + part.stats[key], 0);
+
       return {
-        name: `${getFoodName(pFood)}, ${getFoodName(cFood)} ${andStr} ${getFoodName(fFood)}`,
-        portion: `${householdP}, ${householdC} ${andStr} ${householdF}`,
-        calories: pS.calories + cS.calories + fS.calories,
-        protein: parseFloat((pS.protein + cS.protein + fS.protein).toFixed(1)),
-        carbs: parseFloat((pS.carbs + cS.carbs + fS.carbs).toFixed(1)),
-        fat: parseFloat((pS.fat + cS.fat + fS.fat).toFixed(1)),
+        name: joinList(parts.map((part) => getFoodName(part.food))),
+        portion: joinList(
+          parts.map((part) => formatHouseholdMeasure(part.food, part.portion)),
+        ),
+        calories: sum("calories"),
+        protein: parseFloat(sum("protein").toFixed(1)),
+        carbs: parseFloat(sum("carbs").toFixed(1)),
+        fat: parseFloat(sum("fat").toFixed(1)),
         items,
         details: prepDesc,
         micros: optionMicros,
       };
     };
 
-    // Main option selection and joint sizing
-    const proteinSource = selectFoodForRole("P", template.P);
-    const carbSource = selectFoodForRole("C", template.C);
-    const fatSource = selectFoodForRole("F", template.F);
+    // A3: side dish that fills an energy gap the three main foods cannot
+    // close within their culinary bounds (lunch/dinner: legumes, then
+    // vegetables; light meals: fruit, then cereals).
+    const COMPLEMENT_CATEGORIES =
+      archetype === "lunch" || archetype === "dinner"
+        ? ["Leguminosas", "Verduras e Legumes"]
+        : ["Frutas", "Cereais e Derivados"];
+    const pickComplement = (
+      gapKcal: number,
+      targetKcal: number,
+      usedIds: string[],
+    ): { food: Food; grams: number } | null => {
+      if (gapKcal <= targetKcal * 0.08) return null;
+      for (const cat of COMPLEMENT_CATEGORIES) {
+        const pool = availableFoods.filter(
+          (f) =>
+            f.category === cat &&
+            isFoodSuitableForArchetype(f, archetype) &&
+            !usedIds.includes(f.id) &&
+            (f.calories || 0) > 0,
+        );
+        if (pool.length === 0) continue;
+        const food = pool[Math.floor(rng() * pool.length)];
+        const kcalPerGram =
+          (food.calories || 0) / (Number(food.portion) || 100);
+        const grams = clampPortion(food, Math.round(gapKcal / kcalPerGram));
+        return grams > 0 ? { food, grams } : null;
+      }
+      return null;
+    };
+
+    // Main option selection and joint sizing (A2: skip foods already used
+    // MAX_SAME_FOOD_PER_DAY times in today's main options when possible)
+    // (and never the same food in two roles of one option).
+    const proteinSource = selectFoodForRole("P", template.P, overusedIds());
+    const carbSource = selectFoodForRole("C", template.C, [
+      ...overusedIds(),
+      proteinSource.id,
+    ]);
+    const fatSource = selectFoodForRole("F", template.F, [
+      ...overusedIds(),
+      proteinSource.id,
+      carbSource.id,
+    ]);
+    for (const f of [proteinSource, carbSource, fatSource]) {
+      mainUsage.set(f.id, (mainUsage.get(f.id) ?? 0) + 1);
+    }
 
     const mainPortions = solvePortions(
       proteinSource,
@@ -1516,14 +1725,71 @@ export const generateAlgorithmicDietPlan = (
       mealFat,
     );
 
-    const main = buildOption(proteinSource, carbSource, fatSource, mainPortions);
+    const mainBase = buildOption(
+      proteinSource,
+      carbSource,
+      fatSource,
+      mainPortions,
+    );
+    const mainComplement = pickComplement(
+      mealTargetCalories - mainBase.calories,
+      mealTargetCalories,
+      [...overusedIds(), proteinSource.id, carbSource.id, fatSource.id],
+    );
+    // With a side, the three main foods are re-solved for what is left after
+    // the side's own nutrients, so it replaces part of the base instead of
+    // adding on top of it.
+    const resolveWithComplement = (
+      foods: [Food, Food, Food],
+      complement: { food: Food; grams: number },
+      target: { calories: number; protein: number; carbs: number; fat: number },
+    ) => {
+      const c = calculateStats(complement.food, complement.grams);
+      return solvePortions(
+        foods[0],
+        foods[1],
+        foods[2],
+        Math.max(0, target.calories - c.calories),
+        Math.max(0, target.protein - c.protein),
+        Math.max(0, target.carbs - c.carbs),
+        Math.max(0, target.fat - c.fat),
+      );
+    };
+    const main = mainComplement
+      ? buildOption(
+          proteinSource,
+          carbSource,
+          fatSource,
+          resolveWithComplement(
+            [proteinSource, carbSource, fatSource],
+            mainComplement,
+            {
+              calories: mealTargetCalories,
+              protein: mealProtein,
+              carbs: mealCarbs,
+              fat: mealFat,
+            },
+          ),
+          mainComplement,
+        )
+      : mainBase;
+    if (mainComplement) {
+      mainUsage.set(
+        mainComplement.food.id,
+        (mainUsage.get(mainComplement.food.id) ?? 0) + 1,
+      );
+    }
+    dayActual.calories += main.calories;
+    dayActual.protein += main.protein;
+    dayActual.carbs += main.carbs;
+    dayActual.fat += main.fat;
 
     // Alternatives generation with functional substitution and auto-correction loop
     const createAlternative = (
       usedPIds: string[],
       usedCIds: string[],
       usedFIds: string[],
-    ): MealOption => {
+    ): MealOption | null => {
       let bestOption: MealOption | null = null;
       let minDivergence = Infinity;
 
@@ -1533,8 +1799,15 @@ export const generateAlgorithmicDietPlan = (
 
       for (let attempt = 0; attempt < 3; attempt++) {
         const altProtein = selectFoodForRole("P", template.P, currentUsedP);
-        const altCarb = selectFoodForRole("C", template.C, currentUsedC);
-        const altFat = selectFoodForRole("F", template.F, currentUsedF);
+        const altCarb = selectFoodForRole("C", template.C, [
+          ...currentUsedC,
+          altProtein.id,
+        ]);
+        const altFat = selectFoodForRole("F", template.F, [
+          ...currentUsedF,
+          altProtein.id,
+          altCarb.id,
+        ]);
 
         let altPortions = solvePortions(
           altProtein,
@@ -1546,21 +1819,59 @@ export const generateAlgorithmicDietPlan = (
           main.fat,
         );
 
-        let option = buildOption(altProtein, altCarb, altFat, altPortions);
+        const altIds = [altProtein.id, altCarb.id, altFat.id];
+        let complement = pickComplement(
+          main.calories -
+            buildOption(altProtein, altCarb, altFat, altPortions).calories,
+          main.calories,
+          altIds,
+        );
+        if (complement) {
+          altPortions = resolveWithComplement(
+            [altProtein, altCarb, altFat],
+            complement,
+            main,
+          );
+        }
+        let option = buildOption(
+          altProtein,
+          altCarb,
+          altFat,
+          altPortions,
+          complement,
+        );
         let divergence =
-          Math.abs(option.calories - main.calories) / Math.max(1, main.calories);
+          Math.abs(option.calories - main.calories) /
+          Math.max(1, main.calories);
 
         // Auto-correction loop: fine-tune scaling if divergence is noticeable
-        if (divergence > 0.10 && option.calories > 0) {
+        if (divergence > 0.1 && option.calories > 0) {
           const scale = main.calories / option.calories;
           altPortions = {
             pPortion: clampPortion(altProtein, altPortions.pPortion * scale),
             cPortion: clampPortion(altCarb, altPortions.cPortion * scale),
-            fPortion: clampPortion(altFat, altPortions.fPortion * scale),
+            // an omitted fat source (0 g) stays omitted
+            fPortion:
+              altPortions.fPortion > 0
+                ? clampPortion(altFat, altPortions.fPortion * scale)
+                : 0,
           };
-          option = buildOption(altProtein, altCarb, altFat, altPortions);
+          complement = pickComplement(
+            main.calories -
+              buildOption(altProtein, altCarb, altFat, altPortions).calories,
+            main.calories,
+            altIds,
+          );
+          option = buildOption(
+            altProtein,
+            altCarb,
+            altFat,
+            altPortions,
+            complement,
+          );
           divergence =
-            Math.abs(option.calories - main.calories) / Math.max(1, main.calories);
+            Math.abs(option.calories - main.calories) /
+            Math.max(1, main.calories);
         }
 
         if (divergence < minDivergence) {
@@ -1568,7 +1879,7 @@ export const generateAlgorithmicDietPlan = (
           bestOption = option;
         }
 
-        if (divergence <= 0.20) {
+        if (divergence <= 0.2) {
           return option;
         }
 
@@ -1577,7 +1888,9 @@ export const generateAlgorithmicDietPlan = (
         currentUsedF.push(altFat.id);
       }
 
-      return bestOption!;
+      // A4: an alternative that is not equivalent (> 20% kcal) is dropped
+      // instead of being presented next to the main option.
+      return minDivergence <= 0.2 ? bestOption : null;
     };
 
     const alt1 = createAlternative(
@@ -1585,10 +1898,11 @@ export const generateAlgorithmicDietPlan = (
       [carbSource.id],
       [fatSource.id],
     );
+    const alt1Ids = (alt1?.items ?? []).map((item) => item.foodId || "");
     const alt2 = createAlternative(
-      [proteinSource.id, alt1.items?.[0]?.foodId || ""],
-      [carbSource.id, alt1.items?.[1]?.foodId || ""],
-      [fatSource.id, alt1.items?.[2]?.foodId || ""],
+      [proteinSource.id, ...alt1Ids],
+      [carbSource.id, ...alt1Ids],
+      [fatSource.id, ...alt1Ids],
     );
 
     generatedMeals.push({
@@ -1600,7 +1914,9 @@ export const generateAlgorithmicDietPlan = (
       fat: main.fat,
       micros: main.micros,
       mainOption: main,
-      alternatives: [alt1, alt2],
+      alternatives: [alt1, alt2].filter(
+        (alt): alt is MealOption => alt !== null,
+      ),
     });
   }
 

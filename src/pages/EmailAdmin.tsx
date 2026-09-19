@@ -6,9 +6,10 @@ import { usePatientDirectory } from "../hooks/usePatientDirectory";
 import { sendDietEmail, isEmailConfigured } from "../services/emailService";
 import {
   CheckCircleIcon,
-  XCircleIcon,
-  PaperAirplaneIcon,
+  CloseIcon,
   InformationCircleIcon,
+  PaperAirplaneIcon,
+  XCircleIcon,
 } from "../components/icons";
 import type { EmailLog, AnyDietPlan } from "../types";
 import { PageHeader, Card, Button } from "../components/ui";
@@ -152,10 +153,12 @@ const EmailAdmin: React.FC = () => {
           <XCircleIcon className="w-5 h-5 shrink-0" />
           <span>{loadError}</span>
           <button
+            type="button"
             onClick={() => setLoadError(null)}
-            className="ml-auto font-bold hover:text-rose-900"
+            aria-label={t("a11y.dismiss")}
+            className="ml-auto rounded p-1 hover:text-rose-900 focus-ring"
           >
-            ✕
+            <CloseIcon aria-hidden="true" className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -270,7 +273,7 @@ const EmailAdmin: React.FC = () => {
           <h2 className="text-lg font-bold text-slate-900 dark:text-white p-6 pb-4">
             {t("email_admin.history_title")}
           </h2>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto relative">
             <table className="min-w-full">
               <thead>
                 <tr className="border-y border-slate-100 dark:border-slate-800">

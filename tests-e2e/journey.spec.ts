@@ -181,8 +181,9 @@ test.describe("Professional Journey (Nutri E2E Flow)", () => {
     await expect(
       viewerContent.getByText(`${expectedMealKcal} kcal`).first(),
     ).toBeVisible();
+    // Portion shown with its unit and household measure (g or ml, A5)
     await expect(
-      viewerContent.getByText(`${newGrams}g`, { exact: true }).first(),
+      viewerContent.getByText(new RegExp(`^${newGrams}\\s?(g|ml)\\b`)).first(),
     ).toBeVisible();
     await expect(
       viewerContent
@@ -220,5 +221,7 @@ test.describe("Professional Journey (Nutri E2E Flow)", () => {
     const pdfContent = pdfBuffer.toString("binary");
     expect(pdfContent).toMatch(/Ana|Silva|Storm|Clara/i);
     expect(pdfContent).toContain(`${expectedMealKcal} kcal`);
+    // A6: the approved plan carries the professional stamp with the CRN
+    expect(pdfContent).toContain("CRN-3 00000");
   });
 });

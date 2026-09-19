@@ -14,6 +14,7 @@ import {
   validateDietPlan,
 } from "../services/dietAlgorithmService";
 import {
+  ApprovalCredentialsError,
   DietReviewOutdatedError,
   recalculateDietTotals,
   validateAndSerializeDietPlan,
@@ -386,7 +387,7 @@ const DietGenerator: React.FC = () => {
         foodAllergies: selectedPatient.foodAllergies,
         mode: formData.mode || selectedPatient.mode || "general",
         clinicalTags:
-          (formData.clinicalTags && formData.clinicalTags.length > 0)
+          formData.clinicalTags && formData.clinicalTags.length > 0
             ? formData.clinicalTags
             : selectedPatient.clinicalTags || [],
       });
@@ -511,6 +512,8 @@ const DietGenerator: React.FC = () => {
   const handleSave = async (options?: {
     allowApprovedReview: boolean;
     reviewedSignature?: string;
+    approverName?: string;
+    approverCrn?: string;
   }) => {
     if (saving || !generatedPlan || !currentUser) return;
     if (generatedPlan.validation?.status === "infeasible") {
@@ -527,6 +530,8 @@ const DietGenerator: React.FC = () => {
               allowApprovedReview: true,
               approvedByUid: currentUser.uid,
               reviewedSignature: options.reviewedSignature,
+              approverName: options.approverName,
+              approverCrn: options.approverCrn,
             }
           : {}),
       };
@@ -545,6 +550,10 @@ const DietGenerator: React.FC = () => {
       setSaveSuccess(true);
       setResultFocusKey((k) => k + 1);
     } catch (err) {
+      if (err instanceof ApprovalCredentialsError) {
+        setApiError(t("diet_generator.approval_credentials_required"));
+        return;
+      }
       if (err instanceof DietReviewOutdatedError) {
         // The reviewed version is not the one being saved: show the current
         // alerts and ask for a new explicit decision.

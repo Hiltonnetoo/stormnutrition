@@ -18,7 +18,7 @@ export const ChartDataTable: React.FC<{
       <summary className="cursor-pointer select-none rounded-lg px-1 py-0.5 text-xs font-semibold text-slate-600 hover:text-slate-800 dark:text-slate-300">
         {t("a11y.show_data_table")}
       </summary>
-      <div className="mt-2 overflow-x-auto">
+      <div className="mt-2 overflow-x-auto relative">
         <table className="min-w-full text-left text-xs">
           <caption className="sr-only">{caption}</caption>
           <thead>

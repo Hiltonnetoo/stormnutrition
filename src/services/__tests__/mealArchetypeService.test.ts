@@ -50,9 +50,13 @@ describe("mealArchetypeService", () => {
 
     it("uses time of day as fallback when name is generic", () => {
       expect(classifyMealArchetype("Refeição 1", "07:30")).toBe("breakfast");
-      expect(classifyMealArchetype("Refeição 2", "10:30")).toBe("morning_snack");
+      expect(classifyMealArchetype("Refeição 2", "10:30")).toBe(
+        "morning_snack",
+      );
       expect(classifyMealArchetype("Refeição 3", "13:00")).toBe("lunch");
-      expect(classifyMealArchetype("Refeição 4", "16:30")).toBe("afternoon_snack");
+      expect(classifyMealArchetype("Refeição 4", "16:30")).toBe(
+        "afternoon_snack",
+      );
       expect(classifyMealArchetype("Refeição 5", "20:00")).toBe("dinner");
       expect(classifyMealArchetype("Refeição 6", "22:30")).toBe("supper");
     });
@@ -97,7 +101,9 @@ describe("mealArchetypeService", () => {
         category: "Frutas",
       });
 
-      expect(isFoodSuitableForArchetype(tilapia, "afternoon_snack")).toBe(false);
+      expect(isFoodSuitableForArchetype(tilapia, "afternoon_snack")).toBe(
+        false,
+      );
       expect(isFoodSuitableForArchetype(iogurte, "afternoon_snack")).toBe(true);
       expect(isFoodSuitableForArchetype(banana, "afternoon_snack")).toBe(true);
     });

@@ -6,15 +6,18 @@ import {
   DownloadIcon,
   AlertTriangleIcon,
   BrainIcon,
-  XCircleIcon,
-  CheckCircleIcon,
-  ShieldIcon,
   EditIcon,
 } from "../icons";
 import ClinicalReviewModal from "../modals/ClinicalReviewModal";
 
 const ExportDietModal = lazy(() => import("../modals/ExportDietModal"));
 import MealOptionTable from "../MealOptionTable";
+import ValidationIssuesPanel from "./ValidationIssuesPanel";
+import DietStatusBadge from "./DietStatusBadge";
+import {
+  formatNutrientValue,
+  getSodiumCeiling,
+} from "../../utils/validationPresentation";
 import { Badge, Button, Input, Modal } from "../ui";
 import { useAuth } from "../../contexts/AuthContext";
 import { loadUserState, saveUserState } from "../../utils/localStorage";
@@ -64,6 +67,9 @@ interface DietPlanDisplayProps {
     allowApprovedReview: boolean;
     /** Signature of the version shown in the review dialog (R06). */
     reviewedSignature?: string;
+    /** A6: approving professional. */
+    approverName?: string;
+    approverCrn?: string;
   }) => void;
   /** Recomputes the plan's alerts before the review dialog opens (R06). */
   onBeforeReview?: () => void;
@@ -102,12 +108,14 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
     onBeforeReview?.();
     setIsReviewModalOpen(true);
   };
-  const handleConfirmSave = () => {
+  const handleConfirmSave = (approver: { name: string; crn: string }) => {
     setIsReviewModalOpen(false);
-    // The approval names the version the dialog presented.
+    // The approval names the version the dialog presented and who approved.
     onSave({
       allowApprovedReview: true,
       reviewedSignature: plan.validation?.issuesSignature,
+      approverName: approver.name,
+      approverCrn: approver.crn,
     });
   };
 
@@ -164,7 +172,9 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
     { calories: 0, protein: 0, carbs: 0, fat: 0 },
   );
   const calDiff = Math.abs(mealTotals.calories - plan.dailyCalories);
-  const isDivergent = calDiff > plan.dailyCalories * 0.05;
+  // Same default tolerance as the validator's CALORIE_DEVIATION (±15%), so
+  // the screen does not raise a second, stricter alert of its own (A1).
+  const isDivergent = calDiff > plan.dailyCalories * 0.15;
 
   return (
     <>
@@ -283,47 +293,7 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
           {/* UI09: one badge per state, each with its own tone + icon + text,
               so valid / requires review / infeasible / approved / edited are
               never told apart by color alone. */}
-          {plan.validation ? (
-            <>
-              {plan.status === "blocked" || plan.validation.status === "infeasible" ? (
-                <Badge
-                  tone="danger"
-                  icon={<XCircleIcon className="w-3.5 h-3.5" />}
-                >
-                  {t("diet_generator.display.status_blocked", {
-                    defaultValue: "Bloqueado (Incompatível)",
-                  })}
-                </Badge>
-              ) : plan.status === "clinically_approved" || plan.clinicalApproval || plan.validation.isApproved ? (
-                <Badge
-                  tone="brand"
-                  icon={<ShieldIcon className="w-3.5 h-3.5" />}
-                >
-                  {t("diet_generator.display.status_approved")}
-                </Badge>
-              ) : plan.status === "awaiting_review" || plan.validation.status === "requires_review" ? (
-                <Badge
-                  tone="warning"
-                  icon={<AlertTriangleIcon className="w-3.5 h-3.5" />}
-                >
-                  {t("diet_generator.display.status_requires_review")}
-                </Badge>
-              ) : (
-                <Badge
-                  tone="info"
-                  icon={<CheckCircleIcon className="w-3.5 h-3.5" />}
-                >
-                  {t("diet_generator.display.status_draft", {
-                    defaultValue: "Rascunho (Não Aprovado)",
-                  })}
-                </Badge>
-              )}
-            </>
-          ) : (
-            <Badge tone="neutral">
-              {t("diet_generator.display.status_legacy")}
-            </Badge>
-          )}
+          <DietStatusBadge plan={plan} />
           {plan.isManuallyEdited && (
             <Badge tone="info" icon={<EditIcon className="w-3.5 h-3.5" />}>
               {t("diet_generator.display.status_manually_edited")}
@@ -354,73 +324,11 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
           )}
         </div>
 
-        {/* Clinical Validation Issues: Blockers (Errors) */}
-        {plan.validation?.issues &&
-          plan.validation.issues.filter((i) => i.level === "error").length > 0 && (
-            <div className="mb-4 p-3.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl text-rose-800 dark:text-rose-200 text-xs space-y-2 no-export shadow-sm">
-              <div className="flex items-center gap-2 font-bold text-rose-900 dark:text-rose-100">
-                <XCircleIcon className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
-                <span>
-                  {t(
-                    "diet_generator.display.clinical_blockers_title",
-                    "Bloqueios Clínicos / Inviabilidade",
-                  )}
-                </span>
-              </div>
-              <div className="space-y-1.5 pl-6">
-                {plan.validation.issues
-                  .filter((i) => i.level === "error")
-                  .map((issue, idx) => {
-                    const displayMsg = issue.code
-                      ? t(`diet_validation.issues.${issue.code}`, {
-                          ...issue.details,
-                          defaultValue: issue.message,
-                        })
-                      : issue.message;
-                    return (
-                      <div key={idx} className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
-                        <span className="font-medium">{displayMsg}</span>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-
-        {/* Clinical Validation Issues: Warnings */}
-        {plan.validation?.issues &&
-          plan.validation.issues.filter((i) => i.level !== "error").length > 0 && (
-            <div className="mb-5 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200 text-xs space-y-2 no-export">
-              <div className="flex items-center gap-2 font-semibold text-amber-900 dark:text-amber-100">
-                <AlertTriangleIcon className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <span>
-                  {t(
-                    "diet_generator.display.clinical_warnings_title",
-                    "Avisos e Recomendações Clínicas",
-                  )}
-                </span>
-              </div>
-              <div className="space-y-1.5 pl-6">
-                {plan.validation.issues
-                  .filter((i) => i.level !== "error")
-                  .map((issue, idx) => {
-                    const displayMsg = issue.code
-                      ? t(`diet_validation.issues.${issue.code}`, {
-                          ...issue.details,
-                          defaultValue: issue.message,
-                        })
-                      : issue.message;
-                    return (
-                      <div key={idx} className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                        <span className="font-medium">{displayMsg}</span>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
+        {/* A1: grouped, translated validation issues (one line per alternative) */}
+        <ValidationIssuesPanel
+          issues={plan.validation?.issues}
+          className="mb-5"
+        />
 
         {/* Summary: Prescribed Targets vs Calculated Totals */}
         <div className="bg-sage-50 dark:bg-sage-900/30 p-4 rounded-2xl mb-6 space-y-3">
@@ -434,11 +342,7 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
               </p>
             </div>
             {(() => {
-              const sodiumCeiling = plan.clinicalTags?.includes("renal_ckd")
-                ? 1500
-                : plan.clinicalTags?.includes("hypertension")
-                  ? 2000
-                  : 2300;
+              const sodiumCeiling = getSodiumCeiling(plan.clinicalTags);
               const worstSodium = plan.validation?.worstCaseAlternativeSodium;
               if (worstSodium != null && worstSodium > sodiumCeiling) {
                 return (
@@ -458,16 +362,32 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
             {[
               {
                 label: t("diet_generator.display.calories"),
-                calculated: `${mealTotals.calories.toFixed(0)} kcal`,
-                target: `${(plan.dailyCalories || 0).toFixed(0)} kcal`,
+                calculated: formatNutrientValue(
+                  "calories",
+                  mealTotals.calories,
+                  i18n.language,
+                ),
+                target: formatNutrientValue(
+                  "calories",
+                  plan.dailyCalories || 0,
+                  i18n.language,
+                ),
                 diff: mealTotals.calories - plan.dailyCalories,
               },
               {
                 label: t("diet_generator.display.proteins_pct", {
                   pct: plan.macronutrients?.proteinPercentage || 0,
                 }),
-                calculated: `${mealTotals.protein.toFixed(1)}g`,
-                target: `${(plan.macronutrients?.proteinGrams || 0).toFixed(1)}g`,
+                calculated: formatNutrientValue(
+                  "protein",
+                  mealTotals.protein,
+                  i18n.language,
+                ),
+                target: formatNutrientValue(
+                  "protein",
+                  plan.macronutrients?.proteinGrams || 0,
+                  i18n.language,
+                ),
                 diff:
                   mealTotals.protein - (plan.macronutrients?.proteinGrams || 0),
               },
@@ -475,16 +395,32 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
                 label: t("diet_generator.display.carbs_pct", {
                   pct: plan.macronutrients?.carbsPercentage || 0,
                 }),
-                calculated: `${mealTotals.carbs.toFixed(1)}g`,
-                target: `${(plan.macronutrients?.carbsGrams || 0).toFixed(1)}g`,
+                calculated: formatNutrientValue(
+                  "carbs",
+                  mealTotals.carbs,
+                  i18n.language,
+                ),
+                target: formatNutrientValue(
+                  "carbs",
+                  plan.macronutrients?.carbsGrams || 0,
+                  i18n.language,
+                ),
                 diff: mealTotals.carbs - (plan.macronutrients?.carbsGrams || 0),
               },
               {
                 label: t("diet_generator.display.fats_pct", {
                   pct: plan.macronutrients?.fatPercentage || 0,
                 }),
-                calculated: `${mealTotals.fat.toFixed(1)}g`,
-                target: `${(plan.macronutrients?.fatGrams || 0).toFixed(1)}g`,
+                calculated: formatNutrientValue(
+                  "fat",
+                  mealTotals.fat,
+                  i18n.language,
+                ),
+                target: formatNutrientValue(
+                  "fat",
+                  plan.macronutrients?.fatGrams || 0,
+                  i18n.language,
+                ),
                 diff: mealTotals.fat - (plan.macronutrients?.fatGrams || 0),
               },
             ].map((col) => {

@@ -1,4 +1,5 @@
 import React from "react";
+import { CheckCircleIcon } from "../icons";
 import { useTranslation } from "react-i18next";
 import { ClinicalTag } from "../../types";
 
@@ -68,7 +69,12 @@ const ClinicalTagSelector: React.FC<Props> = ({ selectedTags, onToggle }) => {
                   : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-rose-300"
               }`}
             >
-              {isSelected && <span className="mr-1">✓</span>}
+              {isSelected && (
+                <CheckCircleIcon
+                  aria-hidden="true"
+                  className="mr-1 inline w-3.5 h-3.5 align-[-2px]"
+                />
+              )}
               {tagLabel}
             </button>
           );

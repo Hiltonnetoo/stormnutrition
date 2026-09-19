@@ -108,7 +108,7 @@ export const PortalWeightModal: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 focus-ring"
+            className="btn btn-secondary flex-1"
           >
             {t("patient_portal.weight_modal.cancel_btn")}
           </button>
@@ -116,7 +116,7 @@ export const PortalWeightModal: React.FC<{
             type="submit"
             disabled={isSaving || !newWeight}
             aria-busy={isSaving || undefined}
-            className="flex-1 py-2.5 rounded-xl bg-sage-600 text-white text-sm font-bold hover:bg-sage-700 transition-colors disabled:opacity-50 focus-ring"
+            className="btn btn-primary flex-1"
           >
             {isSaving
               ? t("a11y.saving")

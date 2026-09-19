@@ -217,7 +217,7 @@ const FoodDatabase: React.FC = () => {
       <div className="card overflow-hidden">
         {/* Focusable so keyboard users can scroll the wide table. */}
         <div
-          className="overflow-x-auto focus-ring"
+          className="overflow-x-auto focus-ring relative"
           tabIndex={0}
           role="region"
           aria-label={t("a11y.food_table")}

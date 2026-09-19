@@ -196,6 +196,16 @@ test("UI05/UI09 — template name dialog and plan status badges", async ({
       .first(),
   ).toBeVisible();
 
+  // A1: the warnings panel is grouped, translated and formatted (no raw
+  // placeholders, no English nutrient names, one line per alternative).
+  const panel = page.locator('[data-testid="validation-issues"]');
+  if (await panel.count()) {
+    const text = (await panel.first().innerText()) || "";
+    expect(text).not.toMatch(/\{\{|undefined|NaN/);
+    expect(text).not.toMatch(/\b(protein|carbs|fat)\b/);
+    expect(text).not.toMatch(/\d\.\d{1,2}(?!\d)\s?(g|kcal|%)/);
+  }
+
   // window.prompt is gone: a labelled dialog with validation replaces it.
   let nativeDialog = false;
   page.on("dialog", () => (nativeDialog = true));
