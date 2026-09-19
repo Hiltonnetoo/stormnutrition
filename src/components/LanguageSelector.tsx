@@ -14,7 +14,7 @@ export const LanguageSelector: React.FC = () => {
       <button
         type="button"
         onClick={() => toggleLanguage("en")}
-        className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+        className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
           currentLanguage.startsWith("en")
             ? "bg-white dark:bg-slate-750 text-sage-700 dark:text-sage-400 shadow-sm"
             : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
@@ -25,7 +25,7 @@ export const LanguageSelector: React.FC = () => {
       <button
         type="button"
         onClick={() => toggleLanguage("pt")}
-        className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+        className={`px-2.5 py-1 text-xs font-bold rounded-md transition-all cursor-pointer ${
           currentLanguage.startsWith("pt")
             ? "bg-white dark:bg-slate-750 text-sage-700 dark:text-sage-400 shadow-sm"
             : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"

@@ -55,7 +55,7 @@ export const ClinicalContextCard: React.FC<ClinicalContextCardProps> = ({
                 return (
                   <span
                     key={tag}
-                    className="px-2 py-1 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-[11px] font-bold uppercase rounded border border-rose-100 dark:border-rose-800"
+                    className="px-2 py-1 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-xs font-bold uppercase rounded border border-rose-100 dark:border-rose-800"
                   >
                     {translatedTag}
                   </span>

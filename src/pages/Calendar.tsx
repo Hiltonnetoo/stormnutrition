@@ -180,7 +180,7 @@ const AppointmentModal: React.FC<ApptModalProps> = ({
               aria-describedby={patientError ? ids.patientError : undefined}
               value={patientId}
               onChange={handlePatientChange}
-              className={`${fieldClass} ${patientError ? "!border-rose-400" : ""}`}
+              className={`${fieldClass} ${patientError ? "border-rose-400" : ""}`}
             >
               <option value="">
                 {t("calendar.select_patient_placeholder")}
@@ -301,6 +301,20 @@ const Calendar: React.FC = () => {
     new Date(today.getFullYear(), today.getMonth(), 1),
   );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  // Phones: the day list sits below the month grid, so bring it into view
+  // when a day is picked (UI08).
+  const dayPanelRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!selectedDate || !dayPanelRef.current) return;
+    if (!window.matchMedia?.("(max-width: 1023px)").matches) return;
+    const reduce = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    dayPanelRef.current.scrollIntoView?.({
+      behavior: reduce ? "auto" : "smooth",
+      block: "start",
+    });
+  }, [selectedDate]);
   const [modalDate, setModalDate] = useState<Date | null>(null);
   const [editingAppt, setEditingAppt] = useState<Appointment | undefined>(
     undefined,
@@ -472,7 +486,7 @@ const Calendar: React.FC = () => {
                 <div
                   key={k}
                   aria-hidden="true"
-                  className="py-2.5 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider"
+                  className="py-2.5 text-center text-xs font-bold text-slate-500 uppercase tracking-wider"
                 >
                   {t(`calendar.days_short.${k}`)}
                 </div>
@@ -481,7 +495,7 @@ const Calendar: React.FC = () => {
                 <div
                   key={`empty-${i}`}
                   aria-hidden="true"
-                  className="border-t border-slate-50 dark:border-slate-800 min-h-[84px]"
+                  className="border-t border-slate-50 min-h-14 sm:min-h-[84px]"
                 />
               ))}
               {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -505,7 +519,7 @@ const Calendar: React.FC = () => {
                   <div
                     key={day}
                     onClick={() => setSelectedDate(dayDate)}
-                    className={`min-h-[84px] p-1.5 border-t border-slate-50 dark:border-slate-800 cursor-pointer transition-colors hover:bg-sage-50/50 dark:hover:bg-slate-800/50 ${isSelected ? "bg-sage-50 dark:bg-sage-900/20" : ""}`}
+                    className={`min-h-14 sm:min-h-[84px] p-1 sm:p-1.5 border-t border-slate-50 dark:border-slate-800 cursor-pointer transition-colors hover:bg-sage-50/50 dark:hover:bg-slate-800/50 ${isSelected ? "bg-sage-50 dark:bg-sage-900/20" : ""}`}
                   >
                     <button
                       type="button"
@@ -520,7 +534,18 @@ const Calendar: React.FC = () => {
                     >
                       {day}
                     </button>
-                    <div className="space-y-0.5">
+                    {/* UI08: on phones the 7 columns are too narrow for
+                        event chips — show a count; the selected day's list
+                        (below the grid) carries the details. */}
+                    {dayAppts.length > 0 && (
+                      <span
+                        aria-hidden="true"
+                        className="sm:hidden flex h-5 min-w-5 w-fit items-center justify-center rounded-full bg-sage-100 px-1.5 text-xs font-bold text-sage-800 tabular"
+                      >
+                        {dayAppts.length}
+                      </span>
+                    )}
+                    <div className="hidden sm:block space-y-0.5">
                       {dayAppts.slice(0, 2).map((a) => (
                         <button
                           type="button"
@@ -534,14 +559,14 @@ const Calendar: React.FC = () => {
                             name: a.patientName,
                             time: a.dateTime.slice(11, 16),
                           })}
-                          className={`block w-full text-left text-[11px] font-semibold px-1.5 py-0.5 rounded-md truncate cursor-pointer border focus-ring ${TYPE_LIGHT[a.type]}`}
+                          className={`block w-full text-left text-xs font-semibold px-1.5 py-0.5 rounded-md truncate cursor-pointer border focus-ring ${TYPE_LIGHT[a.type]}`}
                         >
                           {a.dateTime.slice(11, 16)}{" "}
                           {a.patientName.split(" ")[0]}
                         </button>
                       ))}
                       {dayAppts.length > 2 && (
-                        <div className="text-[11px] text-slate-500 pl-1">
+                        <div className="text-xs text-slate-500 pl-1">
                           {t("calendar.more_events", {
                             count: dayAppts.length - 2,
                           })}
@@ -558,7 +583,7 @@ const Calendar: React.FC = () => {
         {/* Side panel */}
         <div className="space-y-4">
           {selectedDate && (
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden scroll-mt-4" ref={dayPanelRef}>
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <h3 className="font-bold text-slate-800 dark:text-white text-sm capitalize">
                   {selectedDate.toLocaleDateString(

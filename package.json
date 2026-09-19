@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
   "scripts": {
     "dev": "vite",
+    "dev:emulated": "firebase emulators:exec --only auth,firestore --project demo-storm \"node scripts/seed-emulator.mjs && vite --mode emulator\"",
+    "dev:emulator": "vite --mode emulator",
     "build": "vite build",
     "measure:bundle": "node scripts/measure-bundle.mjs",
     "preview": "vite preview",
@@ -19,7 +21,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:emulated": "firebase emulators:exec --only auth,firestore --project demo-storm \"node scripts/seed-emulator.mjs && VITE_USE_FIREBASE_EMULATOR=true playwright test\"",
+    "test:e2e:emulated": "firebase emulators:exec --only auth,firestore --project demo-storm \"node scripts/seed-emulator.mjs && playwright test\"",
+    "screenshots": "firebase emulators:exec --only auth,firestore --project demo-storm \"node scripts/seed-emulator.mjs && playwright test -c playwright.screenshots.config.ts\"",
     "test:rules": "firebase emulators:exec --only firestore --project demo-storm \"vitest run --config vitest.rules.config.ts\"",
     "test:perf:queries": "firebase emulators:exec --only firestore --project demo-storm \"vitest run --config vitest.perf.config.ts\"",
     "seed:emulator": "firebase emulators:exec --only auth,firestore --project demo-storm \"node scripts/seed-emulator.mjs\"",

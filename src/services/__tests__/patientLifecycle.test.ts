@@ -14,6 +14,7 @@ let mockStore: Record<string, Record<string, unknown>> = {};
 let batchDeletions: string[] = [];
 let mockFailProfileUpdate = false;
 let mockFailProfileDelete = false;
+let mockFailInvitationUpdate = false;
 let mockFailBatchCommitOnCount = 0;
 let mockBatchCommitCount = 0;
 
@@ -73,7 +74,18 @@ vi.mock("firebase/firestore", () => {
       },
     ),
     updateDoc: vi.fn(async (path: string, updates: Record<string, unknown>) => {
-      if (mockFailProfileUpdate && typeof path === "string" && path.startsWith("patientProfiles/")) {
+      if (
+        mockFailInvitationUpdate &&
+        typeof path === "string" &&
+        path.startsWith("invitations/")
+      ) {
+        throw new Error("Network error during invitation cleanup");
+      }
+      if (
+        mockFailProfileUpdate &&
+        typeof path === "string" &&
+        path.startsWith("patientProfiles/")
+      ) {
         throw new Error("Network error during profile update");
       }
       if (!mockStore[path]) {
@@ -82,7 +94,11 @@ vi.mock("firebase/firestore", () => {
       mockStore[path] = { ...mockStore[path], ...updates };
     }),
     deleteDoc: vi.fn(async (path: string) => {
-      if (mockFailProfileDelete && typeof path === "string" && path.startsWith("patientProfiles/")) {
+      if (
+        mockFailProfileDelete &&
+        typeof path === "string" &&
+        path.startsWith("patientProfiles/")
+      ) {
         throw new Error("Network error during profile delete fallback");
       }
       delete mockStore[path];
@@ -96,7 +112,10 @@ vi.mock("firebase/firestore", () => {
         }),
         commit: vi.fn(async () => {
           mockBatchCommitCount++;
-          if (mockFailBatchCommitOnCount > 0 && mockBatchCommitCount === mockFailBatchCommitOnCount) {
+          if (
+            mockFailBatchCommitOnCount > 0 &&
+            mockBatchCommitCount === mockFailBatchCommitOnCount
+          ) {
             throw new Error("Network interruption on second batch");
           }
           for (const ref of pendingDeletes) {
@@ -125,6 +144,7 @@ describe("Patient Lifecycle Service", () => {
     batchDeletions = [];
     mockFailProfileUpdate = false;
     mockFailProfileDelete = false;
+    mockFailInvitationUpdate = false;
     mockFailBatchCommitOnCount = 0;
     mockBatchCommitCount = 0;
   });
@@ -194,6 +214,39 @@ describe("Patient Lifecycle Service", () => {
 
       // Pending invitation revoked
       expect(mockStore["invitations/inv_1"].status).toBe("revoked");
+      expect(result.cleanupIncomplete).toBe(false);
+    });
+
+    it("R04-A: reports incomplete cleanup but still clears the pointer (old link denied by the rules)", async () => {
+      const PORTAL_UID = "portal_user_partial";
+      mockStore[PATIENT_PATH] = {
+        firstName: "Carlos",
+        portalUid: PORTAL_UID,
+        portalStatus: "active",
+        pendingInvitationId: "inv_old",
+      };
+      mockStore[`patientProfiles/${PORTAL_UID}`] = {
+        patientId: PATIENT_ID,
+        nutritionistId: NUTRI_ID,
+        status: "active",
+      };
+      mockStore["invitations/inv_old"] = {
+        nutritionistId: NUTRI_ID,
+        patientId: PATIENT_ID,
+        status: "pending",
+      };
+      mockFailInvitationUpdate = true;
+
+      const result = await revokePatientPortalAccess(NUTRI_ID, PATIENT_ID);
+
+      expect(result.cleanupIncomplete).toBe(true);
+      expect(result.revokedInvitationsCount).toBe(0);
+      // Cleanup failed, so the invitation document is still "pending"...
+      expect(mockStore["invitations/inv_old"].status).toBe("pending");
+      // ...but the patient no longer points to it nor to the old account.
+      expect(mockStore[PATIENT_PATH].pendingInvitationId).toBeNull();
+      expect(mockStore[PATIENT_PATH].portalUid).toBeNull();
+      expect(mockStore[`patientProfiles/${PORTAL_UID}`].status).toBe("revoked");
     });
 
     it("throws when attempting to revoke a non-existent patient", async () => {
@@ -356,7 +409,9 @@ describe("Patient Lifecycle Service", () => {
 
       // All orphans removed
       expect(mockStore[`users/${NUTRI_ID}/diets/orphan_diet`]).toBeUndefined();
-      expect(mockStore[`users/${NUTRI_ID}/appointments/orphan_appt`]).toBeUndefined();
+      expect(
+        mockStore[`users/${NUTRI_ID}/appointments/orphan_appt`],
+      ).toBeUndefined();
       expect(mockStore["invitations/orphan_inv"]).toBeUndefined();
       expect(mockStore[`patientProfiles/${PORTAL_UID}`]).toBeUndefined();
     });

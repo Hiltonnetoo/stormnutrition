@@ -1,0 +1,50 @@
+
+> stormnutrition-v5---nutritional-management@0.0.0 test:rules
+> firebase emulators:exec --only firestore --project demo-storm "vitest run --config vitest.rules.config.ts"
+
+i  emulators: Starting emulators: firestore
+i  emulators: Detected demo project ID "demo-storm", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: vitest run --config vitest.rules.config.ts
+
+ RUN  v4.1.8 /Users/hiltonneto/Desktop/Isanutri V5
+
+ ❯ tests-rules/firestore.rules.test.ts (96 tests | 4 failed) 3598ms
+       × denies archived patient current weight writes and allows the same write after restoration 48ms
+       × denies archived patient weight history writes and allows the same write after restoration 53ms
+       × denies archived patient adherence writes and allows the same write after restoration 53ms
+       × denies archived patient evaluation writes and allows the same write after restoration 36ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests-rules/firestore.rules.test.ts > Firestore security rules - Authorization Matrix > 4. Associated Patient Self-Service (patient_linked) > denies archived patient current weight writes and allows the same write after restoration
+ FAIL  tests-rules/firestore.rules.test.ts > Firestore security rules - Authorization Matrix > 4. Associated Patient Self-Service (patient_linked) > denies archived patient weight history writes and allows the same write after restoration
+ FAIL  tests-rules/firestore.rules.test.ts > Firestore security rules - Authorization Matrix > 4. Associated Patient Self-Service (patient_linked) > denies archived patient adherence writes and allows the same write after restoration
+ FAIL  tests-rules/firestore.rules.test.ts > Firestore security rules - Authorization Matrix > 4. Associated Patient Self-Service (patient_linked) > denies archived patient evaluation writes and allows the same write after restoration
+Error: Expected request to fail, but it succeeded.
+ ❯ ../Isanutri%20V5/node_modules/@firebase/rules-unit-testing/dist/esm/index.esm.js:572:31
+ ❯ tests-rules/firestore.rules.test.ts:235:7
+    233|       const patientRef = doc(testEnv.authenticatedContext(PATIENT_UID)…
+    234|       await assertFails(getDoc(patientRef));
+    235|       await assertFails(updateDoc(patientRef, update as DocumentData));
+       |       ^
+    236|       const ownerRef = doc(testEnv.authenticatedContext(NUTRI_A).fires…
+    237|       await assertSucceeds(updateDoc(ownerRef, { status: "Active" }));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  4 failed | 97 passed (101)
+   Start at  10:40:27
+   Duration  4.37s (transform 131ms, setup 0ms, import 336ms, tests 3.92s, environment 0ms)
+
+⚠  Script exited unsuccessfully (code 1)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator
+
+Error: Script "vitest run --config vitest.rules.config.ts" exited with code 1

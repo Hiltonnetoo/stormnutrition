@@ -235,4 +235,116 @@ describe("evaluationService - Atomic Transactions and Idempotency", () => {
       expect(evalWeightRecord!.weight).toBe(68.5);
     });
   });
+
+  // R02-C: append-only fields are written as "stored + new". The expected
+  // arrays are literal fixtures, not recomputed by the service under test.
+  describe("R02-C — legacy histories are preserved as stored", () => {
+    const legacyHistory = [
+      { date: "2026-03-01", weight: 62, origin: "clinical" },
+      { date: "2025-12-01", weight: 64 }, // no origin (legacy)
+      { date: "2031-01-01", weight: 61, origin: "clinical" }, // future-dated
+    ];
+
+    it("logPatientWeight appends at the end without sorting or normalizing", async () => {
+      mockStore[DOC_PATH].weightHistory = JSON.parse(
+        JSON.stringify(legacyHistory),
+      );
+      await logPatientWeight("nutri_1", "pat_123", 60.4, "self_reported", {
+        clientEventId: "evt_legacy",
+        authorUid: "patient_uid",
+        date: "2026-09-18T12:00:00.000Z",
+      });
+      const history = getPatientDoc().weightHistory as unknown[];
+      expect(history.slice(0, 3)).toEqual(legacyHistory);
+      expect(history[3]).toEqual({
+        id: "evt_legacy",
+        date: "2026-09-18T12:00:00.000Z",
+        weight: 60.4,
+        origin: "self_reported",
+        authorUid: "patient_uid",
+        clientEventId: "evt_legacy",
+      });
+      // Repeating the same event is a no-op.
+      const again = await logPatientWeight(
+        "nutri_1",
+        "pat_123",
+        60.4,
+        "self_reported",
+        {
+          clientEventId: "evt_legacy",
+          authorUid: "patient_uid",
+        },
+      );
+      expect(again.duplicated).toBe(true);
+      expect(getPatientDoc().weightHistory).toHaveLength(4);
+    });
+
+    it("logAdherence appends to an out-of-order log and updates the same day in place", async () => {
+      const legacyLog = [
+        { date: "2026-09-10", followed: true },
+        { date: "2026-09-01", followed: false },
+      ];
+      mockStore[DOC_PATH].adherenceLog = JSON.parse(JSON.stringify(legacyLog));
+      await logAdherence("nutri_1", "pat_123", true, { date: "2026-09-05" });
+      let log = getPatientDoc().adherenceLog as {
+        date: string;
+        followed: boolean;
+      }[];
+      expect(log.map((e) => e.date)).toEqual([
+        "2026-09-10",
+        "2026-09-01",
+        "2026-09-05",
+      ]);
+      await logAdherence("nutri_1", "pat_123", false, { date: "2026-09-05" });
+      log = getPatientDoc().adherenceLog as {
+        date: string;
+        followed: boolean;
+      }[];
+      expect(log).toHaveLength(3);
+      expect(log[2]).toMatchObject({ date: "2026-09-05", followed: false });
+      expect(log.slice(0, 2)).toEqual(legacyLog);
+    });
+
+    it("completeSelfEvaluation only changes the answered protocol and appends its weight", async () => {
+      const otherEval = {
+        id: "ev0",
+        requestDate: "2026-08-01",
+        status: "completed",
+        legacyFlag: "kept",
+      };
+      mockStore[DOC_PATH].weightHistory = JSON.parse(
+        JSON.stringify(legacyHistory),
+      );
+      mockStore[DOC_PATH].selfEvaluations = [
+        otherEval,
+        { id: "ev1", requestDate: "2026-09-17", status: "pending" },
+      ];
+      mockStore[DOC_PATH].activeProtocolId = "ev1";
+      await completeSelfEvaluation(
+        "nutri_1",
+        "pat_123",
+        "ev1",
+        {
+          measurements: { weight: 60 },
+          notes: "ok",
+        },
+        { authorUid: "patient_uid" },
+      );
+      const patient = getPatientDoc() as unknown as Record<string, unknown[]>;
+      expect(patient.selfEvaluations[0]).toEqual(otherEval);
+      expect(patient.selfEvaluations[1]).toMatchObject({
+        id: "ev1",
+        requestDate: "2026-09-17",
+        status: "completed",
+        measurements: { weight: 60 },
+        notes: "ok",
+      });
+      expect(patient.selfEvaluations[1]).not.toHaveProperty("wellbeing");
+      expect(patient.weightHistory.slice(0, 3)).toEqual(legacyHistory);
+      expect(patient.weightHistory[3]).toMatchObject({
+        id: "eval_weight_ev1",
+        weight: 60,
+      });
+    });
+  });
 });

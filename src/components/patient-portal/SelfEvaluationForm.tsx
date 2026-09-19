@@ -76,6 +76,7 @@ export const SelfEvaluationForm: React.FC<{
         patientProfile.patientId,
         protocolId,
         data,
+        { authorUid: patientProfile.uid },
       );
       onComplete();
     } catch {
@@ -86,10 +87,10 @@ export const SelfEvaluationForm: React.FC<{
   };
 
   return (
-    <div className="bg-gradient-to-br from-sky-700 to-indigo-700 rounded-3xl p-6 text-white shadow-soft">
+    <div className="bg-sky-800 rounded-2xl p-6 text-white shadow-soft">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <span className="text-[10px] font-extrabold uppercase tracking-widest bg-white/20 px-2.5 py-1 rounded-full">
+          <span className="text-xs font-extrabold uppercase tracking-widest bg-white/20 px-2.5 py-1 rounded-full">
             {t("patient_portal.self_eval.title")}
           </span>
           <p className="text-xs text-sky-50 mt-1">

@@ -11,6 +11,9 @@ import * as firestore from "firebase/firestore";
 import * as firebaseAuth from "firebase/auth";
 import type { User } from "../firebaseCore";
 
+// Strict-contract expiry (R03): Firestore Timestamp stand-in.
+const mockTs = (iso: string) => ({ toMillis: () => new Date(iso).getTime() });
+
 const mockBatch = {
   set: vi.fn(),
   update: vi.fn(),
@@ -47,6 +50,7 @@ vi.mock("firebase/firestore", () => ({
     fromDate: vi.fn((d: Date) => ({
       seconds: Math.floor(d.getTime() / 1000),
       nanoseconds: 0,
+      toMillis: () => d.getTime(),
     })),
   },
 }));
@@ -113,7 +117,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
       expect(inv.patientEmail).toBe("paciente@exemplo.com");
       expect(inv.nutritionistId).toBe("nutri-123");
       expect(inv.patientId).toBe("patient-456");
-      expect((inv as unknown as { password?: string }).password).toBeUndefined();
+      expect(
+        (inv as unknown as { password?: string }).password,
+      ).toBeUndefined();
 
       // Check transaction set and update
       expect(mockTx.set).toHaveBeenCalledWith(
@@ -146,16 +152,19 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
         status: "pending" as const,
         createdAt: new Date().toISOString(),
         expiresAt: existingExpires,
+        expiresAtTimestamp: mockTs(existingExpires),
       };
 
-      vi.mocked(firestore.getDocs).mockResolvedValueOnce({
-        docs: [
-          {
-            id: "existing-inv-token",
-            data: () => existingData,
-          },
-        ],
-      } as unknown as firestore.QuerySnapshot);
+      mockTx.get
+        .mockResolvedValueOnce({
+          exists: () => true,
+          data: () => ({ pendingInvitationId: "existing-inv-token" }),
+        })
+        .mockResolvedValueOnce({
+          exists: () => true,
+          id: "existing-inv-token",
+          data: () => existingData,
+        });
 
       const inv = await createOrGetPendingInvitation({
         nutritionistId: "nutri-123",
@@ -195,6 +204,7 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
             patientEmail: "paciente@exemplo.com",
             status: "pending",
             expiresAt: futureDate,
+            expiresAtTimestamp: mockTs(futureDate),
           }),
         });
 
@@ -225,6 +235,7 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           patientEmail: "carlos@test.com",
           status: "pending",
           expiresAt: expiredDate,
+          expiresAtTimestamp: mockTs(expiredDate),
         }),
       } as unknown as firestore.DocumentSnapshot);
 
@@ -240,6 +251,7 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           patientEmail: "carlos@test.com",
           status: "pending",
           expiresAt: expiredDate,
+          expiresAtTimestamp: mockTs(expiredDate),
         }),
       } as unknown as firestore.DocumentSnapshot);
 
@@ -261,6 +273,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           status: "accepted",
           acceptedByUid: "other-user-uid",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
+          expiresAtTimestamp: mockTs(
+            new Date(Date.now() + 100000).toISOString(),
+          ),
         }),
       } as unknown as firestore.DocumentSnapshot);
 
@@ -280,6 +295,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           patientId: "pat-1",
           status: "pending",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
+          expiresAtTimestamp: mockTs(
+            new Date(Date.now() + 100000).toISOString(),
+          ),
         }),
       });
 
@@ -308,6 +326,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           patientId: "pat-1",
           status: "pending",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
+          expiresAtTimestamp: mockTs(
+            new Date(Date.now() + 100000).toISOString(),
+          ),
         }),
       });
 
@@ -326,6 +347,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           patientEmail: "carlos@test.com",
           status: "revoked",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
+          expiresAtTimestamp: mockTs(
+            new Date(Date.now() + 100000).toISOString(),
+          ),
         }),
       } as unknown as firestore.DocumentSnapshot);
 
@@ -355,6 +379,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
             patientEmail: "carlos@test.com",
             status: "pending",
             expiresAt: new Date(Date.now() + 100000).toISOString(),
+            expiresAtTimestamp: mockTs(
+              new Date(Date.now() + 100000).toISOString(),
+            ),
           }),
         } as unknown as firestore.DocumentSnapshot)
         .mockResolvedValueOnce({
@@ -396,6 +423,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
             status: "accepted",
             acceptedByUid: "user-patient-existing",
             expiresAt: new Date(Date.now() + 100000).toISOString(),
+            expiresAtTimestamp: mockTs(
+              new Date(Date.now() + 100000).toISOString(),
+            ),
           }),
         } as unknown as firestore.DocumentSnapshot)
         .mockResolvedValueOnce({
@@ -428,6 +458,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
             patientEmail: "carlos@test.com",
             status: "pending",
             expiresAt: new Date(Date.now() + 100000).toISOString(),
+            expiresAtTimestamp: mockTs(
+              new Date(Date.now() + 100000).toISOString(),
+            ),
           }),
         } as unknown as firestore.DocumentSnapshot)
         // Existing profile was revoked
@@ -459,6 +492,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           patientEmail: "outro@test.com",
           status: "pending",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
+          expiresAtTimestamp: mockTs(
+            new Date(Date.now() + 100000).toISOString(),
+          ),
         }),
       } as unknown as firestore.DocumentSnapshot);
 
@@ -478,6 +514,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
             patientEmail: "carlos@test.com",
             status: "pending",
             expiresAt: new Date(Date.now() + 100000).toISOString(),
+            expiresAtTimestamp: mockTs(
+              new Date(Date.now() + 100000).toISOString(),
+            ),
           }),
         } as unknown as firestore.DocumentSnapshot)
         .mockResolvedValueOnce({
@@ -509,6 +548,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           patientEmail: "novo@test.com",
           status: "pending",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
+          expiresAtTimestamp: mockTs(
+            new Date(Date.now() + 100000).toISOString(),
+          ),
         }),
       } as unknown as firestore.DocumentSnapshot);
 
@@ -544,6 +586,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           patientEmail: "novo@test.com",
           status: "pending",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
+          expiresAtTimestamp: mockTs(
+            new Date(Date.now() + 100000).toISOString(),
+          ),
         }),
       } as unknown as firestore.DocumentSnapshot);
 
@@ -556,7 +601,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
         } as unknown as User,
       } as unknown as firebaseAuth.UserCredential);
 
-      mockBatch.commit.mockRejectedValueOnce(new Error("FIRESTORE_WRITE_ERROR"));
+      mockBatch.commit.mockRejectedValueOnce(
+        new Error("FIRESTORE_WRITE_ERROR"),
+      );
 
       await expect(
         acceptInvitationWithNewAccount("token-fail", "senhaValida123!"),
@@ -576,6 +623,9 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
           patientEmail: "existente@test.com",
           status: "pending",
           expiresAt: new Date(Date.now() + 100000).toISOString(),
+          expiresAtTimestamp: mockTs(
+            new Date(Date.now() + 100000).toISOString(),
+          ),
         }),
       } as unknown as firestore.DocumentSnapshot);
 
@@ -588,6 +638,108 @@ describe("invitationService - Secure Invitation Lifecycle", () => {
       await expect(
         acceptInvitationWithNewAccount("token-email-exists", "senha123!"),
       ).rejects.toThrow("AUTH_EMAIL_ALREADY_IN_USE");
+    });
+  });
+
+  describe("R03/R04 — strict contract in the service", () => {
+    const base = {
+      nutritionistId: "nutri-123",
+      nutritionistName: "Dra. Ana",
+      nutritionistEmail: "ana@clinic.com",
+      patientId: "patient-456",
+      patientName: "Carlos Silva",
+      status: "pending" as const,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+    };
+    const params = {
+      nutritionistId: "nutri-123",
+      nutritionistName: "Dra. Ana",
+      nutritionistEmail: "ana@clinic.com",
+      patientId: "patient-456",
+      patientEmail: "Paciente@Exemplo.com ",
+      patientName: "Carlos Silva",
+    };
+    const withExisting = (data: Record<string, unknown>) =>
+      mockTx.get
+        .mockResolvedValueOnce({
+          exists: () => true,
+          data: () => ({ pendingInvitationId: "old-inv" }),
+        })
+        .mockResolvedValueOnce({
+          exists: () => true,
+          id: "old-inv",
+          data: () => data,
+        });
+
+    it("R03-B: a legacy pending invitation (no Timestamp expiry) is reported, not accepted", async () => {
+      vi.mocked(firestore.getDoc).mockResolvedValue({
+        exists: () => true,
+        id: "legacy-inv",
+        data: () => ({ ...base, patientEmail: "carlos@test.com" }),
+      } as unknown as firestore.DocumentSnapshot);
+      const inv = await getInvitationByToken("legacy-inv");
+      expect(inv?.invalidReason).toBe("legacy_format");
+      expect(inv?.status).toBe("expired");
+      await expect(
+        acceptInvitationWithNewAccount("legacy-inv", "Senha-Forte-123"),
+      ).rejects.toThrow("INVITATION_LEGACY");
+      vi.mocked(firestore.getDoc).mockReset();
+    });
+
+    it("R03: the Timestamp expiry wins over a still-valid textual expiresAt", async () => {
+      vi.mocked(firestore.getDoc).mockResolvedValueOnce({
+        exists: () => true,
+        id: "ts-expired",
+        data: () => ({
+          ...base,
+          patientEmail: "carlos@test.com",
+          expiresAtTimestamp: mockTs(new Date(Date.now() - 1000).toISOString()),
+        }),
+      } as unknown as firestore.DocumentSnapshot);
+      const inv = await getInvitationByToken("ts-expired");
+      expect(inv?.status).toBe("expired");
+      expect(inv?.invalidReason).toBeUndefined();
+    });
+
+    it("R04: reuses the pending invitation only for the same normalized recipient", async () => {
+      withExisting({
+        ...base,
+        patientEmail: "paciente@exemplo.com",
+        expiresAtTimestamp: mockTs(base.expiresAt),
+      });
+      const inv = await createOrGetPendingInvitation(params);
+      expect(inv.id).toBe("old-inv");
+      expect(mockTx.set).not.toHaveBeenCalled();
+    });
+
+    it("R04: a different recipient or a legacy invitation gets a new ID and the old one is closed", async () => {
+      for (const existing of [
+        {
+          ...base,
+          patientEmail: "outra.pessoa@exemplo.com",
+          expiresAtTimestamp: mockTs(base.expiresAt),
+        },
+        { ...base, patientEmail: "paciente@exemplo.com" }, // legacy: no Timestamp
+      ]) {
+        mockTx.set.mockClear();
+        mockTx.update.mockClear();
+        withExisting(existing);
+        const inv = await createOrGetPendingInvitation(params);
+        expect(inv.id).not.toBe("old-inv");
+        expect(inv.patientEmail).toBe("paciente@exemplo.com");
+        expect(mockTx.set).toHaveBeenCalledTimes(1);
+        expect(mockTx.update).toHaveBeenCalledWith(
+          expect.objectContaining({ id: "old-inv" }),
+          expect.objectContaining({ status: "revoked" }),
+        );
+        expect(mockTx.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            path: "users/nutri-123/patients/patient-456",
+          }),
+          { pendingInvitationId: inv.id },
+        );
+      }
     });
   });
 });

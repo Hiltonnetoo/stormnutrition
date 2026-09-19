@@ -31,7 +31,7 @@ const Step1Personal: React.FC<Step1Props> = ({
 
   const errClass = (k: string) =>
     errors[k]
-      ? "!border-rose-400 focus:!ring-rose-500/60 focus:!border-rose-400"
+      ? "border-rose-400 focus:ring-rose-500/60 focus:border-rose-400"
       : "";
 
   return (

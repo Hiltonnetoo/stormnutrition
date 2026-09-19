@@ -1,17 +1,15 @@
 # Storm Nutrition — Clinical Management & Diet Planning Platform
 
 [![CI Pipeline](https://github.com/Hiltonnetoo/stormnutrition/actions/workflows/ci.yml/badge.svg)](https://github.com/Hiltonnetoo/stormnutrition/actions)
-[![TypeScript: Strict](https://img.shields.io/badge/TypeScript-Strict_0_Errors-blue.svg)](https://www.typescriptlang.org/)
-[![Vitest: 300 Tests](https://img.shields.io/badge/Vitest-300_Passed-brightgreen.svg)](https://vitest.dev/)
-[![Firestore Rules: 34 Tests](https://img.shields.io/badge/Firestore_Rules-34_Passed-success.svg)](https://firebase.google.com/docs/rules)
-[![Playwright E2E: 14 Tests](https://img.shields.io/badge/Playwright_E2E-14_Passed-green.svg)](https://playwright.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Storm Nutrition is a clinical nutrition management application built with **React 19**, **TypeScript (Strict Mode)**, **Vite**, **Tailwind CSS v4**, and **Firebase** (Auth, Firestore, Storage). Designed for professional dietitians, the platform combines structured clinical assessments, a deterministic constraint-based meal planning engine powered by verified Brazilian food composition data (TACO/UNICAMP), a dedicated Patient Portal with passwordless onboarding, editorial-grade vector PDF exports, and database-enforced multi-tenant isolation.
+Storm Nutrition is a clinical nutrition management application built with **React 19**, **TypeScript (Strict Mode)**, **Vite**, **Tailwind CSS v4**, and **Firebase** (Auth, Firestore, Storage). Designed for professional dietitians, the platform combines structured clinical assessments, a deterministic constraint-based meal planning engine powered by verified Brazilian food composition data (TACO/UNICAMP), a dedicated Patient Portal with invitation-based onboarding and patient-defined passwords, editorial-grade vector PDF exports, and database-enforced multi-tenant isolation.
 
-- 🌐 **Live Demo:** [https://stormnutrition.web.app](https://stormnutrition.web.app)
+- 🌐 **Published demo (may lag behind this local release; deployment not verified):** [https://stormnutrition.web.app](https://stormnutrition.web.app)
 - 📖 **Evaluation Guide:** [docs/demo-guide.md](docs/demo-guide.md) (3–5 min quick assessment)
 - 🏛️ **Architectural Decision Records:** [docs/architecture-decisions.md](docs/architecture-decisions.md) (10 ADRs)
+
+**Validation and delivery status:** see [the latest local validation](docs/validacao-2026-09-19/README.md). Results apply to the source manifest linked there; remote CI and deployment are separate checks. No fixed test-count badge is used as evidence.
 
 ---
 
@@ -57,7 +55,7 @@ graph TD
     Firestore -->|/users/:uid/diets/*| DietsData[Diet Plans & Structured Meal Options]
     Firestore -->|/users/:uid/appointments/*| ApptsData[Consultation Records & Calendar]
     Firestore -->|/patientProfiles/:patientUid| PatientPortalData[Patient Portal Adherence & Self-Service]
-    Firestore -->|/invitations/:token| InviteTokens[Passwordless Tokenized Invitations]
+    Firestore -->|/invitations/:token| InviteTokens[Tokenized Invitations · Patient-Defined Passwords]
 
     %% Communications
     ClientLayer -->|Trigger Clinical & Invite Emails| EmailService
@@ -74,7 +72,7 @@ A detailed record of all 10 architectural decisions, trade-offs, and design rati
 1. **React 19 & Strict TypeScript Compiler** ([ADR-01](docs/architecture-decisions.md#adr-01-react-19-spa-with-strict-typescript-and-code-splitting)): Pure SPA architecture with zero `any` evasions. Dynamic code-splitting via `React.lazy` on heavy export libraries (`html2canvas`, `jspdf`) reduces initial bundle load by **over 53%** (from 1.6 MB to ~760 KB).
 2. **Compile-Time Tailwind CSS v4** ([ADR-02](docs/architecture-decisions.md#adr-02-native-compile-time-tailwind-css-v4)): Replaced legacy runtime CDN scripts with `@tailwindcss/vite`. Stylesheets compile into a single static file (~19 KB gzip) with full offline layout predictability.
 3. **Secondary Firebase App for Patient Provisioning** ([ADR-03](docs/architecture-decisions.md#adr-03-secondary-firebase-auth-instance-for-non-disruptive-patient-provisioning)): Encapsulates patient credential creation in a secondary, isolated Firebase instance (`getSecondaryAuth()` in `authService.ts`), preventing the client SDK from evicting the active nutritionist's session.
-4. **Passwordless Tokenized Invitations** ([ADR-04](docs/architecture-decisions.md#adr-04-passwordless-tokenized-invitations-with-patient-defined-passwords)): No cleartext or temporary passwords are transmitted via email. Patients claim their account via cryptographic invitation tokens (`/convite/:token`) and set their own passwords.
+4. **Tokenized Invitations with Client Coordination & Compensation** ([ADR-04](docs/architecture-decisions.md#adr-04-passwordless-tokenized-invitations-with-patient-defined-passwords)): No cleartext or temporary passwords are transmitted via email. Patients claim their account via cryptographic invitation tokens (`/convite/:token`) and set their own passwords. The client coordinates two-phase account activation with compensating rollback if Firestore profile linking fails, while Firestore rules forbid re-linking or modifying accepted invitations.
 5. **Database-Enforced Multi-Tenant Isolation** ([ADR-05](docs/architecture-decisions.md#adr-05-multi-tenant-isolation-via-firestore-security-rules)): Tenant boundaries are enforced directly in `firestore.rules`. Cross-practitioner data leakage is prevented at the engine level even if clients communicate with Firestore endpoints directly.
 6. **Deterministic Algorithmic Solver over Generative AI** ([ADR-06](docs/architecture-decisions.md#adr-06-deterministic-constraint-based-meal-generation-over-generative-ai)): Rule-based meal generation eliminates hallucinated macros and guarantees medical boundary compliance without API token costs or latency.
 7. **Vector Editorial PDF Generation** ([ADR-07](docs/architecture-decisions.md#adr-07-vector-based-editorial-pdf-exporting)): High-resolution vector text (~50 KB) with dynamic page-budgeting calculations, preventing orphan section headers and broken tables.
@@ -106,19 +104,19 @@ Total Daily Energy Expenditure (TDEE) adjusts BMR by physical activity factors (
 
 ---
 
-## 🧪 Testing & Quality Metrics (Measured September 2026)
+## 🧪 Testing & Quality Evidence (Local review: 19/09/2026)
 
-Every critical path is validated through automated test suites operating against isolated local emulators:
+Automated suites exercise the workflows below; Firebase integration tests run against isolated local emulators. Results, coverage limits, intermediate failures and the validated source manifest are recorded in [the local validation report](docs/validacao-2026-09-19/README.md). They do not certify every UI state or the deployed demo:
 
-| Suite | Runner / Tool | Tests | Scope & Focus |
+| Suite | Runner / Tool | Evidence | Scope & Focus |
 | :--- | :--- | :--- | :--- |
-| **Unit & Integration** | Vitest + jsdom | **300 passed** (37 files) | Metabolic math, deterministic solver, migrations, date logic, i18n parity, error boundaries, storage quotas, abuse controls. |
-| **Security Rules** | `@firebase/rules-unit-testing` | **34 passed** (2 files) | Firestore authorization matrix: multi-tenant isolation, patient self-service limits, deletion lifecycles, and appointment access. |
-| **End-to-End & A11y** | Playwright + Chromium | **14 passed** (45.7s) | Complete clinical workflows, axe-core WCAG 2.1 AA scans, keyboard tab journeys, 320px mobile reflow, PDF exports. |
-| **Query Performance** | Vitest + Emulator | **Passed** | Query cost budgets: verifies zero unindexed composite queries and single-read aggregation counts. |
-| **Static Analysis** | TypeScript (`tsc --noEmit`) | **0 errors** | Strict mode verification across entire codebase. |
-| **Code Style & Lint** | ESLint & Prettier | **0 errors** | Clean formatting and hook dependency conformance. |
-| **Production Build** | Vite 6 | **1.63s** | Optimized bundle with separate CSS and split dynamic chunks. |
+| **Unit & Integration** | Vitest + jsdom | [Latest local result](docs/validacao-2026-09-19/README.md) | Metabolic math, deterministic solver, migrations, date logic, i18n parity, error boundaries, storage quotas, transport isolation, abuse controls. |
+| **Security Rules** | `@firebase/rules-unit-testing` | [Latest local result](docs/validacao-2026-09-19/README.md) | Firestore authorization matrix: multi-tenant isolation, patient self-service limits, cascade deletion, concurrency guards, and adversarial regressions. |
+| **End-to-End & A11y** | Playwright + Chromium | [Latest local result](docs/validacao-2026-09-19/README.md) | Clinical workflows, axe-core WCAG 2.1 AA scans, keyboard tab journeys, 320px mobile reflow, invitation acceptance, PDF exports. |
+| **Query Performance** | Vitest + Emulator | [Latest local result](docs/validacao-2026-09-19/README.md) | Query cost budgets: verifies zero unindexed composite queries and single-read aggregation counts. |
+| **Static Analysis** | TypeScript (`tsc --noEmit`) | [Latest local result](docs/validacao-2026-09-19/README.md) | Strict mode verification across entire codebase (`~5.8.2`). |
+| **Code Style & Lint** | ESLint & Prettier | [Latest local result](docs/validacao-2026-09-19/README.md) | Formatting and lint checks; remaining warnings are listed in the report. |
+| **Production Build** | Vite 6 | [Latest local result](docs/validacao-2026-09-19/README.md) | Optimized bundle with separate CSS and split dynamic chunks. |
 
 ---
 
@@ -139,9 +137,9 @@ To experience the platform immediately with synthetic clinical profiles, start t
 ## 🛠️ Local Setup & Reproducible Execution
 
 ### Prerequisites
-*   **Node.js:** `>= 20.0.0` (LTS v20 or v22 recommended)
-*   **npm:** `>= 10.0.0`
-*   **Java:** `>= 17` (required exclusively for running local Firebase emulators)
+*   **Node.js:** `^22.22.2 || ^24.15.0 || >=26.0.0` (pinned in `.nvmrc`: 22.22.2). The Firebase CLI used by the emulators pulls dependencies that require Node 22+, so Node 20 is not supported.
+*   **npm:** `>= 10.0.0` (install with `npm ci`, which respects `package-lock.json`)
+*   **Java:** `>= 21` (required by `firebase-tools` 15 to run the local emulators)
 
 ### Step-by-Step Instructions
 
@@ -149,40 +147,30 @@ To experience the platform immediately with synthetic clinical profiles, start t
     ```bash
     git clone https://github.com/Hiltonnetoo/stormnutrition.git
     cd stormnutrition
-    npm install
+    npm ci
     ```
 
-2.  **Configure Environment Variables:**
+2.  **Run the app against the emulators (no real credentials):**
     ```bash
-    cp .env.example .env.local
+    npm run dev:emulated
     ```
-    *Note: For local development with emulators, no real API keys are required. The pre-configured demo values in `.env.example` connect directly to local emulator ports.*
+    Starts the Auth (9099) and Firestore (8080) emulators for the synthetic `demo-storm` project, seeds the synthetic personas and plans, and serves the app with `vite --mode emulator`. That mode reads only `config/emulator/.env` (committed, synthetic values) and never a personal `.env.local`. Demo accounts use the password `Password123!` (e.g. `dra.clara@demo.stormnutrition.com`, `ana.silva@demo.stormnutrition.com`).
 
-3.  **Start Firebase Emulators and Seed Synthetic Data:**
-    ```bash
-    # Starts Auth (port 9099) and Firestore (port 8080)
-    npm run emulators
-    
-    # In a separate terminal, seed the synthetic personas and meal plans:
-    npm run demo:seed
-    ```
+    To use a real Firebase project instead, copy `.env.example` to `.env.local`, fill in the project's values and run `npm run dev`. Startup refuses invalid or unsafe combinations (for example, emulator mode pointing at a non-`demo-` project).
 
-4.  **Launch the Development Server:**
+3.  **Run Quality Checks & Test Suites:**
     ```bash
-    npm run dev
+    npm run format:check        # Prettier
+    npm run lint                # ESLint
+    npm run type-check          # strict TypeScript
+    npm run build               # production bundle
+    npm run test:coverage       # unit/component tests with coverage
+    npm run test:rules          # Firestore rules + persistence integration (emulator)
+    npm run test:e2e:emulated   # Playwright journeys, accessibility and design system (emulators)
+    npm run test:perf:queries   # query-cost benchmark (emulator)
+    npm run screenshots         # regenerate docs/screenshots with synthetic data
     ```
-    Open `http://localhost:5000` in your browser.
-
-5.  **Run Quality Checks & Test Suites:**
-    ```bash
-    npm test                    # Run 300 unit and integration tests
-    npm run test:rules          # Run 34 Firestore security rules tests
-    npm run test:e2e:emulated   # Run 14 Playwright E2E tests against emulators
-    npm run type-check          # Verify strict TypeScript compilation
-    npm run lint                # Run ESLint
-    npm run format:check        # Check Prettier formatting
-    npm run build               # Build production bundle
-    ```
+    Latest recorded results (commands, versions, counts and the exact source state) are in [`docs/evidencias-revisao-10.md`](docs/evidencias-revisao-10.md); counts are not repeated here because they change with every test added.
 
 ---
 
@@ -197,6 +185,7 @@ To experience the platform immediately with synthetic clinical profiles, start t
 
 ## ⚠️ Disclaimers & Known Limitations
 
-1. **Clinical Decision Support:** Storm Nutrition provides algorithmic calculation tools, reference ranges, and structured guidelines designed to assist healthcare professionals. It does not provide automated medical diagnoses or substitute direct clinical evaluation by a licensed physician or registered dietitian.
+1. **Clinical Decision Support:** Storm Nutrition provides algorithmic calculation tools, reference ranges, and structured guidelines designed to assist healthcare professionals. It does not provide automated medical diagnoses or substitute direct clinical evaluation by a licensed physician or registered dietitian. Calculations are based on TACO/UNICAMP and standard reference formulas (Mifflin-St Jeor, Harris-Benedict).
 2. **Billing Simulation Prototype:** The subscription management and payment methods interfaces operate using client-side `localStorage` state (`isanutri:<uid>:billingState:v1`) for portfolio demonstration. It does not process real credit cards and is architecturally isolated from Firestore backend security rules.
-3. **Safe Demonstration Emails:** Dispatches sent to demo domains (`@demo.stormnutrition.com`, `@example.com`, `@test.com`) are intercepted safely in-memory without making external API calls to EmailJS, preventing unwanted external communications.
+3. **Safe Demonstration Emails & Client Rate Limiting:** Dispatches sent to demo domains (`@demo.stormnutrition.com`, `@example.com`, `@test.com`) or executed in emulator/demo environments are intercepted safely in-memory without making external API calls to EmailJS. In-memory client rate limiting (5s cooldown, 5 sends/minute) protects against accidental rapid clicks in the browser UI, but does not substitute an API gateway or backend rate-limiting service.
+4. **Hosting & Cloud Deployment:** Production deployment commands (`firebase deploy --only firestore:rules,firestore:indexes,hosting`) require an active authenticated Firebase CLI session with appropriate IAM deployment privileges. Running tests locally against emulators does not deploy code or rules to production Cloud Firestore.

@@ -98,7 +98,7 @@ const Step6LabExams: React.FC<Step6Props> = ({ data, onDataChange }) => {
                     <h4 className="font-bold text-slate-800 dark:text-white">
                       {category.name}
                     </h4>
-                    <p className="text-[11px] text-slate-400 uppercase tracking-widest">
+                    <p className="text-xs text-slate-400 uppercase tracking-widest">
                       {t("patient_form.exams.exams_count", { count })}
                     </p>
                   </div>
@@ -127,7 +127,7 @@ const Step6LabExams: React.FC<Step6Props> = ({ data, onDataChange }) => {
                       >
                         <div className="flex justify-between items-center px-1">
                           <label
-                            className="text-[9px] font-bold text-slate-500 uppercase truncate"
+                            className="text-xs font-bold text-slate-500 uppercase truncate"
                             title={test.name}
                           >
                             {test.name}
@@ -145,14 +145,14 @@ const Step6LabExams: React.FC<Step6Props> = ({ data, onDataChange }) => {
                                 e.target.value,
                               )
                             }
-                            className="w-full h-9 px-2.5 text-xs font-bold border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg focus:ring-2 focus:ring-sage-500/60 focus:border-sage-400 outline-none transition-all"
+                            className="w-full h-9 pl-2.5 pr-14 text-sm font-bold tabular border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white rounded-lg focus:ring-2 focus:ring-sage-500/60 focus:border-sage-400 outline-none transition-all"
                             placeholder="-"
                           />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold text-slate-300 pointer-events-none">
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500 pointer-events-none">
                             {test.unit}
                           </span>
                         </div>
-                        <p className="text-[8px] text-slate-400 px-1 truncate">
+                        <p className="text-xs text-slate-500 px-1 truncate tabular">
                           {test.min && test.max
                             ? `${test.min}-${test.max}`
                             : test.max

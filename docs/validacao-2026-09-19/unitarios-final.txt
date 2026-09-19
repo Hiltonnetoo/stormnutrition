@@ -1,0 +1,152 @@
+
+> stormnutrition-v5---nutritional-management@0.0.0 test:coverage
+> vitest run --coverage
+
+
+ RUN  v4.1.8 /Users/hiltonneto/Desktop/Isanutri V5
+      Coverage enabled with v8
+
+
+ Test Files  47 passed (47)
+      Tests  434 passed (434)
+   Start at  10:51:12
+   Duration  9.88s (transform 2.73s, setup 4.95s, import 8.06s, tests 10.32s, environment 46.35s)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   54.29 |    49.66 |   39.58 |   55.49 |                   
+ src               |   20.25 |        0 |       4 |      25 |                   
+  App.tsx          |       0 |        0 |       0 |       0 | 17-339            
+ src/components    |   58.39 |    61.67 |   51.47 |   59.61 |                   
+  AppShell.tsx     |       0 |        0 |       0 |       0 | 13-162            
+  AuthLayout.tsx   |       0 |        0 |       0 |       0 | 19-126            
+  Breadcrumbs.tsx  |       0 |        0 |       0 |       0 | 13-79             
+  Dialog.tsx       |     100 |    76.92 |     100 |     100 | 48-60             
+  ...lanViewer.tsx |   91.66 |       75 |     100 |   91.66 | 27                
+  ...rBoundary.tsx |   85.18 |       80 |   77.77 |   84.61 | 66-67,71,90       
+  ...eSelector.tsx |       0 |        0 |       0 |       0 | 4-27              
+  ...tionTable.tsx |      60 |    61.79 |   47.82 |   63.46 | ...91,383,428,474 
+  Sidebar.tsx      |   32.25 |    25.71 |   22.85 |    33.7 | ...00,433-437,446 
+  StepProgress.tsx |    92.3 |    91.66 |      80 |   91.66 | 65                
+  icons.tsx        |   81.42 |      100 |   62.85 |   81.42 | ...82,621,685,735 
+  ui.tsx           |   98.66 |    84.96 |   95.83 |   98.64 | 768               
+ ...ents/dashboard |   79.16 |    74.13 |    60.6 |   81.11 |                   
+  ...ingBanner.tsx |   88.88 |      100 |   66.66 |    87.5 | 68                
+  ...ceSection.tsx |   41.66 |       75 |   16.66 |   45.45 | 12-42,75          
+  ...nsSection.tsx |      60 |      100 |   33.33 |      60 | 68-89             
+  ...ivityCard.tsx |   71.42 |       75 |   66.66 |   71.42 | 63-64             
+  StatCard.tsx     |     100 |       75 |     100 |     100 | 36-41             
+  ...boardUtils.ts |   86.36 |    71.05 |   83.33 |      90 | 109-113           
+ ...diet-generator |   16.34 |    20.27 |     7.5 |    16.5 |                   
+  ...ntextCard.tsx |       0 |        0 |       0 |       0 | 5-55              
+  ...gSelector.tsx |      25 |        0 |       0 |      25 | 30-64             
+  ...anDisplay.tsx |   39.13 |    38.46 |      20 |   40.62 | ...98-264,472-572 
+  ...ogressBar.tsx |       0 |        0 |       0 |       0 | 11-27             
+  ...bjectives.tsx |       0 |        0 |       0 |       0 | 13-35             
+  ...Nutrition.tsx |       0 |        0 |       0 |       0 | 18-185            
+  ...3MealPlan.tsx |       0 |        0 |       0 |       0 | 13-175            
+  ...ccessCard.tsx |       0 |      100 |       0 |       0 | 13-21             
+  ...esSection.tsx |       0 |        0 |       0 |       0 | 11-40             
+  ...amsModule.tsx |       0 |        0 |       0 |       0 | 13-261            
+  ModeSelector.tsx |   36.36 |        0 |      25 |   36.36 | 85-100            
+  ...tionLabel.tsx |   33.33 |        0 |       0 |   33.33 | 23-25             
+  ...alculator.tsx |       0 |        0 |       0 |       0 | 6-152             
+ ...ponents/modals |   44.31 |    40.54 |   33.33 |   45.56 |                   
+  ...viewModal.tsx |   76.92 |       40 |      40 |   76.92 | 21,25,30          
+  ...DietModal.tsx |       0 |        0 |       0 |       0 | 20-115            
+  ...ientModal.tsx |   51.14 |    40.36 |   56.25 |   51.61 | ...23-225,229-319 
+  ...cessModal.tsx |   60.74 |    66.66 |   43.75 |   63.72 | ...18-220,361-551 
+  ...toryModal.tsx |     3.5 |        0 |       0 |    3.77 | 36-301            
+  PatientModal.tsx |     100 |       80 |     100 |     100 | 70                
+ ...s/patient-form |   27.71 |    23.07 |   17.24 |   27.84 |                   
+  ...1Personal.tsx |     100 |    86.36 |     100 |     100 | 26-27,122         
+  Step2Contact.tsx |   37.83 |     72.5 |   57.14 |   37.83 | 27-37,41,52-77    
+  ...fessional.tsx |      20 |        0 |       0 |      20 | 17-25             
+  ...tritional.tsx |      16 |        0 |       0 |   16.66 | 90-317            
+  ...opometric.tsx |    5.55 |        0 |       0 |    5.71 | 23-56,73-283      
+  ...6LabExams.tsx |    3.03 |        0 |       0 |    3.44 | 12-142            
+  Step6Summary.tsx |   33.33 |        0 |       0 |   33.33 | 15,31-37,51-52    
+ ...s/patient-list |   91.08 |    64.44 |    90.9 |   93.54 |                   
+  ...tionsMenu.tsx |   90.52 |    64.44 |   89.47 |    93.1 | 131-137,140-141   
+ ...patient-portal |       0 |        0 |       0 |       0 |                   
+  ...ceCheckIn.tsx |       0 |        0 |       0 |       0 | 13-116            
+  ...tsSection.tsx |       0 |        0 |       0 |       0 | 7-221             
+  ...wordModal.tsx |       0 |        0 |       0 |       0 | 11-172            
+  ...ightModal.tsx |       0 |        0 |       0 |       0 | 12-89             
+  ...ationForm.tsx |       0 |        0 |       0 |       0 | 16-225            
+ ...atient-profile |       0 |        0 |       0 |       0 |                   
+  ...tionChart.tsx |       0 |        0 |       0 |       0 | 18-148            
+  ...isonModal.tsx |       0 |        0 |       0 |       0 | 15-122            
+  ...ssmentTab.tsx |       0 |        0 |       0 |       0 | 18-269            
+  ...eDietsTab.tsx |       0 |        0 |       0 |       0 | 18-249            
+  ...lutionTab.tsx |       0 |        0 |       0 |       0 | 11-34             
+  ...eExamsTab.tsx |       0 |        0 |       0 |       0 | 11-71             
+  ...ileHeader.tsx |       0 |        0 |       0 |       0 | 15-84             
+  ...melineTab.tsx |       0 |        0 |       0 |       0 | 18-93             
+  ...tionChart.tsx |       0 |        0 |       0 |       0 | 13-263            
+ ...nents/settings |    62.9 |       75 |   41.66 |   63.79 |                   
+  ...ngSection.tsx |    62.9 |       75 |   41.66 |   63.79 | ...28,322,352-392 
+ src/contexts      |   88.88 |    73.03 |   68.96 |   92.65 |                   
+  AuthContext.tsx  |   88.19 |    68.49 |      65 |   91.55 | ...49,292-300,323 
+  ...ryContext.tsx |   92.85 |    93.75 |   77.77 |     100 | 34                
+ src/hooks         |   73.29 |    59.78 |   74.32 |   77.37 |                   
+  ...hboardData.ts |   86.84 |    61.11 |   83.33 |    90.9 | 69-73             
+  useDialog.ts     |   92.39 |    77.96 |     100 |   96.38 | 143-145           
+  ...tTemplates.ts |   90.47 |       75 |     100 |     100 | 29-44             
+  ...usOnChange.ts |    90.9 |    71.42 |     100 |     100 | 20-21             
+  ...tDirectory.ts |     100 |      100 |      75 |     100 |                   
+  ...PortalData.ts |       0 |        0 |       0 |       0 | 31-140            
+  ...entProfile.ts |   72.34 |     40.9 |      75 |    72.5 | 34-44,67-73       
+  ...stentState.ts |   93.18 |     87.5 |     100 |   95.12 | 78,84             
+ src/pages         |   14.64 |    11.85 |     9.7 |   15.12 |                   
+  ...nvitation.tsx |   77.04 |    66.32 |     100 |   81.03 | ...58-159,198-201 
+  Calendar.tsx     |       0 |        0 |       0 |       0 | 19-720            
+  Dashboard.tsx    |   76.92 |    56.25 |     100 |   81.81 | 36-37             
+  ...Generator.tsx |       0 |        0 |       0 |       0 | 43-825            
+  EmailAdmin.tsx   |       0 |        0 |       0 |       0 | 17-289            
+  FoodDatabase.tsx |       0 |        0 |       0 |       0 | 21-519            
+  Home.tsx         |       0 |        0 |       0 |       0 | 23-941            
+  Login.tsx        |       0 |        0 |       0 |       0 | 26-326            
+  ...alculator.tsx |       0 |        0 |       0 |       0 | 15-70             
+  ...entPortal.tsx |       0 |        0 |       0 |       0 | 20-288            
+  ...ntProfile.tsx |       0 |        0 |       0 |       0 | 18-171            
+  Patients.tsx     |    55.9 |    44.64 |   42.55 |   57.04 | ...69,582,608-675 
+  Register.tsx     |       0 |        0 |       0 |       0 | 23-288            
+  Reports.tsx      |       0 |        0 |       0 |       0 | 31-299            
+  Settings.tsx     |       0 |        0 |       0 |       0 | 15-482            
+ src/services      |   76.41 |    70.72 |   65.57 |   77.83 |                   
+  ...entService.ts |   42.74 |       50 |   14.28 |   48.11 | ...60-273,290-304 
+  authService.ts   |       0 |        0 |       0 |       0 | 20-193            
+  ...ingService.ts |     100 |    91.66 |     100 |     100 | 100               
+  ...Validation.ts |   85.18 |    76.66 |     100 |   85.18 | ...72-176,181-183 
+  ...thmService.ts |   93.36 |    81.33 |   94.33 |   94.59 | ...-929,1029-1031 
+  dietService.ts   |    60.8 |     56.8 |   37.73 |   61.73 | ...1232,1256-1272 
+  emailService.ts  |   91.66 |     90.9 |     100 |   94.38 | ...51-254,322-325 
+  ...ionService.ts |   85.21 |    69.23 |   82.35 |    84.9 | ...26,262,312-319 
+  ...ase.config.ts |     100 |       80 |     100 |     100 | 45,63-65          
+  firebaseCore.ts  |      70 |     37.5 |       0 |      70 | 52,66-73          
+  foodService.ts   |   83.96 |    89.31 |   67.56 |   83.85 | ...88,799,819-844 
+  ...ionService.ts |   89.68 |    82.55 |     100 |   95.61 | ...69,315,335,352 
+  ...ionService.ts |   77.96 |    70.68 |   81.81 |   78.57 | ...13-214,233-251 
+  ...entService.ts |   73.79 |    55.81 |   42.85 |   76.47 | ...25-442,453-455 
+ src/utils         |    89.1 |    84.81 |    95.4 |   90.63 |                   
+  a11y.ts          |     100 |       75 |     100 |     100 | 23                
+  calcAge.ts       |       0 |        0 |       0 |       0 | 9-16              
+  dateTime.ts      |    92.3 |    80.64 |     100 |   98.18 | 43                
+  dietEditing.ts   |   96.66 |       75 |     100 |     100 | 23-45,74,91-92    
+  errors.ts        |   98.03 |    96.29 |     100 |   97.95 | 173               
+  localStorage.ts  |   85.52 |    69.76 |     100 |   90.14 | ...,61,76,103,202 
+  locale.ts        |   57.14 |    47.36 |      60 |   63.15 | 35-38,49-51       
+  pdfExporter.ts   |   90.76 |    92.61 |     100 |   90.71 | ...53,450,646-673 
+  routes.ts        |       0 |        0 |       0 |       0 | 2-18              
+  validation.ts    |    98.3 |    89.31 |     100 |   98.24 | 28                
+-------------------|---------|----------|---------|---------|-------------------
+
+=============================== Coverage summary ===============================
+Statements   : 54.29% ( 3492/6431 )
+Branches     : 49.66% ( 2765/5567 )
+Functions    : 39.58% ( 547/1382 )
+Lines        : 55.49% ( 3341/6020 )
+================================================================================

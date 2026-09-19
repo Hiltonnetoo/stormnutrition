@@ -70,7 +70,7 @@ export const ProfileExamsTab: React.FC<ProfileExamsTabProps> = ({
           patient.lastLabExams.map((test, i) => (
             <Card key={i} className="p-4 flex justify-between items-center">
               <div>
-                <p className="text-[11px] text-slate-400 font-bold uppercase">
+                <p className="text-xs text-slate-400 font-bold uppercase">
                   {test.name}
                 </p>
                 <p className="text-lg font-bold text-slate-800 dark:text-white">
@@ -80,7 +80,7 @@ export const ProfileExamsTab: React.FC<ProfileExamsTabProps> = ({
                   </span>
                 </p>
               </div>
-              <Badge tone={test.status === "alert" ? "rose" : "emerald"}>
+              <Badge tone={test.status === "alert" ? "danger" : "success"}>
                 {test.status === "alert"
                   ? t("profile.biomarkers.altered")
                   : t("profile.biomarkers.normal")}

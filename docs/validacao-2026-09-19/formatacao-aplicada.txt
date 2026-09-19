@@ -1,0 +1,8 @@
+src/components/__tests__/DietPlanDisplay.clinicalContext.test.tsx 27ms
+src/components/diet-generator/DietPlanDisplay.tsx 38ms (unchanged)
+src/components/patient-profile/ProfileExamsTab.tsx 9ms (unchanged)
+src/components/ui.tsx 30ms
+src/index.css 25ms (unchanged)
+src/pages/PatientPortal.tsx 7ms
+src/pages/Patients.tsx 22ms (unchanged)
+tests-rules/firestore.rules.test.ts 68ms

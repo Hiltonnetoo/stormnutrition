@@ -1,0 +1,134 @@
+[
+  {
+    "file": "dashboard.png",
+    "screen": "Dashboard",
+    "route": "#/dashboard",
+    "viewport": "1440x900",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "patients.png",
+    "screen": "Lista de pacientes",
+    "route": "#/patients",
+    "viewport": "1440x900",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "patient_profile.png",
+    "screen": "Perfil do paciente",
+    "route": "#/patients/patient-ana-silva",
+    "viewport": "1440x900",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "calendar.png",
+    "screen": "Agenda",
+    "route": "#/calendar",
+    "viewport": "1440x900",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "patients_no_results.png",
+    "screen": "Estado sem resultados",
+    "route": "#/patients",
+    "viewport": "1440x900",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "diet_generator_step1.png",
+    "screen": "Gerador — etapa 1",
+    "route": "#/diet-generator",
+    "viewport": "1440x900",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "diet_generator.png",
+    "screen": "Gerador — plano gerado",
+    "route": "#/diet-generator",
+    "viewport": "1440x900",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "dashboard_mobile.png",
+    "screen": "Dashboard (celular)",
+    "route": "#/dashboard",
+    "viewport": "375x812",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "calendar_mobile.png",
+    "screen": "Agenda (celular)",
+    "route": "#/calendar",
+    "viewport": "375x812",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "invitation_error.png",
+    "screen": "Erro: convite inválido",
+    "route": "#/convite/token-inexistente-sintetico",
+    "viewport": "1440x900",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "portal.png",
+    "screen": "Portal do paciente",
+    "route": "#/paciente",
+    "viewport": "1440x900",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  },
+  {
+    "file": "portal_mobile.png",
+    "screen": "Portal do paciente (celular)",
+    "route": "#/paciente",
+    "viewport": "375x812",
+    "language": "pt-BR",
+    "theme": "light",
+    "date": "2026-09-18",
+    "version": "2baeaec+working-tree",
+    "data": "seed sintético (scripts/seed-emulator.mjs), projeto demo-storm"
+  }
+]

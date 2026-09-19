@@ -9,7 +9,48 @@ interface Props {
   alternatives?: MealOption[];
   /** Tailwind color token for label: 'sage' (nutritionist) or 'teal' (patient) */
   accentColor?: "sage" | "teal";
+  /** Enables portion editing (grams) for items that have a gram portion. */
+  onItemPortionChange?: (
+    option: "main" | number,
+    itemIndex: number,
+    grams: number,
+  ) => void;
 }
+
+/** Portion in grams, committed on blur or Enter (R08 manual edit). */
+const PortionInput: React.FC<{
+  grams: number;
+  label: string;
+  onCommit: (grams: number) => void;
+}> = ({ grams, label, onCommit }) => {
+  const [value, setValue] = useState(String(grams));
+  React.useEffect(() => setValue(String(grams)), [grams]);
+  const commit = () => {
+    const next = Number(value.replace(",", "."));
+    if (Number.isFinite(next) && next > 0 && next <= 2000 && next !== grams) {
+      onCommit(Math.round(next));
+    } else {
+      setValue(String(grams));
+    }
+  };
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      min={1}
+      max={2000}
+      step={5}
+      value={value}
+      aria-label={label}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-right text-xs font-bold tabular focus:outline-none focus:ring-2 focus:ring-sage-500/60"
+    />
+  );
+};
 
 const NutritionModal: React.FC<{
   item: MealOptionItem;
@@ -55,7 +96,8 @@ const NutritionModal: React.FC<{
  * Splits a combined portion string into individual amounts.
  * e.g. "10850g, 252g e 103g" → ["10850g", "252g", "103g"]
  */
-function parseAmounts(portion: string): string[] {
+function parseAmounts(portion?: string): string[] {
+  if (!portion || typeof portion !== "string") return [];
   return portion
     .replace(/\s+(?:e|and)\s+/gi, ", ")
     .split(/,\s+/)
@@ -67,7 +109,8 @@ function parseAmounts(portion: string): string[] {
  * Tries to split food names to match the number of portions.
  * Falls back to [fullName] if parsing is unreliable.
  */
-function parseFoodNames(name: string, count: number): string[] {
+function parseFoodNames(name?: string, count = 1): string[] {
+  if (!name || typeof name !== "string") return [];
   if (count <= 1) return [name];
 
   // Normalize: replace the last " e " or " and " before the final item with ", "
@@ -86,7 +129,8 @@ const OptionTable: React.FC<{
   accent: "sage" | "teal";
   isAlternative?: boolean;
   index?: number;
-}> = ({ option, accent, isAlternative, index }) => {
+  onPortionChange?: (itemIndex: number, grams: number) => void;
+}> = ({ option, accent, isAlternative, index, onPortionChange }) => {
   const { t } = useTranslation();
   const [selectedItem, setSelectedItem] = useState<MealOptionItem | null>(null);
 
@@ -119,13 +163,13 @@ const OptionTable: React.FC<{
           </span>
           <div className="flex gap-4">
             {option.protein !== undefined && (
-              <span className="text-[11px]">
+              <span className="text-xs">
                 P: {Math.round(option.protein)}g | C: {Math.round(option.carbs)}
                 g | G: {Math.round(option.fat)}g
               </span>
             )}
             {option.details && (
-              <span className="font-normal normal-case text-[11px] italic opacity-80">
+              <span className="font-normal normal-case text-xs italic opacity-80">
                 {option.details}
               </span>
             )}
@@ -135,22 +179,22 @@ const OptionTable: React.FC<{
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-700">
-                <th className="text-left px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <th className="text-left px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   {t("meal_table.food")}
                 </th>
-                <th className="text-right px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-16">
+                <th className="text-right px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-16">
                   {t("meal_table.portion")}
                 </th>
-                <th className="text-center px-2 py-1.5 text-[9px] font-semibold text-slate-400 uppercase w-10">
+                <th className="text-center px-2 py-1.5 text-xs font-semibold text-slate-400 uppercase w-10">
                   P
                 </th>
-                <th className="text-center px-2 py-1.5 text-[9px] font-semibold text-slate-400 uppercase w-10">
+                <th className="text-center px-2 py-1.5 text-xs font-semibold text-slate-400 uppercase w-10">
                   C
                 </th>
-                <th className="text-center px-2 py-1.5 text-[9px] font-semibold text-slate-400 uppercase w-10">
+                <th className="text-center px-2 py-1.5 text-xs font-semibold text-slate-400 uppercase w-10">
                   G
                 </th>
-                <th className="text-right px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-16">
+                <th className="text-right px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-16">
                   Kcal
                 </th>
                 <th className="w-8"></th>
@@ -177,19 +221,29 @@ const OptionTable: React.FC<{
                     </div>
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <span
-                      className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full ${pillBg}`}
-                    >
-                      {item.portion}
-                    </span>
+                    {onPortionChange && item.portionGrams ? (
+                      <PortionInput
+                        grams={item.portionGrams}
+                        label={t("meal_table.portion_input", {
+                          food: item.name,
+                        })}
+                        onCommit={(grams) => onPortionChange(i, grams)}
+                      />
+                    ) : (
+                      <span
+                        className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full ${pillBg}`}
+                      >
+                        {item.portion}
+                      </span>
+                    )}
                   </td>
-                  <td className="px-2 py-2 text-center text-[11px] font-medium text-blue-600">
+                  <td className="px-2 py-2 text-center text-xs font-medium text-blue-600">
                     {Math.round(item.protein)}g
                   </td>
-                  <td className="px-2 py-2 text-center text-[11px] font-medium text-amber-600">
+                  <td className="px-2 py-2 text-center text-xs font-medium text-amber-600">
                     {Math.round(item.carbs)}g
                   </td>
-                  <td className="px-2 py-2 text-center text-[11px] font-medium text-orange-600">
+                  <td className="px-2 py-2 text-center text-xs font-medium text-orange-600">
                     {Math.round(item.fat)}g
                   </td>
                   <td className="px-3 py-2 text-right font-bold text-slate-700 dark:text-slate-300 text-xs">
@@ -223,7 +277,7 @@ const OptionTable: React.FC<{
         </div>
         {option.clinicalWarnings && option.clinicalWarnings.length > 0 && (
           <div className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 border-t border-red-100 dark:border-red-800">
-            <p className="text-[11px] font-bold text-red-700 dark:text-red-400 flex items-center gap-1 uppercase">
+            <p className="text-xs font-bold text-red-700 dark:text-red-400 flex items-center gap-1 uppercase">
               <span>{t("meal_table.clinical_note")}</span>
               <span className="font-medium normal-case">
                 {option.clinicalWarnings.join(" • ")}
@@ -273,7 +327,7 @@ const OptionTable: React.FC<{
             : t("meal_table.main_option")}
         </span>
         {option.details && (
-          <span className="font-normal normal-case text-[11px] italic opacity-80">
+          <span className="font-normal normal-case text-xs italic opacity-80">
             {option.details}
           </span>
         )}
@@ -283,10 +337,10 @@ const OptionTable: React.FC<{
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-700">
-              <th className="text-left px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-2/3">
+              <th className="text-left px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-2/3">
                 {t("meal_table.food")}
               </th>
-              <th className="text-right px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-1/3">
+              <th className="text-right px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-1/3">
                 {t("meal_table.portion")}
               </th>
             </tr>
@@ -316,10 +370,10 @@ const OptionTable: React.FC<{
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-700">
-              <th className="text-left px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-2/3">
+              <th className="text-left px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-2/3">
                 {t("meal_table.food")}
               </th>
-              <th className="text-right px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-1/3">
+              <th className="text-right px-3 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-1/3">
                 {t("meal_table.portion")}
               </th>
             </tr>
@@ -359,13 +413,22 @@ const MealOptionTable: React.FC<Props> = ({
   mainOption,
   alternatives = [],
   accentColor = "sage",
+  onItemPortionChange,
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   return (
     <div className="space-y-2 mt-2">
-      <OptionTable option={mainOption} accent={accentColor} />
+      <OptionTable
+        option={mainOption}
+        accent={accentColor}
+        onPortionChange={
+          onItemPortionChange
+            ? (item, grams) => onItemPortionChange("main", item, grams)
+            : undefined
+        }
+      />
 
       {alternatives.length > 0 && (
         <div>
@@ -406,6 +469,11 @@ const MealOptionTable: React.FC<Props> = ({
                   accent={accentColor}
                   isAlternative
                   index={i}
+                  onPortionChange={
+                    onItemPortionChange
+                      ? (item, grams) => onItemPortionChange(i, item, grams)
+                      : undefined
+                  }
                 />
               ))}
             </div>

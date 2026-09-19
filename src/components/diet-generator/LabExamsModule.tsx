@@ -135,7 +135,7 @@ const LabExamsModule: React.FC<Props> = ({
   ].filter((v, i, a) => a.findIndex((t) => t.name === v.name) === i);
 
   return (
-    <div className="bg-white dark:bg-slate-855 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-soft transition-all">
+    <div className="bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden shadow-soft transition-all">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"

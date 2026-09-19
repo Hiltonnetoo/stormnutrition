@@ -4,18 +4,42 @@ import { getNormalizedLanguage, type SupportedLanguage } from "../utils/locale";
 import { AppError, safeLogError } from "../utils/errors";
 
 /**
+ * Email Transport Mode:
+ * - 'simulated': Dispatches are intercepted locally, logged securely and returned with { simulated: true }.
+ *   Always active in Firebase Emulators (VITE_USE_FIREBASE_EMULATOR=true), Demo Mode (VITE_DEMO_MODE=true),
+ *   automated test suites, or for any address on a synthetic domain.
+ * - 'real': Real client dispatch via EmailJS. Active ONLY in production/development with non-demo recipients,
+ *   outside of emulators/demo, and when EmailJS keys are configured.
+ */
+export type EmailTransportMode = "simulated" | "real";
+
+export interface EmailDispatchResult {
+  status: "sent" | "simulated";
+  simulated: boolean;
+  recipient: string;
+}
+
+/**
  * Real sending of emails via EmailJS (client).
  *
  * Configure the three variables in .env.local (see .env.example):
  *   VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID, VITE_EMAILJS_PUBLIC_KEY
  *
- * When not configured, `sendDietEmail` throws "EMAIL_NOT_CONFIGURED" so that
+ * When not configured and in real mode, `sendDietEmail` throws "EMAIL_NOT_CONFIGURED" so that
  * the UI displays a clear guidance instead of pretending it sent the email.
  *
- * Abuse controls included:
- * - Recipient email syntax validation
- * - In-memory throttling (cooldown and sliding window rate limiting)
- * - Maximum payload size constraints
+ * IMPORTANT SECURITY ARCHITECTURE NOTE (Passo C10.7):
+ * - The in-memory rate limiting (cooldown and sliding window) implemented below in
+ *   `enforceAbuseControls` is a client-side UX protection designed to prevent duplicate
+ *   clicks, rapid accidental triggers, and obvious misuse in normal user sessions.
+ * - Because it executes in the browser memory, it is NOT a trusted security perimeter
+ *   against a malicious adversary with modified client code or automated tools.
+ * - In production environments, strict anti-abuse must be configured at the provider
+ *   or backend layer:
+ *   1. EmailJS Console: Restricted Authorized Domains/Origins (whitelisting only the production app origin).
+ *   2. EmailJS Console: IP Rate Limiting and strict monthly/daily quota controls.
+ *   3. Optional reCAPTCHA v3 verification before dispatch.
+ *   4. Or transitioning high-value email endpoints to an authenticated Firebase Cloud Function proxy.
  */
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -86,20 +110,74 @@ export const DEMO_DOMAINS = [
   "test.com",
 ];
 
+/**
+ * Passo C10.1: Classificação do domínio do destinatário (isolada do modo de transporte).
+ * Identifica o domínio sintético oficial da plataforma Storm Nutrition.
+ */
+export const isDemoDomain = (email: string): boolean => {
+  if (!email || typeof email !== "string") return false;
+  const lower = email.trim().toLowerCase();
+  return (
+    lower.endsWith("@demo.stormnutrition.com") ||
+    lower.endsWith(".demo.stormnutrition.com")
+  );
+};
+
+/**
+ * Passo C10.1: Identifica domínios conhecidos sintéticos de demonstração e testes
+ * (@demo.stormnutrition.com, @example.com, @test.com, @example.org).
+ * Este conceito classifica o destinatário, independentemente do transporte do ambiente.
+ */
 export const isDemoRecipient = (email: string): boolean => {
   if (!email || typeof email !== "string") return false;
   const lower = email.trim().toLowerCase();
-  if (
-    lower.endsWith("@demo.stormnutrition.com") ||
-    lower.endsWith(".demo.stormnutrition.com")
-  ) {
-    return true;
+  if (isDemoDomain(lower)) return true;
+  const atIdx = lower.lastIndexOf("@");
+  if (atIdx === -1) return false;
+  const domain = lower.slice(atIdx + 1);
+  return DEMO_DOMAINS.some((d) => domain === d || domain.endsWith("." + d));
+};
+
+/**
+ * Passo C10.1, C10.2 e C10.3: Resolução do modo de transporte.
+ * Garante que emuladores, testes e demo isolada usam transporte simulado para qualquer
+ * endereço, independentemente de chaves reais presentes por engano no ambiente.
+ */
+export const resolveEmailTransport = (
+  recipientEmail?: string,
+): EmailTransportMode => {
+  const envTransport = (
+    import.meta.env.VITE_EMAIL_TRANSPORT as string | undefined
+  )
+    ?.trim()
+    .toLowerCase();
+
+  // 1. Ambientes isolados: Emulador Firebase, Modo Demonstração ou Suíte de Testes
+  // NUNCA chamam APIs externas, MESMO se houver configuração explícita para "real".
+  const isEmulator = import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true";
+  const isDemo = import.meta.env.VITE_DEMO_MODE === "true";
+  const isTest = import.meta.env.MODE === "test";
+
+  if (isEmulator || isDemo || isTest) {
+    return "simulated";
   }
-  const isDemoOrEmulator =
-    import.meta.env.VITE_DEMO_MODE === "true" ||
-    (import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true" &&
-      DEMO_DOMAINS.some((d) => lower.endsWith(`@${d}`)));
-  return isDemoOrEmulator;
+
+  // 2. Destinatários pertencentes a domínios sintéticos conhecidos são SEMPRE simulados
+  if (recipientEmail && isDemoRecipient(recipientEmail)) {
+    return "simulated";
+  }
+
+  // 3. Fora do isolamento, exigir configuração explícita válida para envio real.
+  // Sem VITE_EMAIL_TRANSPORT=real explícito, o comportamento seguro é simular.
+  if (envTransport === "real") {
+    return "real";
+  }
+
+  return "simulated";
+};
+
+export const isSimulatedEmailTransport = (recipientEmail?: string): boolean => {
+  return resolveEmailTransport(recipientEmail) === "simulated";
 };
 
 export const isEmailConfigured = (): boolean => {
@@ -117,7 +195,9 @@ export interface DietEmailParams {
   locale?: SupportedLanguage | string;
 }
 
-export const sendDietEmail = async (params: DietEmailParams): Promise<void> => {
+export const sendDietEmail = async (
+  params: DietEmailParams,
+): Promise<EmailDispatchResult> => {
   const messageText =
     params.message ||
     i18n.t("email.diet_message", {
@@ -128,12 +208,17 @@ export const sendDietEmail = async (params: DietEmailParams): Promise<void> => {
 
   enforceAbuseControls(params.toEmail, messageText.length);
 
-  if (isDemoRecipient(params.toEmail)) {
+  const transport = resolveEmailTransport(params.toEmail);
+  if (transport === "simulated") {
     console.info(
-      "[EmailService:DemoSimulation] Disparo de dieta simulado com sucesso para ambiente de demonstração.",
+      "[EmailService:Simulation] Disparo de dieta simulado com sucesso no ambiente isolado.",
       { recipient: params.toEmail, toName: params.toName },
     );
-    return;
+    return {
+      status: "simulated",
+      simulated: true,
+      recipient: params.toEmail,
+    };
   }
 
   const { serviceId, templateId, publicKey } = getEmailConfig();
@@ -157,6 +242,11 @@ export const sendDietEmail = async (params: DietEmailParams): Promise<void> => {
       },
       { publicKey },
     );
+    return {
+      status: "sent",
+      simulated: false,
+      recipient: params.toEmail,
+    };
   } catch (err) {
     safeLogError("emailService:sendDietEmail", err, undefined, {
       recipient: params.toEmail,
@@ -178,7 +268,7 @@ export interface PortalAccessEmailParams {
 
 export const sendPortalAccessEmail = async (
   params: PortalAccessEmailParams,
-): Promise<void> => {
+): Promise<EmailDispatchResult> => {
   const actionUrl = params.inviteUrl || params.portalUrl;
   const messageText = i18n.t("email.portal_message", {
     lng: getNormalizedLanguage(params.locale),
@@ -190,12 +280,17 @@ export const sendPortalAccessEmail = async (
 
   enforceAbuseControls(params.toEmail, messageText.length);
 
-  if (isDemoRecipient(params.toEmail)) {
+  const transport = resolveEmailTransport(params.toEmail);
+  if (transport === "simulated") {
     console.info(
-      "[EmailService:DemoSimulation] Disparo de convite de portal simulado com sucesso para ambiente de demonstração.",
+      "[EmailService:Simulation] Disparo de convite de portal simulado com sucesso no ambiente isolado.",
       { recipient: params.toEmail, toName: params.toName },
     );
-    return;
+    return {
+      status: "simulated",
+      simulated: true,
+      recipient: params.toEmail,
+    };
   }
 
   const { serviceId, templateId, publicKey } = getEmailConfig();
@@ -218,6 +313,11 @@ export const sendPortalAccessEmail = async (
       },
       { publicKey },
     );
+    return {
+      status: "sent",
+      simulated: false,
+      recipient: params.toEmail,
+    };
   } catch (err) {
     safeLogError("emailService:sendPortalAccessEmail", err, undefined, {
       recipient: params.toEmail,

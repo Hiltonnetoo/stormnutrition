@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { CheckCircleIcon, HeartIcon } from "../icons";
 import { useTranslation } from "react-i18next";
 import { getCivilToday, DEFAULT_CLINIC_TIMEZONE } from "../../utils/dateTime";
 import { logAdherence } from "../../services/firebaseService";
@@ -46,11 +47,8 @@ export const AdherenceCheckIn: React.FC<{
       setOptimisticEntry(newEntry);
       onCheckInSuccess();
     } catch (err: unknown) {
-      const errorMsg =
-        err instanceof Error
-          ? err.message
-          : t("patient_portal.adherence.error");
-      setCheckError(errorMsg);
+      console.error("[AdherenceCheckIn] Erro ao registrar adesão:", err);
+      setCheckError(t("patient_portal.adherence.error"));
     } finally {
       setLoading(false);
     }
@@ -62,13 +60,17 @@ export const AdherenceCheckIn: React.FC<{
         ref={confirmationRef}
         role="status"
         tabIndex={-1}
-        className="bg-white border border-slate-100 rounded-3xl p-5 shadow-soft flex items-center gap-4 animate-fade-in focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
+        className="bg-white border border-slate-100 rounded-2xl p-5 shadow-soft flex items-center gap-4 animate-fade-in focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
       >
         <div
           aria-hidden="true"
-          className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${todayEntry.followed ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"}`}
+          className={`w-11 h-11 rounded-xl flex items-center justify-center ${todayEntry.followed ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}
         >
-          {todayEntry.followed ? "🌟" : "💪"}
+          {todayEntry.followed ? (
+            <CheckCircleIcon className="w-6 h-6" />
+          ) : (
+            <HeartIcon className="w-6 h-6" />
+          )}
         </div>
         <div>
           <p className="text-xs font-bold text-sage-600 uppercase tracking-wider">
@@ -84,7 +86,7 @@ export const AdherenceCheckIn: React.FC<{
     );
 
   return (
-    <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-soft">
+    <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-soft">
       <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest mb-2">
         {t("patient_portal.adherence.title")}
       </h3>

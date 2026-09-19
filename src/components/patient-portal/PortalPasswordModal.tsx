@@ -1,4 +1,5 @@
 import React, { useId, useState } from "react";
+import { CheckCircleIcon, ShieldIcon } from "../icons";
 import { useTranslation } from "react-i18next";
 import { updatePassword } from "firebase/auth";
 import { auth } from "../../services/firebaseCore";
@@ -94,8 +95,11 @@ export const PortalPasswordModal: React.FC<{
       backdropClassName="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
       className="relative bg-white rounded-3xl p-6 max-w-sm w-full shadow-pop border border-slate-100"
     >
-      <h3 id={titleId} className="font-bold text-slate-800 text-lg mb-1">
-        <span aria-hidden="true">🔐</span>{" "}
+      <h3
+        id={titleId}
+        className="font-bold text-slate-800 text-lg mb-1 flex items-center gap-2"
+      >
+        <ShieldIcon aria-hidden="true" className="w-5 h-5 text-sage-700" />
         {t("patient_portal.password_modal.title", {
           defaultValue: "Change Password",
         })}
@@ -108,9 +112,10 @@ export const PortalPasswordModal: React.FC<{
 
       {passwordChangeSuccess ? (
         <div role="status" className="text-center py-4">
-          <span aria-hidden="true" className="text-4xl">
-            ✅
-          </span>
+          <CheckCircleIcon
+            aria-hidden="true"
+            className="w-10 h-10 mx-auto text-emerald-700"
+          />
           <p className="text-sm font-bold text-emerald-700 mt-2">
             {t("patient_portal.password_modal.success", {
               defaultValue: "Password updated successfully!",

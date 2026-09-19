@@ -35,6 +35,13 @@ export interface AuthContextType {
   retryProfileFetch: () => Promise<void>;
   completeProfessionalRegistration: (displayName?: string) => Promise<void>;
   logout: () => Promise<void>;
+  beginInvitationActivation: (token: string) => void;
+  completeInvitationActivation: () => Promise<PatientPortalProfile | null>;
+  cancelInvitationActivation: () => Promise<void>;
+  refreshUserProfile: () => Promise<{
+    role: UserRole | null;
+    status: AuthStatus;
+  }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -48,6 +55,10 @@ const AuthContext = createContext<AuthContextType>({
   retryProfileFetch: async () => {},
   completeProfessionalRegistration: async () => {},
   logout: async () => {},
+  beginInvitationActivation: () => {},
+  completeInvitationActivation: async () => null,
+  cancelInvitationActivation: async () => {},
+  refreshUserProfile: async () => ({ role: null, status: "unauthenticated" }),
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -66,45 +77,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Stale async response token / race-condition protection
   const activeSessionId = useRef(0);
+  const isActivatingInvitationRef = useRef(false);
 
   const resolveUserProfile = useCallback(
-    async (user: User, sessionId: number) => {
+    async (
+      user: User,
+      sessionId: number,
+    ): Promise<{ role: UserRole | null; status: AuthStatus }> => {
       setStatus("loading");
       setAuthError(null);
 
       try {
         // 1. Check patient portal profile
         const patient = await getPatientPortalProfile(user.uid);
-        if (sessionId !== activeSessionId.current) return; // Discard stale response
+        if (sessionId !== activeSessionId.current) {
+          return { role: null, status: "loading" };
+        }
 
         if (patient) {
           setPatientProfile(patient);
           setNutritionistProfile(null);
           setUserRole("patient");
+          if (patient.status === "revoked") {
+            setStatus("revoked");
+            return { role: "patient", status: "revoked" };
+          }
           setStatus("authenticated");
-          return;
+          return { role: "patient", status: "authenticated" };
         }
 
         // 2. Check nutritionist profile
         const nutri = await getNutritionistProfile(user.uid);
-        if (sessionId !== activeSessionId.current) return; // Discard stale response
+        if (sessionId !== activeSessionId.current) {
+          return { role: null, status: "loading" };
+        }
 
         if (nutri) {
           setNutritionistProfile(nutri);
           setPatientProfile(null);
           setUserRole("nutritionist");
           setStatus("authenticated");
-          return;
+          return { role: "nutritionist", status: "authenticated" };
         }
 
         // 3. Neither profile exists: user is authenticated in Auth but registration is incomplete.
-        // DO NOT promote to nutritionist on missing profile!
+        // Check if invitation activation is underway (in ref, sessionStorage, or URL)
+        const hasPendingActivation =
+          isActivatingInvitationRef.current ||
+          (typeof window !== "undefined" &&
+            (Boolean(
+              window.sessionStorage?.getItem("active_invitation_token"),
+            ) ||
+              window.location?.hash?.includes("/convite")));
+
         setPatientProfile(null);
         setNutritionistProfile(null);
         setUserRole(null);
+
+        if (hasPendingActivation) {
+          setStatus("invitation_pending");
+          return { role: null, status: "invitation_pending" };
+        }
+
+        // DO NOT promote to nutritionist on missing profile!
         setStatus("incomplete_profile");
+        return { role: null, status: "incomplete_profile" };
       } catch (err: unknown) {
-        if (sessionId !== activeSessionId.current) return; // Discard stale response
+        if (sessionId !== activeSessionId.current) {
+          return { role: null, status: "loading" };
+        }
 
         const code =
           (err as { code?: string })?.code || "auth/profile-fetch-failed";
@@ -125,6 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setNutritionistProfile(null);
         setAuthError({ code, message });
         setStatus("error");
+        return { role: null, status: "error" };
       }
     },
     [],
@@ -139,6 +181,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setCurrentUser(user);
 
       if (!user) {
+        isActivatingInvitationRef.current = false;
+        if (typeof window !== "undefined" && window.sessionStorage) {
+          window.sessionStorage.removeItem("active_invitation_token");
+        }
         clearUserSessionData();
         setUserRole(null);
         setPatientProfile(null);
@@ -161,6 +207,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!currentUser) return;
     const sessionId = ++activeSessionId.current;
     await resolveUserProfile(currentUser, sessionId);
+  }, [currentUser, resolveUserProfile]);
+
+  const beginInvitationActivation = useCallback((token: string) => {
+    isActivatingInvitationRef.current = true;
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      window.sessionStorage.setItem("active_invitation_token", token);
+    }
+    setStatus("invitation_pending");
+  }, []);
+
+  const completeInvitationActivation =
+    useCallback(async (): Promise<PatientPortalProfile | null> => {
+      isActivatingInvitationRef.current = false;
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        window.sessionStorage.removeItem("active_invitation_token");
+      }
+      if (!currentUser) return null;
+      const sessionId = ++activeSessionId.current;
+      setStatus("loading");
+      try {
+        const patient = await getPatientPortalProfile(currentUser.uid);
+        if (sessionId !== activeSessionId.current) return null;
+        if (patient) {
+          setPatientProfile(patient);
+          setNutritionistProfile(null);
+          setUserRole("patient");
+          if (patient.status === "revoked") {
+            setStatus("revoked");
+          } else {
+            setStatus("authenticated");
+          }
+          return patient;
+        }
+        return null;
+      } catch (err) {
+        console.error(
+          "[AuthContext] Erro ao finalizar ativação do convite:",
+          err,
+        );
+        return null;
+      }
+    }, [currentUser]);
+
+  const cancelInvitationActivation = useCallback(async () => {
+    isActivatingInvitationRef.current = false;
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      window.sessionStorage.removeItem("active_invitation_token");
+    }
+    if (currentUser) {
+      const sessionId = ++activeSessionId.current;
+      await resolveUserProfile(currentUser, sessionId);
+    }
+  }, [currentUser, resolveUserProfile]);
+
+  const refreshUserProfile = useCallback(async (): Promise<{
+    role: UserRole | null;
+    status: AuthStatus;
+  }> => {
+    if (!currentUser) return { role: null, status: "unauthenticated" };
+    const sessionId = ++activeSessionId.current;
+    return await resolveUserProfile(currentUser, sessionId);
   }, [currentUser, resolveUserProfile]);
 
   const completeProfessionalRegistration = useCallback(
@@ -198,6 +305,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = useCallback(async () => {
     activeSessionId.current++; // Invalidate in-flight responses immediately
+    isActivatingInvitationRef.current = false;
+    if (typeof window !== "undefined" && window.sessionStorage) {
+      window.sessionStorage.removeItem("active_invitation_token");
+    }
     const uidToClear = currentUser?.uid;
     clearUserSessionData(uidToClear);
     setCurrentUser(null);
@@ -228,6 +339,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         retryProfileFetch,
         completeProfessionalRegistration,
         logout,
+        beginInvitationActivation,
+        completeInvitationActivation,
+        cancelInvitationActivation,
+        refreshUserProfile,
       }}
     >
       {children}

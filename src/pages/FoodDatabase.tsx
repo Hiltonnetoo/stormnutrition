@@ -232,10 +232,19 @@ const FoodDatabase: React.FC = () => {
                     "hidden lg:table-cell",
                   ],
                   [t("food_database.headers.portion"), ""],
-                  [t("food_database.headers.calories"), ""],
-                  [t("food_database.headers.protein"), "hidden sm:table-cell"],
-                  [t("food_database.headers.carbs"), "hidden sm:table-cell"],
-                  [t("food_database.headers.fat"), "hidden sm:table-cell"],
+                  [t("food_database.headers.calories"), "text-right"],
+                  [
+                    t("food_database.headers.protein"),
+                    "text-right hidden sm:table-cell",
+                  ],
+                  [
+                    t("food_database.headers.carbs"),
+                    "text-right hidden sm:table-cell",
+                  ],
+                  [
+                    t("food_database.headers.fat"),
+                    "text-right hidden sm:table-cell",
+                  ],
                   [
                     t("food_database.headers.glycemic_load"),
                     "hidden lg:table-cell",
@@ -243,7 +252,7 @@ const FoodDatabase: React.FC = () => {
                 ].map(([label, cls]) => (
                   <th
                     key={label}
-                    className={`px-6 py-3.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider ${cls}`}
+                    className={`px-6 py-3.5 text-xs font-bold text-slate-400 uppercase tracking-wider ${cls.includes("text-right") ? "" : "text-left"} ${cls}`}
                   >
                     {label}
                   </th>
@@ -268,6 +277,16 @@ const FoodDatabase: React.FC = () => {
                         <p className="text-xs text-slate-400">
                           {getFoodCategoryName(food.category)}
                         </p>
+                        {/* UI08: macros stay visible on phones, where their
+                            columns are hidden. */}
+                        <p className="sm:hidden mt-0.5 text-xs text-slate-500 tabular">
+                          {t("food_database.headers.protein")}{" "}
+                          {food.protein.toFixed(1)}g ·{" "}
+                          {t("food_database.headers.carbs")}{" "}
+                          {food.carbs.toFixed(1)}g ·{" "}
+                          {t("food_database.headers.fat")} {food.fat.toFixed(1)}
+                          g
+                        </p>
                       </td>
                       <td className="px-6 py-3.5 hidden lg:table-cell whitespace-nowrap">
                         <span
@@ -281,16 +300,16 @@ const FoodDatabase: React.FC = () => {
                         {food.portion}
                         {food.unit}
                       </td>
-                      <td className="px-6 py-3.5 text-sm font-bold text-sage-700 dark:text-sage-300 whitespace-nowrap">
+                      <td className="px-6 py-3.5 text-sm font-bold text-sage-700 text-right tabular whitespace-nowrap">
                         {food.calories.toFixed(1)}
                       </td>
-                      <td className="px-6 py-3.5 text-sm text-slate-500 hidden sm:table-cell">
+                      <td className="px-6 py-3.5 text-sm text-slate-500 text-right tabular hidden sm:table-cell">
                         {food.protein.toFixed(1)}g
                       </td>
-                      <td className="px-6 py-3.5 text-sm text-slate-500 hidden sm:table-cell">
+                      <td className="px-6 py-3.5 text-sm text-slate-500 text-right tabular hidden sm:table-cell">
                         {food.carbs.toFixed(1)}g
                       </td>
-                      <td className="px-6 py-3.5 text-sm text-slate-500 hidden sm:table-cell">
+                      <td className="px-6 py-3.5 text-sm text-slate-500 text-right tabular hidden sm:table-cell">
                         {food.fat.toFixed(1)}g
                       </td>
                       <td className="px-6 py-3.5 hidden lg:table-cell whitespace-nowrap">

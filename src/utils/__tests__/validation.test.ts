@@ -107,4 +107,88 @@ describe("validation utilities", () => {
       expect(() => validatePatient("not an object")).toThrow(/payload vazio/);
     });
   });
+
+  // The sanitized read model (what the screens render). Writers of
+  // append-only fields no longer use it (R02-C), so its contract is covered
+  // here directly.
+  describe("validatePatient — read model of histories and settings", () => {
+    const parsed = validatePatient({
+      firstName: " Ana ",
+      weightHistory: [
+        {
+          id: " w1 ",
+          date: "2026-01-01",
+          weight: 60,
+          authorUid: " u1 ",
+          clientEventId: " e1 ",
+          fatPercentage: 22.5,
+          muscleMassKg: 40,
+        },
+        { date: "2026-02-01", weight: "61", origin: "remote_guided" },
+        { weight: 62, origin: "clinical", fatPercentage: Number.NaN },
+      ],
+      adherenceLog: [
+        {
+          date: "2026-09-10",
+          followed: 1,
+          timestamp: " 2026-09-10T12:00:00Z ",
+          clientEventId: " c1 ",
+        },
+        { date: "", followed: true },
+        { followed: false },
+      ],
+      automationSettings: {
+        autoRequestAssessment: "yes",
+        intervalDays: "15",
+        lastAutoRequestDate: " 2026-09-01 ",
+      },
+      portalStatus: "revoked",
+      status: "Archived",
+      pendingInvitationId: " inv1 ",
+    });
+
+    it("normalizes weight records without dropping them", () => {
+      expect(parsed.weightHistory).toEqual([
+        {
+          id: "w1",
+          date: "2026-01-01",
+          weight: 60,
+          origin: "self_reported",
+          authorUid: "u1",
+          clientEventId: "e1",
+          fatPercentage: 22.5,
+          muscleMassKg: 40,
+        },
+        { date: "2026-02-01", weight: 61, origin: "remote_guided" },
+        expect.objectContaining({ weight: 62, origin: "clinical" }),
+      ]);
+      expect(parsed.weightHistory![2]).not.toHaveProperty("fatPercentage");
+    });
+
+    it("keeps dated check-ins only, with trimmed audit fields", () => {
+      expect(parsed.adherenceLog).toEqual([
+        {
+          date: "2026-09-10",
+          followed: true,
+          timestamp: "2026-09-10T12:00:00Z",
+          clientEventId: "c1",
+        },
+      ]);
+    });
+
+    it("parses automation settings, portal status and lifecycle fields", () => {
+      expect(parsed.automationSettings).toEqual({
+        autoRequestAssessment: true,
+        intervalDays: 15,
+        lastAutoRequestDate: "2026-09-01",
+      });
+      expect(parsed.portalStatus).toBe("revoked");
+      expect(parsed.status).toBe("Archived");
+      expect(parsed.pendingInvitationId).toBe("inv1");
+      expect(
+        validatePatient({ portalStatus: "weird" }).portalStatus,
+      ).toBeUndefined();
+      expect(validatePatient({}).automationSettings).toBeUndefined();
+    });
+  });
 });

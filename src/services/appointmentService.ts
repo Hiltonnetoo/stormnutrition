@@ -121,7 +121,11 @@ export const addAppointment = async (
   data: Omit<Appointment, "id">,
 ) => {
   validateAppointmentData(data);
-  if (!data.patientId || typeof data.patientId !== "string" || !data.patientId.trim()) {
+  if (
+    !data.patientId ||
+    typeof data.patientId !== "string" ||
+    !data.patientId.trim()
+  ) {
     throw new Error("ID do paciente é obrigatório para agendamento.");
   }
   const patientSnap = await getDoc(

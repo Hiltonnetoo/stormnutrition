@@ -15,6 +15,7 @@ import {
   updateDoc,
   writeBatch,
   Timestamp,
+  type DocumentData,
 } from "firebase/firestore";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,10 @@ const NUTRI_A = "nutritionistA";
 const NUTRI_B = "nutritionistB";
 const PATIENT_UID = "patientUserA";
 const OTHER_PATIENT_UID = "patientUserB";
+// Relative dates keep the suite valid over time: a fixed "future" expiry
+// (2026-10-01) or record date would silently change what a test proves.
+const TODAY = new Date().toISOString().slice(0, 10);
+const FUTURE_TS = Timestamp.fromDate(new Date(Date.now() + 90 * 86400000));
 
 let testEnv: RulesTestEnvironment;
 
@@ -202,6 +207,71 @@ describe("Firestore security rules - Authorization Matrix", () => {
   });
 
   describe("4. Associated Patient Self-Service (patient_linked)", () => {
+    it.each([
+      ["current weight", { weight: 61 }],
+      [
+        "weight history",
+        {
+          weightHistory: [
+            { date: "2026-01-01", weight: 60, origin: "clinical" },
+            {
+              date: TODAY,
+              weight: 61,
+              origin: "self_reported",
+              authorUid: PATIENT_UID,
+            },
+          ],
+        },
+      ],
+      ["adherence", { adherenceLog: [{ date: TODAY, followed: true }] }],
+      [
+        "evaluation",
+        {
+          activeProtocolId: null,
+          selfEvaluations: [
+            { id: "eval_1", status: "completed" },
+            {
+              id: "active_eval",
+              requestDate: TODAY,
+              status: "completed",
+              completionDate: TODAY,
+              measurements: { weight: 61 },
+            },
+          ],
+        },
+      ],
+    ])(
+      "denies archived patient %s writes and allows the same write after restoration",
+      async (_name, update) => {
+        await testEnv.withSecurityRulesDisabled(async (ctx) => {
+          await updateDoc(
+            doc(ctx.firestore(), `users/${NUTRI_A}/patients/p1`),
+            {
+              status: "Archived",
+              adherenceLog: [],
+              activeProtocolId: "active_eval",
+              selfEvaluations: [
+                { id: "eval_1", status: "completed" },
+                { id: "active_eval", requestDate: TODAY, status: "pending" },
+              ],
+            },
+          );
+        });
+        const patientRef = doc(
+          testEnv.authenticatedContext(PATIENT_UID).firestore(),
+          `users/${NUTRI_A}/patients/p1`,
+        );
+        await assertFails(getDoc(patientRef));
+        await assertFails(updateDoc(patientRef, update as DocumentData));
+        const ownerRef = doc(
+          testEnv.authenticatedContext(NUTRI_A).firestore(),
+          `users/${NUTRI_A}/patients/p1`,
+        );
+        await assertSucceeds(updateDoc(ownerRef, { status: "Active" }));
+        await assertSucceeds(updateDoc(patientRef, update as DocumentData));
+      },
+    );
+
     it("lets an associated patient read their own record and diet", async () => {
       const db = testEnv.authenticatedContext(PATIENT_UID).firestore();
       await assertSucceeds(getDoc(doc(db, `users/${NUTRI_A}/patients/p1`)));
@@ -221,7 +291,12 @@ describe("Firestore security rules - Authorization Matrix", () => {
           weight: 61.5,
           weightHistory: [
             { date: "2026-01-01", weight: 60, origin: "clinical" },
-            { date: "2026-09-17", weight: 61.5, origin: "self_reported" },
+            {
+              date: "2026-09-17",
+              weight: 61.5,
+              origin: "self_reported",
+              authorUid: PATIENT_UID,
+            },
           ],
         }),
       );
@@ -254,13 +329,102 @@ describe("Firestore security rules - Authorization Matrix", () => {
 
     it("FORBIDS out-of-range or non-numeric weight values", async () => {
       const db = testEnv.authenticatedContext(PATIENT_UID).firestore();
-      // Weight too low (< 10kg)
       await assertFails(
         updateDoc(doc(db, `users/${NUTRI_A}/patients/p1`), { weight: 5 }),
       );
-      // Weight too high (> 500kg)
       await assertFails(
         updateDoc(doc(db, `users/${NUTRI_A}/patients/p1`), { weight: 999 }),
+      );
+    });
+
+    it("FORBIDS tampering with weightHistory items during append", async () => {
+      const db = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      // Suppose we have an existing item, and we try to alter it while appending a new one
+      await assertFails(
+        updateDoc(doc(db, `users/${NUTRI_A}/patients/p1`), {
+          weight: 65,
+          weightHistory: [
+            { date: "2026-01-01", weight: 999, origin: "clinical" }, // Tampered the existing
+            {
+              date: TODAY,
+              weight: 65,
+              origin: "self_reported",
+              authorUid: PATIENT_UID,
+            },
+          ],
+        }),
+      );
+      // Forging authorUid
+      await assertFails(
+        updateDoc(doc(db, `users/${NUTRI_A}/patients/p1`), {
+          weight: 65,
+          weightHistory: [
+            { date: "2026-01-01", weight: 60, origin: "clinical" },
+            {
+              date: TODAY,
+              weight: 65,
+              origin: "self_reported",
+              authorUid: "FORGED_AUTHOR",
+            },
+          ],
+        }),
+      );
+    });
+
+    it("FORBIDS tampering with selfEvaluations active protocol metadata", async () => {
+      // Pending protocol requested by the nutritionist (the seed has none;
+      // without it these tests passed/failed for the wrong reason).
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p1`), {
+          activeProtocolId: "ev1",
+          selfEvaluations: [
+            { id: "ev1", requestDate: "2026-09-17", status: "pending" },
+          ],
+        });
+      });
+      const db = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      await assertFails(
+        updateDoc(doc(db, `users/${NUTRI_A}/patients/p1`), {
+          activeProtocolId: null,
+          selfEvaluations: [
+            {
+              id: "ev1", // active protocol
+              requestDate: "2020-01-01", // Tampered request date
+              status: "completed",
+              completionDate: new Date().toISOString(),
+              notes: "My response",
+            },
+          ],
+        }),
+      );
+    });
+
+    it("ALLOWS legitimate transition of active self evaluation", async () => {
+      // Pending protocol requested by the nutritionist (the seed has none;
+      // without it these tests passed/failed for the wrong reason).
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p1`), {
+          activeProtocolId: "ev1",
+          selfEvaluations: [
+            { id: "ev1", requestDate: "2026-09-17", status: "pending" },
+          ],
+        });
+      });
+      const db = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      await assertSucceeds(
+        updateDoc(doc(db, `users/${NUTRI_A}/patients/p1`), {
+          activeProtocolId: null,
+          selfEvaluations: [
+            {
+              id: "ev1",
+              requestDate: "2026-09-17",
+              status: "completed",
+              // Completion happens now; future dates are denied (R02 policy).
+              completionDate: new Date().toISOString(),
+              notes: "My legit response",
+            },
+          ],
+        }),
       );
     });
   });
@@ -370,15 +534,20 @@ describe("Firestore security rules - Authorization Matrix", () => {
       // Seed unlinked patient & invite for patient
       const newPatientUid = "patientNew123";
       await testEnv.withSecurityRulesDisabled(async (ctx) => {
-        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_unlinked`), {
-          firstName: "Novo",
-        });
+        await setDoc(
+          doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_unlinked`),
+          {
+            firstName: "Novo",
+            pendingInvitationId: "inv-accept",
+          },
+        );
         await setDoc(doc(ctx.firestore(), "invitations/inv-accept"), {
           nutritionistId: NUTRI_A,
           patientId: "p_unlinked",
           patientEmail: "novo@test.com",
           status: "pending",
           expiresAt: "2026-10-01T00:00:00Z",
+          expiresAtTimestamp: FUTURE_TS,
         });
       });
 
@@ -635,10 +804,13 @@ describe("Firestore security rules - Authorization Matrix", () => {
     it("FORBIDS arbitrary user from appropriating portalUid on an unlinked patient without an atomic invitation batch", async () => {
       // Seed unlinked patient
       await testEnv.withSecurityRulesDisabled(async (ctx) => {
-        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_target`), {
-          firstName: "Target",
-          portalUid: null,
-        });
+        await setDoc(
+          doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_target`),
+          {
+            firstName: "Target",
+            portalUid: null,
+          },
+        );
       });
 
       const attackerDb = testEnv.authenticatedContext(ATTACKER_UID).firestore();
@@ -667,9 +839,12 @@ describe("Firestore security rules - Authorization Matrix", () => {
     it("FORBIDS user with mismatched email from accepting an invitation", async () => {
       // Seed invitation targeted at legitimate email
       await testEnv.withSecurityRulesDisabled(async (ctx) => {
-        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_alice`), {
-          firstName: "Alice",
-        });
+        await setDoc(
+          doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_alice`),
+          {
+            firstName: "Alice",
+          },
+        );
         await setDoc(doc(ctx.firestore(), "invitations/inv-alice"), {
           nutritionistId: NUTRI_A,
           patientId: "p_alice",
@@ -707,16 +882,21 @@ describe("Firestore security rules - Authorization Matrix", () => {
     it("FORBIDS user from accepting an expired invitation", async () => {
       // Seed expired invitation with past expiresAtTimestamp
       await testEnv.withSecurityRulesDisabled(async (ctx) => {
-        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_expired`), {
-          firstName: "ExpiredTarget",
-        });
+        await setDoc(
+          doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_expired`),
+          {
+            firstName: "ExpiredTarget",
+          },
+        );
         await setDoc(doc(ctx.firestore(), "invitations/inv-expired"), {
           nutritionistId: NUTRI_A,
           patientId: "p_expired",
           patientEmail: "expired@test.com",
           status: "pending",
           expiresAt: "2026-01-01T00:00:00Z",
-          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-01-01T00:00:00Z")),
+          expiresAtTimestamp: Timestamp.fromDate(
+            new Date("2026-01-01T00:00:00Z"),
+          ),
         });
       });
 
@@ -745,7 +925,9 @@ describe("Firestore security rules - Authorization Matrix", () => {
 
     it("DENIES silent nutritionist fallback for unprofiled account (no /users/{uid})", async () => {
       const unprofiledUid = "unprofiledAccount";
-      const unprofiledDb = testEnv.authenticatedContext(unprofiledUid).firestore();
+      const unprofiledDb = testEnv
+        .authenticatedContext(unprofiledUid)
+        .firestore();
 
       // Must FAIL: Cannot create patients under their own UID if /users/{uid} doesn't exist
       await assertFails(
@@ -773,17 +955,28 @@ describe("Firestore security rules - Authorization Matrix", () => {
           portalUid: null,
           portalStatus: "revoked",
         });
-        await updateDoc(doc(ctx.firestore(), `patientProfiles/${PATIENT_UID}`), {
-          status: "revoked",
-        });
+        await updateDoc(
+          doc(ctx.firestore(), `patientProfiles/${PATIENT_UID}`),
+          {
+            status: "revoked",
+          },
+        );
       });
 
-      const revokedPatientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      const revokedPatientDb = testEnv
+        .authenticatedContext(PATIENT_UID)
+        .firestore();
 
       // All reads must FAIL
-      await assertFails(getDoc(doc(revokedPatientDb, `users/${NUTRI_A}/patients/p1`)));
-      await assertFails(getDoc(doc(revokedPatientDb, `users/${NUTRI_A}/diets/d1`)));
-      await assertFails(getDoc(doc(revokedPatientDb, `users/${NUTRI_A}/appointments/apt_p1`)));
+      await assertFails(
+        getDoc(doc(revokedPatientDb, `users/${NUTRI_A}/patients/p1`)),
+      );
+      await assertFails(
+        getDoc(doc(revokedPatientDb, `users/${NUTRI_A}/diets/d1`)),
+      );
+      await assertFails(
+        getDoc(doc(revokedPatientDb, `users/${NUTRI_A}/appointments/apt_p1`)),
+      );
     });
 
     it("ALLOWS legitimate atomic invitation acceptance and subsequent authorized reading", async () => {
@@ -791,20 +984,27 @@ describe("Firestore security rules - Authorization Matrix", () => {
       const legitEmail = "legit@clinic.com";
 
       await testEnv.withSecurityRulesDisabled(async (ctx) => {
-        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_legit`), {
-          firstName: "Legit Patient",
-        });
+        await setDoc(
+          doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_legit`),
+          {
+            firstName: "Legit Patient",
+            pendingInvitationId: "inv-legit",
+          },
+        );
         await setDoc(doc(ctx.firestore(), "invitations/inv-legit"), {
           nutritionistId: NUTRI_A,
           patientId: "p_legit",
           patientEmail: legitEmail,
           status: "pending",
           expiresAt: "2026-12-01T00:00:00Z",
-          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+          expiresAtTimestamp: FUTURE_TS,
         });
-        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/diets/diet_legit`), {
-          patientId: "p_legit",
-        });
+        await setDoc(
+          doc(ctx.firestore(), `users/${NUTRI_A}/diets/diet_legit`),
+          {
+            patientId: "p_legit",
+          },
+        );
       });
 
       const legitDb = testEnv
@@ -830,13 +1030,21 @@ describe("Firestore security rules - Authorization Matrix", () => {
       await assertSucceeds(batch.commit());
 
       // 2. Legit patient can now read their own patient record and diet
-      await assertSucceeds(getDoc(doc(legitDb, `users/${NUTRI_A}/patients/p_legit`)));
-      await assertSucceeds(getDoc(doc(legitDb, `users/${NUTRI_A}/diets/diet_legit`)));
+      await assertSucceeds(
+        getDoc(doc(legitDb, `users/${NUTRI_A}/patients/p_legit`)),
+      );
+      await assertSucceeds(
+        getDoc(doc(legitDb, `users/${NUTRI_A}/diets/diet_legit`)),
+      );
 
       // 3. Attacker STILL cannot read legit patient's record or diet
       const attackerDb = testEnv.authenticatedContext(ATTACKER_UID).firestore();
-      await assertFails(getDoc(doc(attackerDb, `users/${NUTRI_A}/patients/p_legit`)));
-      await assertFails(getDoc(doc(attackerDb, `users/${NUTRI_A}/diets/diet_legit`)));
+      await assertFails(
+        getDoc(doc(attackerDb, `users/${NUTRI_A}/patients/p_legit`)),
+      );
+      await assertFails(
+        getDoc(doc(attackerDb, `users/${NUTRI_A}/diets/diet_legit`)),
+      );
     });
 
     it("DENIES read even if attacker has a forged patientProfile because nutritionist patient doc does not point to attacker", async () => {
@@ -1061,7 +1269,9 @@ describe("Firestore security rules - Authorization Matrix", () => {
           patientEmail: "c03@test.com",
           status: "pending",
           expiresAt: "2020-01-01T00:00:00Z",
-          expiresAtTimestamp: Timestamp.fromDate(new Date("2020-01-01T00:00:00Z")),
+          expiresAtTimestamp: Timestamp.fromDate(
+            new Date("2020-01-01T00:00:00Z"),
+          ),
         }),
       );
     });
@@ -1097,7 +1307,7 @@ describe("Firestore security rules - Authorization Matrix", () => {
           patientEmail,
           status: "pending",
           expiresAt: "2026-12-01T00:00:00Z",
-          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+          expiresAtTimestamp: FUTURE_TS,
         });
       });
 
@@ -1130,16 +1340,19 @@ describe("Firestore security rules - Authorization Matrix", () => {
       const candidateUid = "candidateRevokedUid";
 
       await testEnv.withSecurityRulesDisabled(async (ctx) => {
-        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_rev_inv`), {
-          firstName: "Revoked Patient",
-        });
+        await setDoc(
+          doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_rev_inv`),
+          {
+            firstName: "Revoked Patient",
+          },
+        );
         await setDoc(doc(ctx.firestore(), "invitations/inv_already_revoked"), {
           nutritionistId: NUTRI_A,
           patientId: "p_rev_inv",
           patientEmail,
           status: "revoked",
           expiresAt: "2026-12-01T00:00:00Z",
-          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+          expiresAtTimestamp: FUTURE_TS,
         });
       });
 
@@ -1175,7 +1388,7 @@ describe("Firestore security rules - Authorization Matrix", () => {
           status: "accepted",
           acceptedByUid: PATIENT_UID,
           expiresAt: "2026-12-01T00:00:00Z",
-          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+          expiresAtTimestamp: FUTURE_TS,
         });
       });
 
@@ -1195,11 +1408,15 @@ describe("Firestore security rules - Authorization Matrix", () => {
 
       // Seed patient previously revoked
       await testEnv.withSecurityRulesDisabled(async (ctx) => {
-        await setDoc(doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_relink`), {
-          firstName: "Relink Patient",
-          portalUid: null,
-          portalStatus: "revoked",
-        });
+        await setDoc(
+          doc(ctx.firestore(), `users/${NUTRI_A}/patients/p_relink`),
+          {
+            firstName: "Relink Patient",
+            portalUid: null,
+            portalStatus: "revoked",
+            pendingInvitationId: "inv_relink_new",
+          },
+        );
         // Existing profile from before
         await setDoc(doc(ctx.firestore(), `patientProfiles/${reUid}`), {
           nutritionistId: NUTRI_A,
@@ -1214,7 +1431,7 @@ describe("Firestore security rules - Authorization Matrix", () => {
           patientEmail: reEmail,
           status: "pending",
           expiresAt: "2026-12-01T00:00:00Z",
-          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+          expiresAtTimestamp: FUTURE_TS,
         });
       });
 
@@ -1255,6 +1472,7 @@ describe("Firestore security rules - Authorization Matrix", () => {
           firstName: "Idem Patient",
           portalUid: patientUid,
           portalStatus: "active",
+          pendingInvitationId: "inv_idem",
         });
         await setDoc(doc(ctx.firestore(), "invitations/inv_idem"), {
           nutritionistId: NUTRI_A,
@@ -1262,7 +1480,7 @@ describe("Firestore security rules - Authorization Matrix", () => {
           patientEmail,
           status: "pending",
           expiresAt: "2026-12-01T00:00:00Z",
-          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+          expiresAtTimestamp: FUTURE_TS,
         });
       });
 
@@ -1385,10 +1603,13 @@ describe("Firestore security rules - Authorization Matrix", () => {
         }),
       );
       await assertFails(
-        setDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/appt_deleting_new`), {
-          patientId: "p_deleting",
-          dateTime: "2026-10-12 14:00",
-        }),
+        setDoc(
+          doc(nutriDb, `users/${NUTRI_A}/appointments/appt_deleting_new`),
+          {
+            patientId: "p_deleting",
+            dateTime: "2026-10-12 14:00",
+          },
+        ),
       );
     });
 
@@ -1426,7 +1647,7 @@ describe("Firestore security rules - Authorization Matrix", () => {
           patientEmail: "del@test.com",
           status: "pending",
           expiresAt: "2026-12-01T00:00:00Z",
-          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+          expiresAtTimestamp: FUTURE_TS,
         }),
       );
       await assertFails(
@@ -1436,9 +1657,590 @@ describe("Firestore security rules - Authorization Matrix", () => {
           patientEmail: "arch@test.com",
           status: "pending",
           expiresAt: "2026-12-01T00:00:00Z",
-          expiresAtTimestamp: Timestamp.fromDate(new Date("2026-12-01T00:00:00Z")),
+          expiresAtTimestamp: FUTURE_TS,
         }),
       );
+    });
+  });
+
+  describe("14. Adversarial security regressions (C01, C02, C03, C07, C09)", () => {
+    it("FORBIDS patient from reading appointments if portalStatus is 'revoked'", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const adminDb = ctx.firestore();
+        await updateDoc(doc(adminDb, `users/${NUTRI_A}/patients/p1`), {
+          portalStatus: "revoked",
+        });
+        await setDoc(
+          doc(adminDb, `users/${NUTRI_A}/appointments/appt_revoked_test`),
+          {
+            patientId: "p1",
+            dateTime: "2026-10-15 10:00",
+          },
+        );
+      });
+
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      await assertFails(
+        getDoc(
+          doc(patientDb, `users/${NUTRI_A}/appointments/appt_revoked_test`),
+        ),
+      );
+    });
+
+    it("FORBIDS cross-nutritionist patientId spoofing when creating diets or appointments", async () => {
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      // pb belongs to NUTRI_B, not NUTRI_A
+      await assertFails(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/diets/diet_cross_spoof`), {
+          patientId: "pb",
+          title: "Dieta Inválida com Paciente de Outro Nutri",
+        }),
+      );
+      await assertFails(
+        setDoc(doc(nutriDb, `users/${NUTRI_A}/appointments/appt_cross_spoof`), {
+          patientId: "pb",
+          dateTime: "2026-10-20 14:00",
+        }),
+      );
+    });
+
+    it("FORBIDS patient A from modifying patient B's document or adherenceLog", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const adminDb = ctx.firestore();
+        await setDoc(doc(adminDb, `patientProfiles/${OTHER_PATIENT_UID}`), {
+          nutritionistId: NUTRI_A,
+          patientId: "p2",
+          role: "patient",
+        });
+        await updateDoc(doc(adminDb, `users/${NUTRI_A}/patients/p2`), {
+          portalUid: OTHER_PATIENT_UID,
+          portalStatus: "active",
+          adherenceLog: [],
+        });
+      });
+
+      const patientADb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      // Patient A attempts to modify Patient B's adherenceLog under same nutritionist
+      await assertFails(
+        updateDoc(doc(patientADb, `users/${NUTRI_A}/patients/p2`), {
+          adherenceLog: [{ date: "2026-09-18", status: "adhered" }],
+        }),
+      );
+      // Patient A attempts to modify Patient B's details under different nutritionist
+      await assertFails(
+        updateDoc(doc(patientADb, `users/${NUTRI_B}/patients/pb`), {
+          firstName: "Hacked by Patient A",
+        }),
+      );
+    });
+
+    it("FORBIDS altering acceptedByUid or status on an already accepted invitation", async () => {
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const adminDb = ctx.firestore();
+        await setDoc(doc(adminDb, "invitations/inv_already_accepted"), {
+          nutritionistId: NUTRI_A,
+          nutritionistName: "Dra. Clara",
+          nutritionistEmail: "nutriA@test.com",
+          patientId: "p1",
+          patientEmail: "ana@test.com",
+          patientName: "Ana Silva",
+          status: "accepted",
+          acceptedByUid: PATIENT_UID,
+          acceptedAt: now.toISOString(),
+          createdAt: now.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+          expiresAtTimestamp: Timestamp.fromDate(expiresAt),
+        });
+      });
+
+      // Attacker tries to hijack the accepted invitation
+      const attackerDb = testEnv
+        .authenticatedContext(OTHER_PATIENT_UID)
+        .firestore();
+      await assertFails(
+        updateDoc(doc(attackerDb, "invitations/inv_already_accepted"), {
+          acceptedByUid: OTHER_PATIENT_UID,
+        }),
+      );
+
+      // Nutritionist tries to revoke an already accepted invitation
+      const nutriDb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertFails(
+        updateDoc(doc(nutriDb, "invitations/inv_already_accepted"), {
+          status: "revoked",
+          revokedAt: new Date().toISOString(),
+        }),
+      );
+    });
+
+    it("FORBIDS unauthenticated or unrelated user from reading patientProfiles", async () => {
+      // Unauthenticated
+      const anonDb = testEnv.unauthenticatedContext().firestore();
+      await assertFails(getDoc(doc(anonDb, `patientProfiles/${PATIENT_UID}`)));
+
+      // Unrelated user
+      const strangerDb = testEnv
+        .authenticatedContext("unrelatedStranger")
+        .firestore();
+      await assertFails(
+        getDoc(doc(strangerDb, `patientProfiles/${PATIENT_UID}`)),
+      );
+
+      // Unrelated nutritionist (NUTRI_B is not the linked nutritionist)
+      const nutriBDb = testEnv.authenticatedContext(NUTRI_B).firestore();
+      await assertFails(
+        getDoc(doc(nutriBDb, `patientProfiles/${PATIENT_UID}`)),
+      );
+
+      // Linked nutritionist (NUTRI_A) CAN read
+      const nutriADb = testEnv.authenticatedContext(NUTRI_A).firestore();
+      await assertSucceeds(
+        getDoc(doc(nutriADb, `patientProfiles/${PATIENT_UID}`)),
+      );
+
+      // Patient owner CAN read
+      const patientDb = testEnv.authenticatedContext(PATIENT_UID).firestore();
+      await assertSucceeds(
+        getDoc(doc(patientDb, `patientProfiles/${PATIENT_UID}`)),
+      );
+    });
+  });
+
+  // R02 — patient self-service contract (plan section 11.3: R02-A/B/C).
+  // Each denial is paired with the legitimate write it is closest to, so a
+  // rule that denies everything would fail the suite.
+  describe("15. R02 - Self-service response contract and append-only history", () => {
+    const P1 = `users/${NUTRI_A}/patients/p1`;
+    const today = new Date().toISOString().slice(0, 10);
+    const future = new Date(Date.now() + 5 * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    const legacyHistory = [
+      // Legacy data: out of order, one future-dated, one without origin.
+      { date: "2026-03-01", weight: 62, origin: "clinical" },
+      { date: "2025-12-01", weight: 64 },
+      { date: "2031-01-01", weight: 61, origin: "clinical" },
+    ];
+    const selfRecord = (extra: Record<string, unknown> = {}) => ({
+      id: "w_self_1",
+      date: today,
+      weight: 59.5,
+      origin: "self_reported",
+      authorUid: PATIENT_UID,
+      ...extra,
+    });
+    const seed = (data: DocumentData) =>
+      testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(doc(ctx.firestore(), P1), data);
+      });
+    const patientDb = () =>
+      testEnv.authenticatedContext(PATIENT_UID).firestore();
+
+    describe("R02-A weight authorship", () => {
+      it("DENIES two records in one write (forged first, valid second)", async () => {
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), {
+            weight: 59.5,
+            weightHistory: [
+              { date: "2026-01-01", weight: 60, origin: "clinical" },
+              selfRecord({ id: "w_forged", authorUid: NUTRI_A }),
+              selfRecord(),
+            ],
+          }),
+        );
+      });
+      it("DENIES a record without authorUid", async () => {
+        const { authorUid: _omit, ...noAuthor } = selfRecord();
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), {
+            weightHistory: [
+              { date: "2026-01-01", weight: 60, origin: "clinical" },
+              noAuthor,
+            ],
+          }),
+        );
+      });
+      it("DENIES extra fields and future dates on the new record", async () => {
+        const base = [{ date: "2026-01-01", weight: 60, origin: "clinical" }];
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), {
+            weightHistory: [
+              ...base,
+              selfRecord({ validatedByNutritionist: true }),
+            ],
+          }),
+        );
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), {
+            weightHistory: [...base, selfRecord({ date: future })],
+          }),
+        );
+      });
+      it("ALLOWS one valid self-reported record", async () => {
+        await assertSucceeds(
+          updateDoc(doc(patientDb(), P1), {
+            weight: 59.5,
+            weightHistory: [
+              { date: "2026-01-01", weight: 60, origin: "clinical" },
+              selfRecord(),
+            ],
+          }),
+        );
+      });
+    });
+
+    describe("R02-B evaluation response", () => {
+      const pending = {
+        id: "ev1",
+        requestDate: "2026-09-17",
+        status: "pending",
+      };
+      const other = {
+        id: "ev0",
+        requestDate: "2026-08-01",
+        status: "completed",
+        completionDate: "2026-08-02",
+      };
+      const answer = (extra: Record<string, unknown> = {}) => ({
+        ...pending,
+        status: "completed",
+        completionDate: today,
+        measurements: { weight: 59.5, waist: 70, hip: 0, neck: 0 },
+        wellbeing: {
+          sleepQuality: 4,
+          energyLevel: 3,
+          satiety: 5,
+          digestiveHealth: "normal",
+        },
+        notes: "Resposta sintética",
+        ...extra,
+      });
+      beforeEach(async () => {
+        await seed({
+          activeProtocolId: "ev1",
+          selfEvaluations: [other, pending],
+        });
+      });
+      const complete = (target: Record<string, unknown>, rest = [other]) =>
+        updateDoc(doc(patientDb(), P1), {
+          activeProtocolId: null,
+          selfEvaluations: [...rest, target],
+        });
+
+      it("DENIES arbitrary fields and out-of-range answers", async () => {
+        await assertFails(complete(answer({ reviewedByNutritionist: true })));
+        await assertFails(complete(answer({ wellbeing: { sleepQuality: 9 } })));
+        await assertFails(complete(answer({ measurements: { weight: -3 } })));
+        await assertFails(complete(answer({ measurements: { bodyFat: 20 } })));
+        await assertFails(complete(answer({ notes: "x".repeat(2001) })));
+      });
+      it("DENIES altering requestDate, status of other entries or the professional metadata", async () => {
+        await assertFails(complete(answer({ requestDate: "2020-01-01" })));
+        await assertFails(complete(answer({ status: "approved" })));
+        await assertFails(
+          complete(answer(), [{ ...other, completionDate: "2026-09-01" }]),
+        );
+      });
+      it("DENIES dismissing the protocol without answering it", async () => {
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), { activeProtocolId: null }),
+        );
+      });
+      it("ALLOWS the legitimate pending -> completed answer without touching other records", async () => {
+        await assertSucceeds(complete(answer()));
+      });
+    });
+
+    describe("R02-C legacy history and idempotency", () => {
+      it("ALLOWS appending to an out-of-order legacy history with a future-dated entry, preserving it", async () => {
+        await seed({ weightHistory: legacyHistory });
+        await assertSucceeds(
+          updateDoc(doc(patientDb(), P1), {
+            weightHistory: [...legacyHistory, selfRecord()],
+          }),
+        );
+      });
+      it("concurrent appends from the same stale state: the second one is denied (no lost update)", async () => {
+        await seed({ weightHistory: legacyHistory });
+        const first = [...legacyHistory, selfRecord({ id: "w_a" })];
+        const staleSecond = [
+          ...legacyHistory,
+          selfRecord({ id: "w_b", weight: 58 }),
+        ];
+        await assertSucceeds(
+          updateDoc(doc(patientDb(), P1), { weightHistory: first }),
+        );
+        // Built from the state before "first" landed: would drop w_a.
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), { weightHistory: staleSecond }),
+        );
+        // Retried on the current state (what the transaction does), it passes.
+        await assertSucceeds(
+          updateDoc(doc(patientDb(), P1), {
+            weightHistory: [...first, selfRecord({ id: "w_b", weight: 58 })],
+          }),
+        );
+      });
+
+      it("DENIES the same append if the stored records are re-sorted or normalized", async () => {
+        await seed({ weightHistory: legacyHistory });
+        const sorted = [...legacyHistory].sort((a, b) =>
+          a.date.localeCompare(b.date),
+        );
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), {
+            weightHistory: [...sorted, selfRecord()],
+          }),
+        );
+        const normalized = legacyHistory.map((r) => ({
+          origin: "self_reported",
+          ...r,
+        }));
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), {
+            weightHistory: [...normalized, selfRecord()],
+          }),
+        );
+      });
+      it("adherence: appends to an out-of-order log, updates the same day, denies future dates and extra fields", async () => {
+        const legacyLog = [
+          { date: "2026-09-10", followed: true },
+          { date: "2026-09-01", followed: false },
+        ];
+        await seed({ adherenceLog: legacyLog });
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), {
+            adherenceLog: [...legacyLog, { date: future, followed: true }],
+          }),
+        );
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), {
+            adherenceLog: [
+              ...legacyLog,
+              { date: today, followed: true, score: 10 },
+            ],
+          }),
+        );
+        await assertFails(
+          updateDoc(doc(patientDb(), P1), {
+            adherenceLog: [...legacyLog, { date: today, followed: "yes" }],
+          }),
+        );
+        const entry = {
+          date: today,
+          followed: true,
+          timestamp: new Date().toISOString(),
+          clientEventId: "evt-1",
+        };
+        await assertSucceeds(
+          updateDoc(doc(patientDb(), P1), {
+            adherenceLog: [...legacyLog, entry],
+          }),
+        );
+        // Repeating the same check-in day replaces that day's entry only.
+        await assertSucceeds(
+          updateDoc(doc(patientDb(), P1), {
+            adherenceLog: [...legacyLog, { ...entry, followed: false }],
+          }),
+        );
+      });
+    });
+  });
+
+  // R03 — strict invitations (11.3: R03-A/B). Every variant runs the same
+  // atomic acceptance batch the app sends; a denial must leave no partially
+  // accepted invitation, profile or patient link behind.
+  describe("16. R03 - Strict invitation acceptance without partial links", () => {
+    const UID = "r03PatientUser";
+    const EMAIL = "r03.patient@demo.test";
+    const PATIENT = "p_r03";
+    const INV = "inv-r03";
+    const validInvitation = () => ({
+      nutritionistId: NUTRI_A,
+      patientId: PATIENT,
+      patientEmail: EMAIL,
+      status: "pending",
+      expiresAt: FUTURE_TS.toDate().toISOString(),
+      expiresAtTimestamp: FUTURE_TS,
+    });
+    const seedInvitation = (invitation: Record<string, unknown>) =>
+      testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        await setDoc(doc(db, `users/${NUTRI_A}/patients/${PATIENT}`), {
+          firstName: "Convite",
+          pendingInvitationId: INV,
+        });
+        await setDoc(doc(db, `invitations/${INV}`), invitation);
+      });
+    const acceptBatch = (token: Record<string, unknown> = { email: EMAIL }) => {
+      const db = testEnv.authenticatedContext(UID, token).firestore();
+      const batch = writeBatch(db);
+      batch.update(doc(db, `invitations/${INV}`), {
+        status: "accepted",
+        acceptedByUid: UID,
+      });
+      batch.update(doc(db, `users/${NUTRI_A}/patients/${PATIENT}`), {
+        portalUid: UID,
+        portalStatus: "active",
+      });
+      batch.set(doc(db, `patientProfiles/${UID}`), {
+        nutritionistId: NUTRI_A,
+        patientId: PATIENT,
+        invitationId: INV,
+        role: "patient",
+      });
+      return batch.commit();
+    };
+    const expectNothingAccepted = () =>
+      testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        const inv = (await getDoc(doc(db, `invitations/${INV}`))).data();
+        const patient = (
+          await getDoc(doc(db, `users/${NUTRI_A}/patients/${PATIENT}`))
+        ).data();
+        const profile = await getDoc(doc(db, `patientProfiles/${UID}`));
+        if (inv?.status === "accepted" || inv?.acceptedByUid)
+          throw new Error("invitation partially accepted");
+        if (patient?.portalUid) throw new Error("patient partially linked");
+        if (profile.exists()) throw new Error("profile partially created");
+      });
+
+    const { patientEmail: _e, ...noEmail } = validInvitation();
+    const { expiresAtTimestamp: _t, ...noTimestamp } = validInvitation();
+    const cases: [string, Record<string, unknown>, Record<string, unknown>?][] =
+      [
+        ["without patientEmail", noEmail],
+        ["without expiresAtTimestamp", noTimestamp],
+        [
+          "with a string instead of a timestamp",
+          { ...validInvitation(), expiresAtTimestamp: "2099-01-01T00:00:00Z" },
+        ],
+        [
+          "expired",
+          {
+            ...validInvitation(),
+            expiresAtTimestamp: Timestamp.fromDate(
+              new Date(Date.now() - 60000),
+            ),
+          },
+        ],
+        ["revoked", { ...validInvitation(), status: "revoked" }],
+        [
+          "for another recipient",
+          validInvitation(),
+          { email: "someone.else@demo.test" },
+        ],
+        ["by an account without e-mail", validInvitation(), {}],
+      ];
+    for (const [label, invitation, token] of cases) {
+      it(`DENIES acceptance ${label} and leaves no partial state`, async () => {
+        await seedInvitation(invitation);
+        await assertFails(acceptBatch(token));
+        await expectNothingAccepted();
+      });
+    }
+
+    it("ALLOWS the valid invitation (e-mail case-insensitive) and an idempotent repeat", async () => {
+      await seedInvitation({
+        ...validInvitation(),
+        patientEmail: EMAIL.toUpperCase(),
+      });
+      await assertSucceeds(acceptBatch());
+      // The same user repeating the acceptance (e.g. double click) does not
+      // reopen or change the terminal invitation.
+      await assertFails(acceptBatch());
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const inv = (
+          await getDoc(doc(ctx.firestore(), `invitations/${INV}`))
+        ).data();
+        if (inv?.status !== "accepted" || inv?.acceptedByUid !== UID) {
+          throw new Error("valid acceptance not persisted");
+        }
+      });
+    });
+  });
+
+  // R04 — recovery after incomplete cleanup (11.3: R04-A/B), at the rules
+  // level: once the patient pointer is cleared/replaced, the old link stays
+  // denied even if its invitation document is still "pending".
+  describe("17. R04 - Recovery keeps old invitation links denied", () => {
+    const UID = "r04PatientUser";
+    const EMAIL = "r04.patient@demo.test";
+    const PATIENT = "p_r04";
+    const seed = () =>
+      testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        // Cleanup failed: old invitation still pending, but revocation cleared
+        // the pointer and the professional issued a new invitation.
+        await setDoc(doc(db, `users/${NUTRI_A}/patients/${PATIENT}`), {
+          firstName: "Recuperação",
+          portalUid: null,
+          portalStatus: "revoked",
+          pendingInvitationId: "inv-r04-new",
+        });
+        for (const id of ["inv-r04-old", "inv-r04-new"]) {
+          await setDoc(doc(db, `invitations/${id}`), {
+            nutritionistId: NUTRI_A,
+            patientId: PATIENT,
+            patientEmail: EMAIL,
+            status: "pending",
+            expiresAt: FUTURE_TS.toDate().toISOString(),
+            expiresAtTimestamp: FUTURE_TS,
+          });
+        }
+      });
+    const accept = (inv: string) => {
+      const db = testEnv
+        .authenticatedContext(UID, { email: EMAIL })
+        .firestore();
+      const batch = writeBatch(db);
+      batch.update(doc(db, `invitations/${inv}`), {
+        status: "accepted",
+        acceptedByUid: UID,
+      });
+      batch.update(doc(db, `users/${NUTRI_A}/patients/${PATIENT}`), {
+        portalUid: UID,
+        portalStatus: "active",
+      });
+      batch.set(doc(db, `patientProfiles/${UID}`), {
+        nutritionistId: NUTRI_A,
+        patientId: PATIENT,
+        invitationId: inv,
+        role: "patient",
+      });
+      return batch.commit();
+    };
+
+    it("DENIES the old pending link and ALLOWS the new invitation ID", async () => {
+      await seed();
+      await assertFails(accept("inv-r04-old"));
+      await assertSucceeds(accept("inv-r04-new"));
+      const db = testEnv
+        .authenticatedContext(UID, { email: EMAIL })
+        .firestore();
+      await assertSucceeds(
+        getDoc(doc(db, `users/${NUTRI_A}/patients/${PATIENT}`)),
+      );
+    });
+
+    it("DENIES acceptance after a concurrent revocation cleared the pointer", async () => {
+      await seed();
+      // Revocation wins the race: pointer cleared before the acceptance batch.
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await updateDoc(
+          doc(ctx.firestore(), `users/${NUTRI_A}/patients/${PATIENT}`),
+          {
+            pendingInvitationId: null,
+          },
+        );
+        await updateDoc(doc(ctx.firestore(), "invitations/inv-r04-new"), {
+          status: "revoked",
+        });
+      });
+      await assertFails(accept("inv-r04-new"));
+      await assertFails(accept("inv-r04-old"));
     });
   });
 });

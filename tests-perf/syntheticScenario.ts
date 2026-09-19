@@ -115,7 +115,12 @@ const buildPatient = (i: number, now: number): DocumentData => {
       heightOrigin: "clinical",
     },
     termsAccepted: true,
-    status: i % SCENARIO.archivedEvery === 0 ? "Archived" : "Active",
+    // Offset keeps patient 0 (the linked portal patient) active: archived
+    // patients cannot read the portal (firestore.rules, Passo C01).
+    status:
+      i % SCENARIO.archivedEvery === SCENARIO.archivedEvery - 1
+        ? "Archived"
+        : "Active",
     createdAt,
     avatarUrl: "",
     weightHistory: Array.from({ length: 6 }, (_, k) => ({

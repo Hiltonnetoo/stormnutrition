@@ -1,0 +1,10 @@
+Re-extracting code files in . (no LLM needed)...
+[graphify watch] 15 file(s) not classified (no supported extension or shebang), skipped: .editorconfig, .env.example, .gitignore, .graphify_version, .nvmrc, Isanutri V5.code-workspace (+9 more)
+  AST extraction: 100/218 uncached files (45%) [10 workers]
+  AST extraction: 200/218 uncached files (91%) [10 workers]
+  AST extraction: 218/218 uncached files (100%) [10 workers]
+[graphify] backed up curated graph (5 files) -> 2026-09-19/
+[graphify watch] Rebuilt: 1874 nodes, 4497 edges, 136 communities
+[graphify watch] graph.json, graph.html and GRAPH_REPORT.md updated in graphify-out
+Code graph updated. For doc/paper/image changes run /graphify --update in your AI assistant.
+Tip: set GEMINI_API_KEY or GOOGLE_API_KEY to use Gemini for semantic extraction.

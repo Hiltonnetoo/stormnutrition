@@ -19,6 +19,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+# Configuração sintética dos emuladores (pública, sem segredos)
+!/config/emulator/.env
 
 # Firebase (gerados pelo firebase-tools, não versionar)
 .firebase/

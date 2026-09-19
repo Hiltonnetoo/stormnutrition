@@ -1,0 +1,22 @@
+
+> stormnutrition-v5---nutritional-management@0.0.0 lint
+> eslint src
+
+
+/Users/hiltonneto/Desktop/Isanutri V5/src/components/modals/NewPatientModal.tsx
+  111:6  warning  React Hook useEffect has a missing dependency: 'setFormData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/hiltonneto/Desktop/Isanutri V5/src/components/patient-form/Step4Nutritional.tsx
+  13:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/hiltonneto/Desktop/Isanutri V5/src/components/ui.tsx
+  14:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/hiltonneto/Desktop/Isanutri V5/src/contexts/AuthContext.tsx
+  64:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/hiltonneto/Desktop/Isanutri V5/src/pages/PatientPortal.tsx
+  12:32  error  'CheckCircleIcon' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+✖ 5 problems (1 error, 4 warnings)
+

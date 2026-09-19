@@ -23,7 +23,7 @@ This document records the foundational architectural decisions, trade-offs, and 
 
 - **Status:** Accepted & Implemented
 - **Context:** Nutritionists require an uninterrupted, high-responsiveness interface during active consultations where clinical evaluations, anthropometric metrics, and dietary changes occur concurrently.
-- **Decision:** Build the frontend as a client-side Single Page Application (SPA) on React 19 with strict TypeScript (`"strict": true` with zero `any` evasions). Heavy export tools (`html2canvas`, `jspdf`) weighing >500 KB are segregated into lazy-loaded dynamic chunks (`React.lazy` + `<Suspense>`).
+- **Decision:** Build the frontend as a client-side Single Page Application (SPA) on React 19 with strict TypeScript (`~5.8.2`, `"strict": true` with zero `any` evasions). Heavy export tools (`html2canvas`, `jspdf`) weighing >500 KB are segregated into lazy-loaded dynamic chunks (`React.lazy` + `<Suspense>`).
 - **Consequences:** Initial bundle load drops from ~1.6 MB to ~760 KB (a ~53% reduction). First Contentful Paint (FCP) and Time to Interactive (TTI) remain well within high-performance thresholds across standard broadband and mobile 4G networks.
 
 ---
@@ -42,16 +42,16 @@ This document records the foundational architectural decisions, trade-offs, and 
 - **Status:** Accepted & Implemented
 - **Context:** The Firebase Auth client SDK automatically authenticates newly created credentials into the current session. If a nutritionist provisioned a patient's portal account, the nutritionist's active session would be evicted and replaced by the patient.
 - **Decision:** Encapsulate patient account creation within an isolated, temporary secondary Firebase App instance (`getSecondaryAuth()` in `src/services/authService.ts`). The secondary instance interacts with Firebase Auth without overwriting the primary app instance's token persistence.
-- **Consequences:** Eliminates auth session hijacking completely while avoiding the operational cost and latency of dedicated backend server microservices for standard account provisioning.
+- **Consequences:** Eliminates auth session hijacking completely while avoiding the operational cost and latency of dedicated backend server microservices for standard account provisioning. *Limitation:* Operates as a client-side pattern within the Firebase Web SDK; it does not replace backend administrative operations (such as Firebase Admin SDK in Cloud Functions) when server-side authority is required.
 
 ---
 
-### ADR-04: Passwordless Tokenized Invitations with Patient-Defined Passwords
+### ADR-04: Passwordless Tokenized Invitations with Client Coordination & Compensation
 
 - **Status:** Accepted & Implemented
-- **Context:** Storing or transmitting cleartext temporary passwords violates medical privacy standards and modern cybersecurity practices.
+- **Context:** Storing or transmitting cleartext temporary passwords violates privacy-by-design standards and modern cybersecurity practices.
 - **Decision:** Implement cryptographic, tokenized invitations (`invitations/:token` collection in Firestore). Nutritionists dispatch an invitation link. When the patient opens `/convite/:token`, the client validates the token, displays the nutritionist's identity, and allows the patient to define their own strong password securely.
-- **Consequences:** Zero plaintext password storage, zero transmission of credentials over plain email, and full compliance with patient privacy requirements. Expired or claimed tokens are invalidated atomically.
+- **Consequences:** The system adheres to privacy-by-design principles: zero plaintext password storage, zero transmission of credentials over plain email, and patient-defined password creation. Cross-system atomicity between Firebase Auth and Firestore cannot be achieved natively in a single transaction via the Firebase Web SDK. Instead, the application coordinates a two-phase client workflow with automatic compensation: if Firestore profile linking fails after Auth user creation, the newly created Auth user is deleted immediately to prevent orphan accounts. Database rules (`firestore.rules`) strictly enforce that an invitation can only be linked once (`invitation.status == 'pending' && !('acceptedByUid' in resource.data)`), preventing replay or re-linking attacks.
 
 ---
 
@@ -67,7 +67,7 @@ This document records the foundational architectural decisions, trade-offs, and 
   ```
   request.auth != null && request.auth.uid == resource.data.patientUid
   ```
-- **Consequences:** Even if a client bypasses the UI and communicates directly with the Firestore REST or gRPC endpoints, access to any unauthorized patient record is denied with HTTP 403 / `PERMISSION_DENIED`. Validated by a 34-test automated suite (`vitest.rules.config.ts`).
+- **Consequences:** Even if a client bypasses the UI and communicates directly with the Firestore REST or gRPC endpoints, access to any unauthorized patient record is denied with HTTP 403 / `PERMISSION_DENIED`. Validated by a 72-test automated suite (`tests-rules/firestore.rules.test.ts` and `tests-rules/dietPersistence.integration.test.ts`).
 
 ---
 
@@ -102,8 +102,12 @@ This document records the foundational architectural decisions, trade-offs, and 
 
 - **Status:** Accepted & Implemented
 - **Context:** Automated testing and evaluators testing the clinical journey should not leak emails to real external inboxes, deplete third-party EmailJS quotas, or risk spam blacklisting.
-- **Decision:** Implement `isDemoRecipient()` in `src/services/emailService.ts` to intercept outgoing emails targeting demo domains (`@demo.stormnutrition.com`, `@example.com`, `@test.com`) or when running with Firebase emulators. In-memory rate limiting (5-second cooldown and 5 sends/minute) and payload size limits (5,000 characters) remain active.
-- **Consequences:** Safe, non-intrusive demonstration flows that verify abuse controls and email formatting without making external network calls.
+- **Decision:** Implement multi-layer transport isolation in `src/services/emailService.ts`:
+  1. **Demo Domain Interception:** Intercept outgoing emails targeting demo domains (`@demo.stormnutrition.com`, `@example.com`, `@test.com`), returning `{ success: true, simulated: true }`.
+  2. **Isolated Environment Protection:** When running with Firebase emulators (`VITE_USE_FIREBASE_EMULATOR=true`) or in demo mode (`VITE_DEMO_MODE=true`), all external dispatches are blocked unconditionally, preventing unintended calls to external providers even if API keys are configured.
+  3. **Visual UI Differentiation:** The interface displays dedicated amber badges and localized notifications (`t("email_admin.status_simulated")`) distinguishing simulated dispatches from live delivery.
+  4. **Client-Side Abuse Controls:** In-memory rate limiting (5-second cooldown and 5 sends/minute per recipient) and payload size limits (5,000 characters) remain active across all dispatches.
+- **Consequences:** Safe, non-intrusive demonstration flows that verify abuse controls and email formatting without making external network calls. *Architecture Note:* In-memory client rate limiting acts as a UX safeguard (preventing accidental repeated button clicks) and does not replace a server-side API gateway.
 
 ---
 

@@ -363,7 +363,13 @@
       "INVALID_NUTRIENT_VALUE": "Valor inválido para o campo \"{{field}}\" no alimento \"{{foodName}}\" da refeição \"{{mealName}}\".",
       "INVALID_TARGET_VALUE": "Metas nutricionais prescritas contêm valores não numéricos, negativos ou inválidos.",
       "HIGH_SODIUM_CEILING_HYPERTENSION": "Pior cenário de sódio nas combinações de alternativas atinge {{worstCaseAlternativeSodium}}mg (limite: {{limit}}mg).",
-      "HIGH_SODIUM_CEILING_RENAL": "Pior cenário de sódio nas combinações de alternativas atinge {{worstCaseAlternativeSodium}}mg para paciente renal (limite: {{limit}}mg)."
+      "HIGH_SODIUM_CEILING_RENAL": "Pior cenário de sódio nas combinações de alternativas atinge {{worstCaseAlternativeSodium}}mg para paciente renal (limite: {{limit}}mg).",
+      "WORST_CASE_PROTEIN_DEVIATION": "A combinação de alternativas varia a proteína diária entre {{min}} g e {{max}} g (meta: {{target}} g).",
+      "WORST_CASE_CARBS_DEVIATION": "A combinação de alternativas varia os carboidratos diários entre {{min}} g e {{max}} g (meta: {{target}} g).",
+      "WORST_CASE_FAT_DEVIATION": "A combinação de alternativas varia as gorduras diárias entre {{min}} g e {{max}} g (meta: {{target}} g).",
+      "ZERO_TARGET_PROTEIN": "A meta diária de proteína é 0 g, mas o plano chega a {{max}} g em alguma combinação. A tolerância percentual não se aplica; revise manualmente.",
+      "ZERO_TARGET_CARBS": "A meta diária de carboidratos é 0 g, mas o plano chega a {{max}} g em alguma combinação. A tolerância percentual não se aplica; revise manualmente.",
+      "ZERO_TARGET_FAT": "A meta diária de gorduras é 0 g, mas o plano chega a {{max}} g em alguma combinação. A tolerância percentual não se aplica; revise manualmente."
     }
   },
   "food": {
@@ -517,7 +523,12 @@
     "counter_patient_other": "{{count}} pacientes",
     "counter_of": "de",
     "toast_error_title": "Erro",
-    "toast_success_title": "Sucesso!"
+    "toast_success_title": "Sucesso!",
+    "empty_title": "Nenhum paciente cadastrado",
+    "empty_description": "Cadastre o primeiro paciente para registrar avaliações, gerar planos alimentares e liberar o acesso ao portal.",
+    "empty_cta": "Cadastrar primeiro paciente",
+    "no_filter_results": "Nenhum paciente neste filtro",
+    "clear_filters": "Limpar busca e filtros"
   },
   "profile": {
     "error_load": "Não foi possível carregar o perfil",
@@ -761,6 +772,7 @@
     "sending_btn": "Enviando...",
     "validation_error": "Selecione um paciente e um plano de dieta antes de continuar.",
     "send_success": "E-mail enviado com sucesso!",
+    "send_success_simulated": "Disparo simulado com sucesso (modo de teste/demonstração — nenhum e-mail externo enviado).",
     "send_error_not_configured": "O envio de e-mail ainda não foi configurado. Defina as variáveis VITE_EMAILJS_* no arquivo .env.local (veja .env.example).",
     "send_error_failed": "Falha ao enviar o e-mail. Verifique o endereço do paciente e sua conexão, e tente novamente.",
     "history_title": "Histórico de Envios",
@@ -768,6 +780,7 @@
     "th_diet": "Dieta",
     "th_status": "Status",
     "status_sent": "Enviado",
+    "status_simulated": "Simulado (Ambiente de Teste)",
     "status_failed": "Falhou",
     "default_sender": "Seu nutricionista"
   },
@@ -853,7 +866,7 @@
       "start_on": "Início em {{date}} · Duração: {{days}} dias",
       "discard": "Descartar",
       "export": "Exportar",
-      "saved_template_notice": "✅ Modelo salvo!",
+      "saved_template_notice": "Modelo salvo",
       "save_as_template": "Salvar como modelo",
       "save_success_btn": "Salvo com Sucesso!",
       "save_plan_btn": "Salvar Plano",
@@ -868,16 +881,16 @@
       "see_which": "ver quais",
       "clinical_engine": "Motor Clínico Storm Nutrition",
       "mode": "Modo: {{mode}}",
-      "respected": "✅ {{tag}} Respeitado",
+      "considered": "Condição considerada: {{tag}}",
       "based_on_exams": "🧪 Baseado em Exames",
       "daily_summary": "Resumo Nutricional Diário",
       "prescribed_targets": "Metas Prescritas",
       "effective_totals": "Totais Calculados do Cardápio",
-      "status_valid": "Plano Válido / Aprovado",
-      "status_requires_review": "Requer Revisão Clínica",
-      "status_infeasible": "Plano Inviável",
-      "status_legacy": "Plano Legado / Não Revalidado",
-      "status_manually_edited": "Edição Manual",
+      "status_valid": "Dentro das metas",
+      "status_requires_review": "Requer revisão clínica",
+      "status_infeasible": "Inviável: ajuste as metas",
+      "status_legacy": "Plano anterior, não revalidado",
+      "status_manually_edited": "Edição manual",
       "worst_case_sodium_warning": "Pior cenário de sódio nas alternativas: {{sodium}}mg/dia",
       "divergence_label": "Variação",
       "calories": "Calorias (kcal)",
@@ -887,7 +900,7 @@
       "approx": "Aprox.",
       "general_recommendations": "Recomendações Gerais",
       "drink_water": "Beba aproximadamente {{liters}} litros de água por dia.",
-      "template_name_prompt": "Nome do modelo de dieta:",
+      "template_name_prompt": "Nome do modelo",
       "default_template_name": "Modelo {{date}}",
       "modes": {
         "general_title": "Geral / Saúde",
@@ -900,7 +913,12 @@
         "pediatric_desc": "Foco em crescimento, introdução alimentar e seletividade infantil.",
         "recovery_title": "Recuperação e Hipertrofia",
         "recovery_desc": "Densidade calórica para desnutrição ou ganho muscular avançado."
-      }
+      },
+      "template_name_help": "O modelo fica disponível em \"Modelos\" para gerar novos planos a partir deste.",
+      "template_name_required": "Informe um nome para o modelo.",
+      "issue_error": "Erro",
+      "issue_warning": "Atenção",
+      "status_approved": "Aprovado pelo profissional"
     },
     "save_error": "Não foi possível salvar o plano alimentar. Verifique sua conexão e tente novamente.",
     "generation_failed": "Falha ao gerar o plano.",
@@ -913,7 +931,19 @@
       "calories_invalid": "As calorias diárias devem ser um número válido.",
       "macros_sum": "A soma dos macros deve ser 100%.",
       "infeasible_plan": "Não é possível aprovar ou salvar um plano alimentar com status inviável. Corrija os itens incompatíveis."
-    }
+    },
+    "errors": {
+      "INVALID_INPUT": "Metas nutricionais ausentes ou inválidas.",
+      "INVALID_CALORIES": "A meta calórica diária deve ser um número finito positivo.",
+      "INVALID_MACROS": "Os macronutrientes prescritos devem ser números finitos não-negativos.",
+      "EMPTY_MEALS": "A configuração do plano alimentar deve conter ao menos uma refeição.",
+      "INVALID_MEAL_PERCENTAGES": "A soma dos percentuais calóricos das refeições deve ser aproximadamente 100% (soma atual: {{totalPercentage}}%).",
+      "INVALID_MEAL_NAME": "Toda refeição configurada deve possuir um nome válido.",
+      "INVALID_MEAL_PERCENT": "O percentual calórico da refeição \"{{mealName}}\" deve ser maior que zero.",
+      "PLAN_INFEASIBLE": "Não foi possível gerar um plano compatível com todas as restrições clínicas e metas calóricas configuradas.",
+      "CATALOG_EXHAUSTED": "Não há alimentos suficientes disponíveis no catálogo após aplicar todas as restrições clínicas."
+    },
+    "review_outdated": "O plano mudou desde a revisão (conteúdo, metas, restrições ou alertas). Confira os alertas atuais e confirme a revisão novamente."
   },
   "meal_table": {
     "breakfast": "Café da Manhã",
@@ -937,7 +967,8 @@
     "show_alternatives": "Ver {{count}} alternativa",
     "show_alternatives_plural": "Ver {{count}} alternativas",
     "hide_alternatives": "Ocultar alternativa",
-    "hide_alternatives_plural": "Ocultar alternativas"
+    "hide_alternatives_plural": "Ocultar alternativas",
+    "portion_input": "Porção em gramas de {{food}}"
   },
   "nutrition_label": {
     "title": "Informação Nutricional",
@@ -1340,6 +1371,7 @@
       "error_reset_email": "Não foi possível enviar o e-mail de redefinição. Verifique as configurações.",
       "success_title": "Convite gerado com sucesso!",
       "success_email_sent": "✓ Um e-mail com o link de convite seguro foi enviado para o paciente!",
+      "success_email_simulated": "ℹ️ Disparo simulado com sucesso (modo de teste/demonstração — nenhum e-mail externo enviado). O link abaixo está ativo.",
       "success_email_failed": "⚠️ O envio por e-mail falhou, mas o link de convite está ativo. Copie o link abaixo para compartilhar.",
       "success_share": "Copie o link abaixo e compartilhe com o paciente (via WhatsApp, SMS ou mensagem):",
       "invite_link_label": "Link de convite seguro",
@@ -1359,7 +1391,9 @@
       "revoke_effect_3": "A conta de e-mail do paciente é preservada e você poderá reemitir um convite futuramente.",
       "btn_confirm_revoke": "Sim, Revogar Acesso",
       "revoke_success_message": "Acesso ao portal revogado com sucesso. O paciente não consegue mais visualizar os dados via app, mas o prontuário foi preservado integralmente.",
-      "error_revoke": "Não foi possível revogar o acesso ao portal. Tente novamente."
+      "error_revoke": "Não foi possível revogar o acesso ao portal. Tente novamente.",
+      "revoke_cleanup_incomplete": "O acesso foi revogado, mas alguns convites ou vínculos antigos não puderam ser encerrados agora. Eles continuam bloqueados; ao emitir um novo convite, ele terá um novo link.",
+      "error_revoke_permission": "Você não tem permissão para revogar o acesso deste paciente. Verifique se está conectado à conta do profissional responsável."
     },
     "invite": {
       "accept_title": "Ativação de Acesso ao Portal",
@@ -1473,6 +1507,36 @@
     "profile_sections": "Seções do prontuário",
     "food_table": "Tabela de alimentos (role horizontalmente)"
   },
+  "invite": {
+    "accept_title": "Ativação de Acesso ao Portal",
+    "welcome_msg": "Olá, {{name}}! Você foi convidado(a) por {{nutri}} para acessar seu Portal do Paciente.",
+    "set_password_title": "Crie sua senha de acesso",
+    "password_placeholder": "Mínimo 6 caracteres",
+    "confirm_password": "Confirme sua senha",
+    "btn_activate": "Ativar meu acesso",
+    "btn_activating": "Ativando conta...",
+    "password_mismatch": "As senhas não coincidem.",
+    "password_too_short": "A senha deve ter pelo menos 6 caracteres.",
+    "status_expired": "Este convite expirou. Entre em contato com seu nutricionista para solicitar um novo convite.",
+    "status_revoked": "Este convite foi cancelado pelo seu nutricionista.",
+    "status_accepted": "Este convite já foi aceito.",
+    "status_not_found": "Convite não encontrado ou link inválido.",
+    "existing_account_title": "Conta já cadastrada",
+    "existing_account_desc": "Você já está conectado com o e-mail {{email}}. Confirme abaixo para vincular esta conta ao seu prontuário com {{nutri}}.",
+    "btn_confirm_link": "Confirmar e vincular conta",
+    "link_success": "Vínculo confirmado com sucesso! Redirecionando para seu portal...",
+    "btn_go_to_login": "Fazer login",
+    "verifying": "Verificando convite...",
+    "redirecting_portal": "Acessando portal...",
+    "notice_title": "Aviso do Convite",
+    "go_home": "Ir para página inicial",
+    "error_firestore_link_failed": "Falha ao concluir o vínculo do convite no servidor. O cadastro foi revertido com segurança. Por favor, tente novamente.",
+    "error_email_already_in_use": "Este e-mail já possui uma conta no sistema. Por favor, faça login para vincular.",
+    "error_email_mismatch": "O e-mail da conta conectada não corresponde ao e-mail deste convite.",
+    "error_multi_professional": "Esta conta já está vinculada a outro nutricionista. O sistema suporta um vínculo profissional por conta nesta versão.",
+    "error_generic": "Não foi possível concluir a ativação do convite. Tente novamente.",
+    "status_legacy": "Este convite foi emitido em um formato antigo e não pode mais ser usado. Peça um novo convite ao seu nutricionista."
+  },
   "app": {
     "loading": "Carregando...",
     "auth_error_title": "Falha na verificação da conta",
@@ -1482,7 +1546,27 @@
     "incomplete_profile_title": "Concluir cadastro profissional",
     "incomplete_profile_desc": "Sua conta está autenticada, mas o perfil profissional ainda não foi inicializado. Deseja inicializar o seu espaço de trabalho?",
     "init_profile_button": "Inicializar perfil profissional",
-    "exit_button": "Sair"
+    "exit_button": "Sair",
+    "access_revoked_title": "Acesso ao portal encerrado",
+    "access_revoked_desc": "O acesso a este portal de paciente foi revogado pelo seu nutricionista. Caso acredite que isto seja um engano, entre em contato diretamente com o seu profissional.",
+    "invitation_activating_title": "Ativando acesso ao portal...",
+    "invitation_activating_desc": "Estamos concluindo o vínculo da sua conta com o seu nutricionista com segurança. Por favor, aguarde um instante.",
+    "auth_errors": {
+      "auth/profile-fetch-failed": "Não foi possível carregar os dados do seu perfil. Verifique sua conexão à internet e tente novamente.",
+      "permission-denied": "Você não possui permissão para acessar este perfil.",
+      "unavailable": "Serviço de autenticação temporariamente indisponível. Verifique sua conexão com a internet."
+    }
+  },
+  "errors": {
+    "categories": {
+      "permission_denied": "Acesso não autorizado a este recurso.",
+      "unavailable": "Serviço temporariamente indisponível. Verifique sua conexão com a internet.",
+      "not_found": "O recurso solicitado não foi encontrado.",
+      "unauthenticated": "Sessão expirada ou usuário não autenticado.",
+      "rate_limited": "Limite de requisições excedido. Aguarde alguns instantes antes de tentar novamente.",
+      "validation": "Dados fornecidos são inválidos.",
+      "unknown": "Ocorreu um erro inesperado."
+    }
   },
   "error_boundary": {
     "title": "Algo deu errado nesta seção",
@@ -1517,5 +1601,13 @@
     "step_5_title": "5. Isolamento Multi-Tenant & Segurança",
     "step_5_desc": "Entre como Dr. Marcos Lima. Comprove que as regras do Firestore (Security Rules) isolam 100% dos dados: ele não visualiza nenhum paciente ou dieta da Dra. Clara.",
     "close_guide": "Entendido, iniciar avaliação"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "back": "Voltar",
+    "delete": "Excluir"
+  },
+  "progress": {
+    "step_of": "Etapa {{current}} de {{total}} · {{label}}"
   }
 }

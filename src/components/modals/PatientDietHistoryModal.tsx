@@ -134,7 +134,7 @@ const PatientDietHistoryModal: React.FC<PatientDietHistoryModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleEditDiet(selectedDiet as DietPlan)}
-                        className="btn-secondary btn-sm"
+                        className="btn btn-secondary btn-sm"
                       >
                         <EditIcon className="w-4 h-4" aria-hidden="true" />{" "}
                         {t("modals.patient_diet_history.edit_btn")}
@@ -142,7 +142,7 @@ const PatientDietHistoryModal: React.FC<PatientDietHistoryModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setIsExportModalOpen(true)}
-                        className="btn-secondary btn-sm"
+                        className="btn btn-secondary btn-sm"
                       >
                         <DownloadIcon className="w-4 h-4" aria-hidden="true" />{" "}
                         {t("modals.patient_diet_history.export_btn")}

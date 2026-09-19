@@ -2,7 +2,12 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import i18n from "../i18n";
 import { translateMealName } from "./locale";
-import type { DietPlan, Meal, MealOption } from "../types";
+import type {
+  DietPlan,
+  Meal,
+  MealOption,
+  CalculatedDietTotals,
+} from "../types";
 
 export interface ClinicInfo {
   clinicName?: string;
@@ -204,16 +209,15 @@ export function buildCustomLayoutPdfDocument(
     { calories: 0, protein: 0, carbs: 0, fat: 0 },
   );
 
-  const calcCal =
-    plan.calculatedTotals?.calories ??
-    plan.validation?.calculatedTotals?.calories;
-  const calcProt =
-    plan.calculatedTotals?.protein ??
-    plan.validation?.calculatedTotals?.protein;
-  const calcCarbs =
-    plan.calculatedTotals?.carbs ?? plan.validation?.calculatedTotals?.carbs;
-  const calcFat =
-    plan.calculatedTotals?.fat ?? plan.validation?.calculatedTotals?.fat;
+  // Plans saved before the totals moved to the plan root may still carry them
+  // inside `validation`; read them only as a legacy fallback.
+  const legacyTotals = (
+    plan.validation as { calculatedTotals?: CalculatedDietTotals } | undefined
+  )?.calculatedTotals;
+  const calcCal = plan.calculatedTotals?.calories ?? legacyTotals?.calories;
+  const calcProt = plan.calculatedTotals?.protein ?? legacyTotals?.protein;
+  const calcCarbs = plan.calculatedTotals?.carbs ?? legacyTotals?.carbs;
+  const calcFat = plan.calculatedTotals?.fat ?? legacyTotals?.fat;
 
   // Use persisted totals if they match the sum of meals within rounding margin (2 kcal, 1g macro).
   // If totals are missing or diverge (e.g. stale plan edit), strictly prefer mealSum so the PDF summary matches the meal tables.
@@ -226,7 +230,8 @@ export function buildCustomLayoutPdfDocument(
 
   const actualTotals = {
     calories: isTotalsConsistent ? calcCal : mealSum.calories,
-    protein: isTotalsConsistent && calcProt != null ? calcProt : mealSum.protein,
+    protein:
+      isTotalsConsistent && calcProt != null ? calcProt : mealSum.protein,
     carbs: isTotalsConsistent && calcCarbs != null ? calcCarbs : mealSum.carbs,
     fat: isTotalsConsistent && calcFat != null ? calcFat : mealSum.fat,
   };

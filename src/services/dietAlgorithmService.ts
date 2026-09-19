@@ -11,6 +11,7 @@ import {
   evaluateFoodRestriction,
 } from "./foodService";
 import type {
+  CalculatedDietTotals,
   Food,
   Meal,
   MealOption,
@@ -24,7 +25,6 @@ import type {
   PlanValidationIssue,
   ValidateDietPlanOptions,
   WorstCaseAlternativeTotals,
-  MacroTolerances,
 } from "../types";
 import type { DietType } from "./metabolicCalculations";
 
@@ -220,6 +220,7 @@ export function validateGenerationParams(params: GenerationParams): void {
       throw new InfeasiblePlanError(
         `O percentual calórico da refeição "${m.name}" deve ser maior que zero.`,
         "INVALID_MEAL_PERCENT",
+        { mealName: m.name },
       );
     }
   }
@@ -233,11 +234,72 @@ export function validateGenerationParams(params: GenerationParams): void {
  * Validates an existing or newly generated diet plan against targets, tolerances,
  * restrictions and clinical constraints across all meals and alternative combinations.
  */
+/* R06 — review identity. A stable hash of everything a clinical review is
+   about: meal content, targets, restrictions, clinical tags, mode, catalog
+   version, tolerances and each alert with its level and parameters. Two
+   versions that differ in any of these get different signatures, so an
+   approval can never be carried over to content it did not see. */
+const canonicalize = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value as Record<string, unknown>)
+        .sort()
+        .filter((k) => (value as Record<string, unknown>)[k] !== undefined)
+        .map((k) => [k, canonicalize((value as Record<string, unknown>)[k])]),
+    );
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.round(value * 100) / 100;
+  }
+  return value;
+};
+
+const fnv1a = (text: string, seed: number): string => {
+  let hash = seed >>> 0;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+};
+
+export const computeReviewSignature = (input: {
+  meals: Meal[];
+  targets: { calories: number; protein: number; carbs: number; fat: number };
+  issues: PlanValidationIssue[];
+  options?: ValidateDietPlanOptions;
+}): string => {
+  const payload = JSON.stringify(
+    canonicalize({
+      meals: input.meals,
+      targets: input.targets,
+      restrictions: [...(input.options?.restrictions ?? [])].sort(),
+      clinicalTags: [...(input.options?.clinicalTags ?? [])].sort(),
+      mode: input.options?.mode ?? null,
+      catalogVersion: input.options?.catalogVersion ?? null,
+      tolerances: input.options?.tolerances ?? null,
+      issues: input.issues
+        .map((i) => ({
+          code: i.code,
+          level: i.level,
+          details: i.details ?? null,
+        }))
+        .sort((a, b) =>
+          JSON.stringify(canonicalize(a)).localeCompare(
+            JSON.stringify(canonicalize(b)),
+          ),
+        ),
+    }),
+  );
+  return `v2_${input.issues.length}_${fnv1a(payload, 0x811c9dc5)}${fnv1a(payload, 0x01000193)}`;
+};
+
 export function validateDietPlan(
   meals: Meal[],
   targets: { calories: number; protein: number; carbs: number; fat: number },
   options?: ValidateDietPlanOptions,
-): PlanValidationResult {
+): PlanValidationResult & { calculatedTotals: CalculatedDietTotals } {
   const issues: PlanValidationIssue[] = [];
 
   // Target validity check (finite, positive)
@@ -291,6 +353,12 @@ export function validateDietPlan(
   let worstCaseAlternativeSodium = 0;
   let minCombinatorialCalories = 0;
   let maxCombinatorialCalories = 0;
+  let minCombinatorialProtein = 0;
+  let maxCombinatorialProtein = 0;
+  let minCombinatorialCarbs = 0;
+  let maxCombinatorialCarbs = 0;
+  let minCombinatorialFat = 0;
+  let maxCombinatorialFat = 0;
 
   for (const meal of meals) {
     calculatedTotals.calories += meal.mainOption.calories || 0;
@@ -307,33 +375,102 @@ export function validateDietPlan(
 
     // Combinatorial tracking per meal
     const optionCalList = allOptions.map((opt) => opt.calories || 0);
+    const optionProtList = allOptions.map((opt) => opt.protein || 0);
+    const optionCarbsList = allOptions.map((opt) => opt.carbs || 0);
+    const optionFatList = allOptions.map((opt) => opt.fat || 0);
     const optionSodList = allOptions.map((opt) => opt.micros?.sodium || 0);
+
     minCombinatorialCalories += Math.min(...optionCalList);
     maxCombinatorialCalories += Math.max(...optionCalList);
+    minCombinatorialProtein += Math.min(...optionProtList);
+    maxCombinatorialProtein += Math.max(...optionProtList);
+    minCombinatorialCarbs += Math.min(...optionCarbsList);
+    maxCombinatorialCarbs += Math.max(...optionCarbsList);
+    minCombinatorialFat += Math.min(...optionFatList);
+    maxCombinatorialFat += Math.max(...optionFatList);
+
     worstCaseAlternativeSodium += Math.max(...optionSodList);
 
-    // Alternative options calorie variance against main option
+    // Alternative options variance against main option (R07: +/- 5% margin for macros and calories)
     if (meal.alternatives && meal.alternatives.length > 0) {
       for (const alt of meal.alternatives) {
-        if (meal.mainOption.calories > 0) {
-          const calDiff = (alt.calories || 0) - meal.mainOption.calories;
-          const calPct = Math.round((calDiff / meal.mainOption.calories) * 100);
-          if (Math.abs(calPct) > 25) {
-            issues.push({
-              level: "warning",
-              code: "ALTERNATIVE_CALORIE_DEVIATION",
-              message: `Opção alternativa "${alt.name}" varia ${calPct}% em calorias em relação à principal na refeição "${meal.mealName}" (${alt.calories} kcal vs ${meal.mainOption.calories} kcal).`,
-              details: {
-                mealName: meal.mealName,
-                alternativeName: alt.name,
-                alternativeCalories: alt.calories,
-                mainOptionCalories: meal.mainOption.calories,
-                percentDiff: calPct,
-                percent: calPct,
-              },
-            });
+        const checkDev = (
+          nutrient: "calories" | "protein" | "carbs" | "fat",
+          codeStr: string,
+          nutrientName: string,
+          mainVal: number,
+          altVal: number,
+        ) => {
+          if (mainVal > 0) {
+            const diff = altVal - mainVal;
+            const pct = Math.round((diff / mainVal) * 100);
+            if (Math.abs(pct) > 5) {
+              issues.push({
+                level: "warning",
+                code: codeStr,
+                message: `Opção alternativa "${alt.name}" varia ${pct}% em ${nutrientName} em relação à principal na refeição "${meal.mealName}" (${altVal} vs ${mainVal}).`,
+                details: {
+                  mealName: meal.mealName,
+                  alternativeName: alt.name,
+                  nutrient,
+                  mainValue: mainVal,
+                  alternativeValue: altVal,
+                  percentDiff: pct,
+                  percent: pct,
+                },
+              });
+            }
+          } else if (altVal > 0) {
+            if (
+              (nutrient === "calories" && altVal > 10) ||
+              (nutrient !== "calories" && altVal > 1)
+            ) {
+              issues.push({
+                level: "warning",
+                code: codeStr,
+                message: `Opção alternativa "${alt.name}" possui ${altVal} de ${nutrientName} mas a opção principal possui 0 na refeição "${meal.mealName}".`,
+                details: {
+                  mealName: meal.mealName,
+                  alternativeName: alt.name,
+                  nutrient,
+                  mainValue: mainVal,
+                  alternativeValue: altVal,
+                  percentDiff: 100,
+                  percent: 100,
+                },
+              });
+            }
           }
-        }
+        };
+
+        checkDev(
+          "calories",
+          "ALTERNATIVE_CALORIE_DEVIATION",
+          "calorias",
+          meal.mainOption.calories || 0,
+          alt.calories || 0,
+        );
+        checkDev(
+          "protein",
+          "ALTERNATIVE_MACRO_DEVIATION",
+          "proteína",
+          meal.mainOption.protein || 0,
+          alt.protein || 0,
+        );
+        checkDev(
+          "carbs",
+          "ALTERNATIVE_MACRO_DEVIATION",
+          "carboidratos",
+          meal.mainOption.carbs || 0,
+          alt.carbs || 0,
+        );
+        checkDev(
+          "fat",
+          "ALTERNATIVE_MACRO_DEVIATION",
+          "gorduras",
+          meal.mainOption.fat || 0,
+          alt.fat || 0,
+        );
       }
     }
 
@@ -554,7 +691,10 @@ export function validateDietPlan(
       ((maxCombinatorialCalories - targets.calories) / targets.calories) * 100;
     const minCalVarPct =
       ((minCombinatorialCalories - targets.calories) / targets.calories) * 100;
-    if (maxCalVarPct > 20 || minCalVarPct < -20) {
+    if (
+      maxCalVarPct > tolerances.caloriePercent ||
+      minCalVarPct < -tolerances.caloriePercent
+    ) {
       issues.push({
         level: "warning",
         code: "WORST_CASE_ALTERNATIVE_DEVIATION",
@@ -567,6 +707,75 @@ export function validateDietPlan(
       });
     }
   }
+
+  const checkCombMacro = (
+    nutrient: string,
+    target: number,
+    minVal: number,
+    maxVal: number,
+    code: string,
+    tolerance: number,
+    zeroTargetCode: string,
+  ) => {
+    // R07: a zero target has no percentage tolerance. Any amount of the
+    // macro in some combination is flagged for professional review; no
+    // absolute limit is invented.
+    if (target === 0) {
+      if (maxVal > 0) {
+        issues.push({
+          level: "warning",
+          code: zeroTargetCode,
+          message: `A meta diária de ${nutrient} é 0 g, mas o plano chega a ${Math.round(maxVal * 10) / 10}g em alguma combinação; revise manualmente.`,
+          details: { max: Math.round(maxVal * 10) / 10 },
+        });
+      }
+      return;
+    }
+    if (target > 0) {
+      const maxPct = ((maxVal - target) / target) * 100;
+      const minPct = ((minVal - target) / target) * 100;
+      if (maxPct > tolerance || minPct < -tolerance) {
+        issues.push({
+          level: "warning",
+          code,
+          message: `A combinação de alternativas varia o consumo diário de ${nutrient} entre ${Math.round(minVal)}g e ${Math.round(maxVal)}g (meta: ${Math.round(target)}g).`,
+          details: {
+            min: Math.round(minVal),
+            max: Math.round(maxVal),
+            target: Math.round(target),
+          },
+        });
+      }
+    }
+  };
+
+  checkCombMacro(
+    "proteína",
+    targets.protein,
+    minCombinatorialProtein,
+    maxCombinatorialProtein,
+    "WORST_CASE_PROTEIN_DEVIATION",
+    tolerances.proteinPercent,
+    "ZERO_TARGET_PROTEIN",
+  );
+  checkCombMacro(
+    "carboidratos",
+    targets.carbs,
+    minCombinatorialCarbs,
+    maxCombinatorialCarbs,
+    "WORST_CASE_CARBS_DEVIATION",
+    tolerances.carbsPercent,
+    "ZERO_TARGET_CARBS",
+  );
+  checkCombMacro(
+    "gorduras",
+    targets.fat,
+    minCombinatorialFat,
+    maxCombinatorialFat,
+    "WORST_CASE_FAT_DEVIATION",
+    tolerances.fatPercent,
+    "ZERO_TARGET_FAT",
+  );
 
   // Clinical sodium ceilings across all alternatives
   if (
@@ -603,21 +812,53 @@ export function validateDietPlan(
   // Infeasible plans can NEVER be approved.
   // Requires review can be approved ONLY if allowApprovedReview is explicitly provided.
   let isApproved = false;
+  let approvedByUid: string | undefined;
+  let approvedAt: string | undefined;
+
+  const issuesSignature = computeReviewSignature({
+    meals,
+    targets,
+    issues,
+    options,
+  });
+
   if (status === "valid") {
     isApproved = true;
   } else if (status === "requires_review" && options?.allowApprovedReview) {
-    isApproved = true;
+    // R06: consent refers to the exact version presented. A different (or
+    // missing) reviewed signature never approves; an earlier approval of
+    // other content never blocks a new explicit review of this one.
+    if (
+      options.reviewedSignature &&
+      options.reviewedSignature === issuesSignature
+    ) {
+      isApproved = true;
+      approvedByUid = options.approvedByUid;
+      approvedAt = new Date().toISOString();
+    }
   }
 
-  return {
+  const result: PlanValidationResult & {
+    calculatedTotals: CalculatedDietTotals;
+  } = {
     status,
     isApproved,
     issues,
-    calculatedTotals,
+    issuesSignature,
     deviations,
-    worstCaseAlternativeSodium,
-    worstCaseAlternativeTotals,
+    calculatedTotals,
   };
+
+  if (approvedByUid) result.approvedByUid = approvedByUid;
+  if (approvedAt) result.approvedAt = approvedAt;
+  if (worstCaseAlternativeSodium !== undefined) {
+    result.worstCaseAlternativeSodium = worstCaseAlternativeSodium;
+  }
+  if (worstCaseAlternativeTotals) {
+    result.worstCaseAlternativeTotals = worstCaseAlternativeTotals;
+  }
+
+  return result;
 }
 
 // --- MAIN GENERATION LOGIC ---

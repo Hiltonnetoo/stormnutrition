@@ -195,6 +195,12 @@ describe("i18n Translation Parity (Passo 16)", () => {
     beforeEach(() => {
       vi.clearAllMocks();
       clearEmailRateLimits();
+      // Real dispatch path (EmailJS mocked): cloud mode, not the emulator
+      // configuration the unit suite runs on.
+      vi.stubEnv("VITE_USE_FIREBASE_EMULATOR", "false");
+      vi.stubEnv("VITE_DEMO_MODE", "false");
+      vi.stubEnv("MODE", "development");
+      vi.stubEnv("VITE_EMAIL_TRANSPORT", "real");
       vi.stubEnv("VITE_EMAILJS_SERVICE_ID", "test_svc");
       vi.stubEnv("VITE_EMAILJS_TEMPLATE_ID", "test_tpl");
       vi.stubEnv("VITE_EMAILJS_PUBLIC_KEY", "test_key");
@@ -202,7 +208,7 @@ describe("i18n Translation Parity (Passo 16)", () => {
 
     it("sends diet email with explicit English locale", async () => {
       await sendDietEmail({
-        toEmail: "patient@example.com",
+        toEmail: "patient@nutritionclinic.com",
         toName: "Jane Doe",
         fromName: "Dr. Smith",
         dietDate: "2026-09-18",
@@ -232,7 +238,7 @@ describe("i18n Translation Parity (Passo 16)", () => {
 
     it("sends portal access email with explicit English locale", async () => {
       await sendPortalAccessEmail({
-        toEmail: "patient@example.com",
+        toEmail: "patient@nutritionclinic.com",
         toName: "Jane Doe",
         fromName: "Dr. Smith",
         portalUrl: "https://example.com/portal",

@@ -20,11 +20,9 @@ export const StatCard: React.FC<StatCardProps> = ({
   loading,
   tone,
 }) => (
-  <Card hover className="p-5 group">
+  <Card className="p-5">
     <div className="flex items-start justify-between mb-4">
-      <div
-        className={`p-3 rounded-xl ${tone.icon} group-hover:scale-110 transition-transform duration-300`}
-      >
+      <div className={`p-3 rounded-xl ${tone.icon}`}>
         {React.cloneElement(
           icon as React.ReactElement<{ className?: string }>,
           {

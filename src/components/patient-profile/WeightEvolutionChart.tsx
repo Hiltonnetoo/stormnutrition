@@ -71,7 +71,7 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
             })}
             {single.origin ? ` (${single.origin})` : ""}
           </p>
-          <p className="text-[11px] text-gray-400 mt-3 text-center">
+          <p className="text-xs text-gray-400 mt-3 text-center">
             {t("profile.evolution.register_more")}
           </p>
         </div>
@@ -184,7 +184,7 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
                   x={padding - 10}
                   y={y + 4}
                   textAnchor="end"
-                  className="text-[11px] fill-gray-400 font-bold"
+                  className="text-xs fill-gray-400 font-bold"
                 >
                   {labelWeight.toFixed(1)}
                 </text>
@@ -235,7 +235,7 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
                 x={p.x}
                 y={p.y - 12}
                 textAnchor="middle"
-                className="text-[11px] font-black fill-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="text-xs font-black fill-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 {p.weight.toFixed(1)}kg
               </text>
@@ -245,7 +245,7 @@ const WeightEvolutionChart: React.FC<Props> = ({ data }) => {
                 x={p.x}
                 y={height - padding + 20}
                 textAnchor="middle"
-                className="text-[9px] fill-gray-400 font-bold uppercase"
+                className="text-xs fill-gray-400 font-bold uppercase"
               >
                 {formatCivilDate(p.date.split("T")[0]).slice(0, 5)}
               </text>

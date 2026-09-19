@@ -1,7 +1,8 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Patient } from "../../types";
-import { Card, Button } from "../ui";
+import { Card, Button, Avatar } from "../ui";
+import { ScaleIcon, TrendingUpIcon, TargetIcon } from "../icons";
 import { calcAge } from "../../utils/calcAge";
 import { formatNumberWithLocale } from "../../utils/locale";
 
@@ -26,12 +27,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   const headerStats = [
     {
-      icon: "⚖️",
+      icon: <ScaleIcon className="w-5 h-5" />,
       label: t("profile.label_weight"),
       value: `${patient.weight} kg`,
     },
     {
-      icon: "📏",
+      icon: <TrendingUpIcon className="w-5 h-5" />,
       label: t("profile.label_height"),
       value: `${formatNumberWithLocale(patient.height / 100, i18n.language, {
         minimumFractionDigits: 2,
@@ -39,7 +40,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       })} m`,
     },
     {
-      icon: "🎯",
+      icon: <TargetIcon className="w-5 h-5" />,
       label: t("profile.label_goal"),
       value: t(`profile.goals.${patient.nutritionalGoal || "maintenance"}`, {
         defaultValue: "Maintenance",
@@ -49,10 +50,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   return (
     <Card className="p-6 flex flex-col md:flex-row gap-6 items-center md:items-start">
-      <img
+      <Avatar
         src={patient.avatarUrl}
-        alt={patient.firstName}
-        className="w-24 h-24 rounded-2xl ring-4 ring-sage-50 shadow-md object-cover shrink-0"
+        name={`${patient.firstName} ${patient.lastName}`}
+        className="w-24 h-24 rounded-2xl ring-4 ring-sage-50 shadow-md shrink-0 text-2xl"
       />
       <div className="flex-1 text-center md:text-left min-w-0">
         <div className="flex flex-col md:flex-row md:items-center gap-2.5">
@@ -60,7 +61,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             {patient.firstName} {patient.lastName}
           </h1>
           <span
-            className={`mx-auto md:mx-0 w-fit px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${modeTone[patient.mode || ""] || "bg-sage-100 text-sage-700"}`}
+            className={`mx-auto md:mx-0 w-fit px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${modeTone[patient.mode || ""] || "bg-sage-100 text-sage-700"}`}
           >
             {t("profile.label_mode")}:{" "}
             {t(`profile.modes.${patient.mode || "general"}`, {
@@ -84,9 +85,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               key={m.label}
               className="flex items-center gap-2.5 px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl"
             >
-              <span className="text-lg">{m.icon}</span>
+              <span aria-hidden="true" className="text-sage-700">
+                {m.icon}
+              </span>
               <div className="text-left">
-                <p className="text-[11px] text-slate-400 font-bold uppercase">
+                <p className="text-xs text-slate-400 font-bold uppercase">
                   {m.label}
                 </p>
                 <p className="text-sm font-bold text-slate-800 dark:text-white capitalize">

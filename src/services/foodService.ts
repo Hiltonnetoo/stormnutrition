@@ -440,7 +440,8 @@ export const evaluateFoodRestriction = (
 
       return {
         status: "unknown",
-        reason: "Ausência de metadados para verificação de APLV (proteína do leite)",
+        reason:
+          "Ausência de metadados para verificação de APLV (proteína do leite)",
         source: "unknown_fallback",
       };
     }
@@ -496,7 +497,8 @@ export const evaluateFoodRestriction = (
 
       return {
         status: "unknown",
-        reason: "Preparação sem lista de ingredientes verificada para vegetarianismo",
+        reason:
+          "Preparação sem lista de ingredientes verificada para vegetarianismo",
         source: "unknown_fallback",
       };
     }
@@ -631,7 +633,9 @@ export const foodContainsGluten = (food: Food): boolean => {
  * Checks if a food contains lactose.
  */
 export const foodContainsLactose = (food: Food): boolean => {
-  return evaluateFoodRestriction(food, "lactose_free").status === "incompatible";
+  return (
+    evaluateFoodRestriction(food, "lactose_free").status === "incompatible"
+  );
 };
 
 /**

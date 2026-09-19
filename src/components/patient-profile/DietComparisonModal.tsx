@@ -84,7 +84,7 @@ export const DietComparisonModal: React.FC<DietComparisonModalProps> = ({
               >
                 {idx + 1}
               </div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase mb-1 tracking-widest">
+              <p className="text-xs font-bold text-slate-400 uppercase mb-1 tracking-widest">
                 {t(
                   idx === 0
                     ? "profile.compare.plan_previous"

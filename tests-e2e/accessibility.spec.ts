@@ -92,7 +92,9 @@ test.describe("Accessibility — axe scan of the journey", () => {
     ] as const) {
       await page.goto(url);
       await page.getByText(ready).filter({ visible: true }).first().waitFor();
-      await page.waitForLoadState("networkidle");
+      // Readiness is visible content, not silence from Firebase connections.
+      await expect(page.getByRole("main")).toBeVisible();
+      await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
       await expectNoViolations(page, name);
     }
 

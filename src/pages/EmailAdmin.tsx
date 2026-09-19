@@ -8,6 +8,7 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   PaperAirplaneIcon,
+  InformationCircleIcon,
 } from "../components/icons";
 import type { EmailLog, AnyDietPlan } from "../types";
 import { PageHeader, Card, Button } from "../components/ui";
@@ -24,9 +25,9 @@ const EmailAdmin: React.FC = () => {
   const [selectedDietId, setSelectedDietId] = useState<string>("");
   const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const [sendStatus, setSendStatus] = useState<"success" | "error" | null>(
-    null,
-  );
+  const [sendStatus, setSendStatus] = useState<
+    "success" | "simulated" | "error" | null
+  >(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState("");
   const [sendErrorMsg, setSendErrorMsg] = useState("");
@@ -44,9 +45,12 @@ const EmailAdmin: React.FC = () => {
       const unsubscribe = getPatientDiets(
         currentUser.uid,
         selectedPatientId,
-        setDietPlans,
-        (error) => {
-          console.error("EmailAdmin: Error fetching diets", error);
+        (diets) => {
+          setDietPlans(diets);
+          setLoadError(null);
+        },
+        (err) => {
+          console.error("EmailAdmin: Error fetching diets", err);
           setLoadError(t("email_admin.error_load_diets"));
         },
       );
@@ -79,7 +83,7 @@ const EmailAdmin: React.FC = () => {
       i18n.language === "pt" ? "pt-BR" : "en-US",
     );
     try {
-      await sendDietEmail({
+      const result = await sendDietEmail({
         toEmail: patient.email,
         toName: `${patient.firstName} ${patient.lastName}`,
         fromName:
@@ -96,10 +100,10 @@ const EmailAdmin: React.FC = () => {
         patientEmail: patient.email,
         dietDate,
         sentAt: new Date().toISOString(),
-        status: "Sent",
+        status: result.simulated ? "Simulated" : "Sent",
       };
       setEmailLogs((prevLogs) => [newLog, ...prevLogs]);
-      setSendStatus("success");
+      setSendStatus(result.simulated ? "simulated" : "success");
       setSelectedPatientId("");
       setSelectedDietId("");
     } catch (err) {
@@ -179,41 +183,50 @@ const EmailAdmin: React.FC = () => {
                 </option>
                 {patients.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.firstName} {p.lastName}
+                    {p.firstName} {p.lastName} ({p.email})
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label htmlFor="diet-plan" className="input-label">
+              <label htmlFor="diet" className="input-label">
                 {t("email_admin.diet_label")}
               </label>
               <select
-                id="diet-plan"
+                id="diet"
                 value={selectedDietId}
                 onChange={(e) => setSelectedDietId(e.target.value)}
-                disabled={!selectedPatientId || dietPlans.length === 0}
                 className={selectClass}
                 required
+                disabled={!selectedPatientId || dietPlans.length === 0}
               >
                 <option value="" disabled>
-                  {t("email_admin.select_diet_placeholder")}
+                  {!selectedPatientId
+                    ? t("email_admin.select_patient_placeholder")
+                    : dietPlans.length === 0
+                      ? t("email_admin.no_diets_alert")
+                      : t("email_admin.select_diet_placeholder")}
                 </option>
-                {dietPlans.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {t("email_admin.diet_date_label", {
-                      date: new Date(d.createdAt).toLocaleDateString(
-                        i18n.language === "pt" ? "pt-BR" : "en-US",
-                      ),
-                    })}
-                  </option>
-                ))}
+                {dietPlans.map((d) => {
+                  const planTitle =
+                    "title" in d &&
+                    typeof (d as { title?: unknown }).title === "string"
+                      ? (d as { title: string }).title
+                      : t("modals.patient_diet_history.diet_plan_label", {
+                          defaultValue: "Plano Alimentar",
+                        });
+                  const dateFormatted = new Date(
+                    d.createdAt,
+                  ).toLocaleDateString(
+                    i18n.language === "pt" ? "pt-BR" : "en-US",
+                  );
+                  return (
+                    <option key={d.id} value={d.id}>
+                      {planTitle} ({dateFormatted})
+                    </option>
+                  );
+                })}
               </select>
-              {selectedPatientId && dietPlans.length === 0 && (
-                <p className="text-xs text-slate-400 mt-1.5">
-                  {t("email_admin.no_diets_alert")}
-                </p>
-              )}
             </div>
             <Button
               type="submit"
@@ -235,6 +248,12 @@ const EmailAdmin: React.FC = () => {
               <p className="flex items-center gap-2 text-sm text-sage-700 font-medium">
                 <CheckCircleIcon className="w-4 h-4" />{" "}
                 {t("email_admin.send_success")}
+              </p>
+            )}
+            {sendStatus === "simulated" && (
+              <p className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-3.5 py-2.5 font-medium">
+                <InformationCircleIcon className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />{" "}
+                {t("email_admin.send_success_simulated")}
               </p>
             )}
             {sendStatus === "error" && (
@@ -284,18 +303,28 @@ const EmailAdmin: React.FC = () => {
                     </td>
                     <td className="px-6 py-3.5">
                       <span
-                        className={`badge ${log.status === "Sent" ? "badge-emerald" : "badge-rose"}`}
+                        className={`badge ${
+                          log.status === "Sent"
+                            ? "badge-emerald"
+                            : log.status === "Simulated"
+                              ? "badge-amber"
+                              : "badge-rose"
+                        }`}
                       >
                         {log.status === "Sent" ? (
                           <CheckCircleIcon className="w-3.5 h-3.5" />
+                        ) : log.status === "Simulated" ? (
+                          <InformationCircleIcon className="w-3.5 h-3.5" />
                         ) : (
                           <XCircleIcon className="w-3.5 h-3.5" />
                         )}
                         {log.status === "Sent"
                           ? t("email_admin.status_sent")
-                          : t("email_admin.status_failed")}
+                          : log.status === "Simulated"
+                            ? t("email_admin.status_simulated")
+                            : t("email_admin.status_failed")}
                       </span>
-                      <p className="text-[11px] text-slate-400 mt-1">
+                      <p className="text-xs text-slate-400 mt-1">
                         {new Date(log.sentAt).toLocaleString(
                           i18n.language === "pt" ? "pt-BR" : "en-US",
                         )}

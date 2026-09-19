@@ -17,7 +17,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { initializeTestEnvironment } from "@firebase/rules-unit-testing";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, Timestamp } from "firebase/firestore";
 
 let host = process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1";
 let port = 8080;
@@ -60,8 +60,31 @@ async function createOrGetAuthUser(email, password, displayName) {
   }
 }
 
+// Ensure Carlos auth account does not exist prior to invitation test
+try {
+  const res = await fetch(`http://${authHost}/emulator/v1/projects/${PROJECT_ID}/accounts`);
+  if (res.ok) {
+    const data = await res.json();
+    const existingCarlos = data.users?.find((u) => u.email === "carlos.souza@demo.stormnutrition.com");
+    if (existingCarlos) {
+      await fetch(`http://${authHost}/emulator/v1/projects/${PROJECT_ID}/accounts/${existingCarlos.localId}`, {
+        method: "DELETE",
+      });
+      console.log(`[Auth Seed] Cleaned up existing Carlos Auth account (${existingCarlos.localId}) for fresh invitation test`);
+    }
+  }
+} catch {
+  // If endpoint is unreachable, attempt password sign-in deletion
+  try {
+    const cred = await signInWithEmailAndPassword(auth, "carlos.souza@demo.stormnutrition.com", "Password123!");
+    await cred.user.delete();
+  } catch {
+    // Ignore if not found
+  }
+}
+
 // 1. Seed Auth users first to get their exact UIDs
-console.log("1/6 Criando contas no Auth Emulator...");
+console.log("1/7 Criando contas no Auth Emulator...");
 const NUTRI_1_ID = await createOrGetAuthUser(
   "dra.clara@demo.stormnutrition.com",
   "Password123!",
@@ -93,13 +116,14 @@ const testEnv = await initializeTestEnvironment({
 
 const PATIENT_1_ID = "patient-ana-silva";
 const PATIENT_2_ID = "patient-bruno-costa";
+const PATIENT_3_ID = "patient-carlos-souza";
 
 try {
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
 
     // 2. Perfis de Nutricionistas
-    console.log("2/6 Criando perfis profissionais no Firestore...");
+    console.log("2/7 Criando perfis profissionais no Firestore...");
     await setDoc(doc(db, "users", NUTRI_1_ID), {
       displayName: "Dra. Clara Mendes",
       email: "dra.clara@demo.stormnutrition.com",
@@ -121,7 +145,7 @@ try {
     });
 
     // 3. Pacientes vinculados à Dra. Clara
-    console.log("3/6 Criando pacientes vinculados...");
+    console.log("3/7 Criando pacientes vinculados...");
     await setDoc(doc(db, `users/${NUTRI_1_ID}/patients/${PATIENT_1_ID}`), {
       firstName: "Ana",
       lastName: "Silva",
@@ -160,8 +184,27 @@ try {
       createdAt: new Date().toISOString(),
     });
 
+    await setDoc(doc(db, `users/${NUTRI_1_ID}/patients/${PATIENT_3_ID}`), {
+      firstName: "Carlos",
+      lastName: "Souza",
+      email: "carlos.souza@demo.stormnutrition.com",
+      phone: "(11) 99999-3333",
+      birthDate: "1990-03-15",
+      dob: "15/03/1990",
+      gender: "male",
+      height: 175,
+      weight: 75,
+      activityLevel: "moderately_active",
+      nutritionalGoal: "maintenance",
+      status: "Active",
+      clinicalTags: [],
+      allergies: "Nenhuma",
+      pendingInvitationId: "inv-token-demo-carlos",
+      createdAt: new Date().toISOString(),
+    });
+
     // 4. Perfis do Portal de Acesso dos Pacientes
-    console.log("4/6 Criando perfis de acesso do portal...");
+    console.log("4/7 Criando perfis de acesso do portal...");
     await setDoc(doc(db, `patientProfiles/${PATIENT_1_PORTAL_UID}`), {
       uid: PATIENT_1_PORTAL_UID,
       patientId: PATIENT_1_ID,
@@ -183,7 +226,7 @@ try {
     });
 
     // 5. Dietas de demonstração
-    console.log("5/6 Criando planos alimentares estruturados...");
+    console.log("5/7 Criando planos alimentares estruturados...");
     await setDoc(doc(db, `users/${NUTRI_1_ID}/diets/diet-ana-hipertrofia`), {
       version: 2,
       patientId: PATIENT_1_ID,
@@ -259,9 +302,7 @@ try {
     });
 
     // 6. Consultas / Agendamentos
-    console.log("6/6 Criando agendamentos fictícios...");
-    // Same contract as Appointment: wall-clock "YYYY-MM-DDTHH:mm:ss" dateTime,
-    // so the calendar (month range) and the portal (next visit) find it.
+    console.log("6/7 Criando agendamentos fictícios...");
     const nextVisit = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const pad = (n) => String(n).padStart(2, "0");
     await setDoc(doc(db, `users/${NUTRI_1_ID}/appointments/appt-ana-retorno`), {
@@ -273,6 +314,40 @@ try {
       type: "followup",
       notes: "Retorno quinzenal para reavaliação de bioimpedância.",
       createdAt: new Date().toISOString(),
+    });
+
+    // 7. Convites determinísticos para testes E2E
+    console.log("7/7 Criando convites determinísticos...");
+    const now = new Date();
+    const expiresAtDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const revokedCreatedAt = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    const revokedExpiresAt = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+
+    await setDoc(doc(db, "invitations", "inv-token-demo-carlos"), {
+      nutritionistId: NUTRI_1_ID,
+      nutritionistName: "Dra. Clara Mendes",
+      nutritionistEmail: "dra.clara@demo.stormnutrition.com",
+      patientId: PATIENT_3_ID,
+      patientEmail: "carlos.souza@demo.stormnutrition.com",
+      patientName: "Carlos Souza",
+      status: "pending",
+      createdAt: now.toISOString(),
+      expiresAt: expiresAtDate.toISOString(),
+      expiresAtTimestamp: Timestamp.fromDate(expiresAtDate),
+    });
+
+    await setDoc(doc(db, "invitations", "inv-token-revoked"), {
+      nutritionistId: NUTRI_1_ID,
+      nutritionistName: "Dra. Clara Mendes",
+      nutritionistEmail: "dra.clara@demo.stormnutrition.com",
+      patientId: PATIENT_3_ID,
+      patientEmail: "carlos.souza@demo.stormnutrition.com",
+      patientName: "Carlos Souza",
+      status: "revoked",
+      createdAt: revokedCreatedAt.toISOString(),
+      expiresAt: revokedExpiresAt.toISOString(),
+      expiresAtTimestamp: Timestamp.fromDate(revokedExpiresAt),
+      revokedAt: now.toISOString(),
     });
 
     console.log("✅ Seed concluído com sucesso! Ambiente de testes pronto.");

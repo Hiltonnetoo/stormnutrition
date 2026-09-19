@@ -30,20 +30,6 @@
   --color-sage-900: #134e4a;
   --color-sage-950: #042f2e;
 
-  /* Secondary accent — Sky (ação clínica / gerador) */
-  --color-accent: #0284c7; /* sky-600 — valor efetivamente usado nos botões */
-  --color-accent-hover: #0369a1; /* sky-700 */
-
-  /* Tokens semânticos de estado */
-  --color-success: #059669; /* emerald-600 */
-  --color-success-bg: #d1fae5; /* emerald-100 */
-  --color-warning: #d97706; /* amber-600 */
-  --color-warning-bg: #fef3c7; /* amber-100 */
-  --color-danger: #e11d48; /* rose-600 */
-  --color-danger-bg: #ffe4e6; /* rose-100 */
-  --color-info: #0284c7; /* sky-600 */
-  --color-info-bg: #e0f2fe; /* sky-100 */
-
   --color-slate-850: #1e293b;
   --color-slate-900: #0f172a;
 
@@ -374,123 +360,172 @@ h4 {
 }
 
 /* ============================================================================
-   COMPONENT LAYER
-   Utility classes used across the app for a consistent, modern look.
+   SEMANTIC TOKENS (UI02) — one source: every semantic color points at a tone
+   of the palette above (already adjusted for WCAG AA in Etapa 15), so there
+   is no second, divergent hex value to drift. `inline` makes the generated
+   utilities (bg-success, text-danger, outline-focus…) reference the palette
+   variable directly. Tema: somente claro (UI03, docs/design-system.md).
    ========================================================================== */
-
-/* Buttons — base sets layout/sizing; variants add color. Compose `btn`
-   with a variant in markup, or use a variant standalone (it is self-sufficient). */
-.btn {
-  @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl text-sm px-5 py-2.5;
-  @apply transition-all duration-200 select-none cursor-pointer;
-  /* Etapa 15: foco por outline (visível também em modo de alto contraste). */
-  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
-  @apply disabled:opacity-50 disabled:pointer-events-none active:scale-[0.97];
-}
-.btn-sm {
-  @apply text-sm px-3.5 py-2 rounded-lg gap-1.5;
-}
-.btn-md {
-  @apply text-sm px-5 py-2.5;
-}
-.btn-lg {
-  @apply text-base px-7 py-3.5 rounded-2xl;
-}
-
-.btn-primary {
-  @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl px-5 py-2.5;
-  @apply transition-all duration-200 select-none cursor-pointer active:scale-[0.97];
-  @apply bg-sage-600 text-white shadow-lg shadow-sage-600/25;
-  @apply hover:bg-sage-700 hover:shadow-sage-600/30;
-  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
-  @apply disabled:opacity-50 disabled:pointer-events-none;
-}
-.btn-secondary {
-  @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl px-5 py-2.5;
-  @apply transition-all duration-200 select-none cursor-pointer active:scale-[0.97];
-  @apply bg-white text-slate-700 border border-slate-200 shadow-xs;
-  @apply hover:bg-slate-50 hover:border-slate-300;
-  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
-  @apply disabled:opacity-50 disabled:pointer-events-none;
-  @apply dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700;
-}
-.btn-ghost {
-  @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl px-5 py-2.5;
-  @apply transition-all duration-200 select-none cursor-pointer active:scale-[0.97];
-  @apply text-slate-600 hover:bg-slate-100;
-  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
-  @apply disabled:opacity-50 disabled:pointer-events-none;
-  @apply dark:text-slate-300 dark:hover:bg-slate-800;
-}
-.btn-danger {
-  @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl px-5 py-2.5;
-  @apply transition-all duration-200 select-none cursor-pointer active:scale-[0.97];
-  @apply bg-rose-600 text-white shadow-lg shadow-rose-600/25 hover:bg-rose-700;
-  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600;
-  @apply disabled:opacity-50 disabled:pointer-events-none;
+@theme inline {
+  --color-primary: var(--color-sage-600); /* ação primária, links de ação */
+  --color-primary-hover: var(--color-sage-700);
+  --color-selected: var(--color-sage-50); /* item selecionado / ativo */
+  --color-focus: var(--color-sage-600); /* indicador de foco */
+  --color-surface: #ffffff; /* cartões, modais, campos */
+  --color-surface-muted: var(--color-slate-50); /* fundo da aplicação */
+  --color-border: var(--color-slate-200);
+  --color-text: var(--color-slate-900);
+  --color-text-muted: var(--color-slate-500); /* texto secundário ≥ 4,5:1 */
+  --color-success: var(--color-emerald-700);
+  --color-success-bg: var(--color-emerald-50);
+  --color-warning: var(--color-amber-700);
+  --color-warning-bg: var(--color-amber-50);
+  --color-danger: var(--color-rose-700);
+  --color-danger-bg: var(--color-rose-50);
+  --color-info: var(--color-sky-700);
+  --color-info-bg: var(--color-sky-50);
 }
 
-/* Inputs */
-.input-field {
-  @apply w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-900;
-  @apply placeholder-slate-400 shadow-xs transition-all duration-200;
-  @apply focus:outline-none focus:ring-2 focus:ring-sage-500/60 focus:border-sage-400;
-  @apply dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:placeholder-slate-500;
-}
-.input-label {
-  @apply block text-sm font-semibold text-slate-700 mb-1.5 dark:text-slate-300;
-}
+/* ============================================================================
+   COMPONENT LAYER (UI01)
+   Policy: component classes live in `@layer components`, which the cascade
+   places BEFORE `utilities`. Any utility passed in markup (px-6, w-full,
+   border-rose-400…) therefore overrides the component without `!important`.
+   Composition: `btn` (base + default md size) + one variant (color only) +
+   optional size (`btn-sm` / `btn-lg`, geometry only). Variants never repeat
+   geometry, so a size is never undone by the variant, whatever the order.
+   ========================================================================== */
+@layer components {
+  /* Buttons — base */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl text-sm px-5 py-2.5 min-h-10;
+    @apply transition-colors duration-200 select-none cursor-pointer;
+    /* Etapa 15: foco por outline (visível também em modo de alto contraste). */
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus;
+    @apply aria-busy:cursor-progress active:scale-[0.97];
+    @apply disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed;
+  }
+  /* Buttons — variants (color only) */
+  .btn-primary {
+    @apply bg-primary text-white shadow-xs;
+    @apply hover:not-disabled:bg-primary-hover;
+  }
+  .btn-secondary {
+    @apply bg-surface text-slate-700 border border-border shadow-xs;
+    @apply hover:not-disabled:bg-slate-50 hover:not-disabled:border-slate-300;
+  }
+  .btn-ghost {
+    @apply text-slate-600;
+    @apply hover:not-disabled:bg-slate-100 hover:not-disabled:text-slate-900;
+    @apply disabled:bg-transparent disabled:border-transparent;
+  }
+  .btn-danger {
+    @apply bg-rose-600 text-white shadow-xs;
+    @apply hover:not-disabled:bg-rose-700;
+    @apply focus-visible:outline-rose-600;
+  }
+  /* Buttons — sizes (geometry only) */
+  .btn-sm {
+    @apply text-sm px-3.5 py-2 min-h-9 rounded-lg gap-1.5;
+  }
+  .btn-md {
+    @apply text-sm px-5 py-2.5 min-h-10;
+  }
+  .btn-lg {
+    @apply text-base px-7 py-3.5 min-h-12 rounded-2xl;
+  }
+  /* Icon-only button (UI05): square target ≥ 40px, name via aria-label. */
+  .btn-icon {
+    @apply p-0 w-10 h-10 min-h-10 shrink-0;
+  }
+  .btn-icon.btn-sm {
+    @apply w-9 h-9 min-h-9;
+  }
 
-/* Cards */
-.card {
-  @apply bg-white rounded-2xl border border-slate-200/70 shadow-soft;
-  @apply dark:bg-slate-850 dark:border-slate-700/60;
-}
-.card-hover {
-  @apply bg-white rounded-2xl border border-slate-200/70 shadow-soft transition-all duration-300;
-  @apply hover:shadow-card hover:border-slate-300/70 hover:-translate-y-0.5;
-  @apply dark:bg-slate-850 dark:border-slate-700/60;
-}
-.card-elevated {
-  @apply bg-white rounded-2xl border border-slate-200/70 shadow-card;
-  @apply dark:bg-slate-850 dark:border-slate-700/60;
-}
+  /* Form fields — input, select and textarea share one look (UI05). */
+  .input-field {
+    @apply w-full px-4 py-2.5 bg-surface border border-border rounded-xl text-text;
+    @apply placeholder-slate-400 shadow-xs transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-sage-500/60 focus:border-sage-400;
+    @apply disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed;
+  }
+  /* Error state follows aria-invalid, so every field gets it for free. */
+  .input-field[aria-invalid="true"] {
+    @apply border-rose-400 focus:ring-rose-500/60 focus:border-rose-400;
+  }
+  .input-label {
+    @apply block text-sm font-semibold text-slate-700 mb-1.5;
+  }
+  .field-hint {
+    @apply mt-1.5 text-xs text-text-muted;
+  }
+  .field-error {
+    @apply mt-1.5 text-xs font-medium text-danger;
+  }
+  .checkbox {
+    @apply h-4 w-4 shrink-0 rounded border-slate-300 accent-sage-600 cursor-pointer;
+  }
 
-/* Badges / pills */
-.badge {
-  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
-}
-.badge-sage {
-  @apply bg-sage-50 text-sage-700 dark:bg-sage-500/15 dark:text-sage-300;
-}
-.badge-sky {
-  @apply bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300;
-}
-.badge-amber {
-  @apply bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300;
-}
-.badge-rose {
-  @apply bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300;
-}
-.badge-slate {
-  @apply bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300;
-}
-.badge-emerald {
-  @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300;
-}
+  /* Cards — three elevation levels only (UI10): flat (card), raised
+     (card-elevated) and interactive (card-hover, ONLY for clickable cards). */
+  .card {
+    @apply bg-surface rounded-2xl border border-slate-200/70 shadow-soft;
+  }
+  .card-hover {
+    @apply bg-surface rounded-2xl border border-slate-200/70 shadow-soft transition-shadow duration-200;
+    @apply hover:shadow-card hover:border-slate-300/70;
+  }
+  .card-elevated {
+    @apply bg-surface rounded-2xl border border-slate-200/70 shadow-card;
+  }
 
-/* Section eyebrow label */
-.eyebrow {
-  @apply text-xs font-bold uppercase tracking-[0.14em] text-sage-600 dark:text-sage-400;
-}
+  /* Badges / pills — palette tones kept for compatibility; prefer the
+     semantic ones (success/warning/danger/info/neutral/brand) for states. */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+  .badge-sage,
+  .badge-brand {
+    @apply bg-sage-50 text-sage-700;
+  }
+  .badge-sky,
+  .badge-info {
+    @apply bg-info-bg text-info;
+  }
+  .badge-amber,
+  .badge-warning {
+    @apply bg-warning-bg text-warning;
+  }
+  .badge-rose,
+  .badge-danger {
+    @apply bg-danger-bg text-danger;
+  }
+  .badge-slate,
+  .badge-neutral {
+    @apply bg-slate-100 text-slate-600;
+  }
+  .badge-emerald,
+  .badge-success {
+    @apply bg-success-bg text-success;
+  }
 
-.stat-number {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
-}
+  /* Section eyebrow label */
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.14em] text-sage-600;
+  }
 
-.focus-ring {
-  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
+  /* Numbers: tabular figures keep columns of values aligned (UI08). */
+  .stat-number,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-number {
+    letter-spacing: -0.03em;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus;
+  }
 }
 
 /* Etapa 15 — indicador de foco padrão para qualquer controle que não defina

@@ -2,6 +2,12 @@ import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Patient, DietPlan } from "../../types";
 import { Card } from "../ui";
+import {
+  UsersIcon,
+  UtensilsIcon,
+  ClipboardListIcon,
+  DocumentTextIcon,
+} from "../icons";
 import { formatDateWithLocale } from "../../utils/locale";
 
 interface ProfileTimelineTabProps {
@@ -21,7 +27,7 @@ export const ProfileTimelineTab: React.FC<ProfileTimelineTabProps> = ({
       date: string;
       title: string;
       description: string;
-      icon: string;
+      icon: React.ReactNode;
       type: string;
     }[] = [];
 
@@ -29,7 +35,7 @@ export const ProfileTimelineTab: React.FC<ProfileTimelineTabProps> = ({
       date: patient.createdAt,
       title: t("profile.timeline.patient_registered"),
       description: t("profile.timeline.patient_registered_desc"),
-      icon: "👤",
+      icon: <UsersIcon className="w-5 h-5" />,
       type: "registration",
     });
 
@@ -41,7 +47,7 @@ export const ProfileTimelineTab: React.FC<ProfileTimelineTabProps> = ({
           calories: diet.dailyCalories,
           mode: t(`profile.modes.${diet.mode}`, { defaultValue: diet.mode }),
         }),
-        icon: "🍲",
+        icon: <UtensilsIcon className="w-5 h-5" />,
         type: "diet",
       });
     });
@@ -53,7 +59,7 @@ export const ProfileTimelineTab: React.FC<ProfileTimelineTabProps> = ({
         description: t("profile.timeline.exams_registered_desc", {
           count: patient.lastLabExams.length,
         }),
-        icon: "🧪",
+        icon: <ClipboardListIcon className="w-5 h-5" />,
         type: "exam",
       });
     }
@@ -68,7 +74,7 @@ export const ProfileTimelineTab: React.FC<ProfileTimelineTabProps> = ({
               weight: ev.measurements?.weight,
               sleep: ev.wellbeing?.sleepQuality,
             }),
-            icon: "📝",
+            icon: <DocumentTextIcon className="w-5 h-5" />,
             type: "evaluation",
           });
         }
@@ -90,7 +96,7 @@ export const ProfileTimelineTab: React.FC<ProfileTimelineTabProps> = ({
               <h4 className="font-bold text-slate-800 dark:text-white">
                 {event.title}
               </h4>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                 {formatDateWithLocale(event.date, i18n.language, {
                   day: "2-digit",
                   month: "long",
@@ -99,7 +105,10 @@ export const ProfileTimelineTab: React.FC<ProfileTimelineTabProps> = ({
               </span>
             </div>
             <Card className="p-4 flex items-start gap-3">
-              <div className="p-2 bg-sage-50 dark:bg-sage-900/30 rounded-lg text-lg shrink-0">
+              <div
+                aria-hidden="true"
+                className="p-2 bg-sage-50 text-sage-700 rounded-lg shrink-0"
+              >
                 {event.icon}
               </div>
               <p className="text-sm text-slate-600 dark:text-slate-400 self-center">

@@ -10,13 +10,21 @@ import { calcAge } from "../utils/calcAge";
 import {
   generateAlgorithmicDietPlan,
   getGeneralObservations,
+  InfeasiblePlanError,
+  validateDietPlan,
 } from "../services/dietAlgorithmService";
+import {
+  DietReviewOutdatedError,
+  recalculateDietTotals,
+  validateAndSerializeDietPlan,
+} from "../services/dietService";
+import { applyPortionEdit } from "../utils/dietEditing";
 import usePersistentState from "../hooks/usePersistentState";
 import { getUserStorageKey } from "../utils/localStorage";
 import * as M from "../services/metabolicCalculations";
 import { dietaryOptionsMap } from "../components/patient-form/Step4Nutritional";
 
-import type { Patient, DietPlan } from "../types";
+import type { Patient, DietPlan, ValidateDietPlanOptions } from "../types";
 import type { DietFormData } from "../components/diet-generator/dietForm.types";
 import { UtensilsIcon, HeartIcon } from "../components/icons";
 import DietProgressBar from "../components/diet-generator/DietProgressBar";
@@ -411,17 +419,94 @@ const DietGenerator: React.FC = () => {
       setGeneratedPlan(finalPlan);
       setResultFocusKey((k) => k + 1);
     } catch (err) {
-      setApiError(
-        err instanceof Error
-          ? err.message
-          : t("diet_generator.generation_failed"),
-      );
+      if (err instanceof InfeasiblePlanError) {
+        setApiError(
+          t(`diet_generator.errors.${err.code}`, {
+            ...err.details,
+            defaultValue: err.message,
+          }),
+        );
+      } else {
+        setApiError(
+          err instanceof Error
+            ? t(`diet_generator.errors.${err.message}`, {
+                defaultValue: err.message,
+              })
+            : t("diet_generator.generation_failed"),
+        );
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSave = async () => {
+  // R06 — the same clinical context is used to present the review and to
+  // save it: the patient's restrictions, the plan's tags/mode and the
+  // catalog version the plan was generated with.
+  const buildValidationContext = (plan: DietPlan): ValidateDietPlanOptions => ({
+    restrictions: selectedPatient?.dietaryRestrictions ?? [],
+    clinicalTags: plan.clinicalTags ?? [],
+    mode: plan.mode,
+    catalogVersion: plan.datasetVersion,
+  });
+
+  // Recomputes the alerts of the plan as it is now (after edits or when
+  // reopened with a stored, possibly stale validation) before the
+  // professional is asked to review it.
+  // The review is computed on the plan exactly as it will be serialized and
+  // saved (same sanitization as the service), so the signature presented is
+  // the one the service recomputes.
+  const withFreshValidation = (plan: DietPlan): DietPlan => {
+    try {
+      const dto = validateAndSerializeDietPlan(
+        plan,
+        buildValidationContext(plan),
+      );
+      return {
+        ...plan,
+        validation: dto.validation,
+        calculatedTotals: recalculateDietTotals(dto.meals),
+      };
+    } catch {
+      // Invalid plan: keep the raw validation (the save will report it).
+      const { calculatedTotals, ...validation } = validateDietPlan(
+        plan.meals,
+        {
+          calories: plan.dailyCalories,
+          protein: plan.macronutrients.proteinGrams,
+          carbs: plan.macronutrients.carbsGrams,
+          fat: plan.macronutrients.fatGrams,
+        },
+        buildValidationContext(plan),
+      );
+      return { ...plan, validation, calculatedTotals };
+    }
+  };
+  const revalidateForReview = () => {
+    setGeneratedPlan((plan) => (plan ? withFreshValidation(plan) : plan));
+  };
+
+  // R08: real manual edit — the portion changes, totals follow, the plan is
+  // flagged as manually edited and its alerts are recomputed at once.
+  const handleEditPortion = (
+    mealIndex: number,
+    option: "main" | number,
+    itemIndex: number,
+    grams: number,
+  ) => {
+    setGeneratedPlan((plan) =>
+      plan
+        ? withFreshValidation(
+            applyPortionEdit(plan, mealIndex, option, itemIndex, grams),
+          )
+        : plan,
+    );
+  };
+
+  const handleSave = async (options?: {
+    allowApprovedReview: boolean;
+    reviewedSignature?: string;
+  }) => {
     if (saving || !generatedPlan || !currentUser) return;
     if (generatedPlan.validation?.status === "infeasible") {
       setApiError(t("diet_generator.validation.infeasible_plan"));
@@ -430,15 +515,38 @@ const DietGenerator: React.FC = () => {
     setSaving(true);
     setApiError(null);
     try {
+      const validationOpts: ValidateDietPlanOptions = {
+        ...buildValidationContext(generatedPlan),
+        ...(options?.allowApprovedReview
+          ? {
+              allowApprovedReview: true,
+              approvedByUid: currentUser.uid,
+              reviewedSignature: options.reviewedSignature,
+            }
+          : {}),
+      };
+
       if (editingDietId) {
-        await updateDietPlan(currentUser.uid, editingDietId, generatedPlan);
+        await updateDietPlan(
+          currentUser.uid,
+          editingDietId,
+          generatedPlan,
+          validationOpts,
+        );
       } else {
-        await saveDietPlan(currentUser.uid, generatedPlan);
+        await saveDietPlan(currentUser.uid, generatedPlan, validationOpts);
       }
       setSavedPatientData(selectedPatient || null);
       setSaveSuccess(true);
       setResultFocusKey((k) => k + 1);
     } catch (err) {
+      if (err instanceof DietReviewOutdatedError) {
+        // The reviewed version is not the one being saved: show the current
+        // alerts and ask for a new explicit decision.
+        revalidateForReview();
+        setApiError(t("diet_generator.review_outdated"));
+        return;
+      }
       console.error("[DietGenerator] Erro ao salvar plano alimentar:", {
         code: (err as { code?: string })?.code || "unknown",
         dietId: editingDietId || "new",
@@ -712,6 +820,8 @@ const DietGenerator: React.FC = () => {
           <DietPlanDisplay
             plan={generatedPlan}
             onSave={handleSave}
+            onBeforeReview={revalidateForReview}
+            onEditPortion={handleEditPortion}
             onDiscard={() => setGeneratedPlan(null)}
             isSaving={saving}
             saveSuccess={saveSuccess}

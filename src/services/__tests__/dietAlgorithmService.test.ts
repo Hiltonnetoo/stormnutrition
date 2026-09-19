@@ -580,15 +580,45 @@ describe("dietAlgorithmService", () => {
     ).toThrow(InfeasiblePlanError);
 
     // Meal percentage sum way out of range (e.g. 50%)
-    expect(() =>
+    try {
       generateAlgorithmicDietPlan({
         ...defaultParams,
         mealPlanConfig: {
           dietType: "traditional",
           meals: [{ name: "Café", time: "08:00", caloriePercentage: 50 }],
         },
-      }),
-    ).toThrow(InfeasiblePlanError);
+      });
+      expect.unreachable("should have thrown InfeasiblePlanError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(InfeasiblePlanError);
+      expect((err as InfeasiblePlanError).code).toBe(
+        "INVALID_MEAL_PERCENTAGES",
+      );
+      expect((err as InfeasiblePlanError).details).toEqual({
+        totalPercentage: 50,
+      });
+    }
+
+    // Meal with negative/zero percentage captures mealName details
+    try {
+      generateAlgorithmicDietPlan({
+        ...defaultParams,
+        mealPlanConfig: {
+          dietType: "traditional",
+          meals: [
+            { name: "Café", time: "08:00", caloriePercentage: 100 },
+            { name: "Almoço", time: "12:00", caloriePercentage: 0 },
+          ],
+        },
+      });
+      expect.unreachable("should have thrown InfeasiblePlanError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(InfeasiblePlanError);
+      expect((err as InfeasiblePlanError).code).toBe("INVALID_MEAL_PERCENT");
+      expect((err as InfeasiblePlanError).details).toEqual({
+        mealName: "Almoço",
+      });
+    }
   });
 
   it("should throw InfeasiblePlanError when filters eliminate all candidates and never select undefined", () => {
@@ -707,9 +737,9 @@ describe("dietAlgorithmService", () => {
     });
 
     expect(result.validation).toBeDefined();
-    expect(result.validation.status).toBeDefined();
-    expect(result.validation.calculatedTotals.calories).toBeGreaterThan(0);
-    expect(result.validation.deviations).toBeDefined();
+    expect(result.validation?.status).toBeDefined();
+    expect(result.calculatedTotals?.calories).toBeGreaterThan(0);
+    expect(result.validation?.deviations).toBeDefined();
 
     // Call standalone validateDietPlan to simulate plan reopening/rehydration
     const revalidation = validateDietPlan(
@@ -724,11 +754,12 @@ describe("dietAlgorithmService", () => {
     expect(revalidation.worstCaseAlternativeSodium).toBeGreaterThanOrEqual(
       revalidation.calculatedTotals.sodium || 0,
     );
+    // Totals live on the plan root (not inside `validation`).
     expect(revalidation.calculatedTotals.calories).toBe(
-      result.validation.calculatedTotals.calories,
+      result.calculatedTotals!.calories,
     );
     expect(revalidation.calculatedTotals.protein).toBe(
-      result.validation.calculatedTotals.protein,
+      result.calculatedTotals!.protein,
     );
   });
 
@@ -831,7 +862,9 @@ describe("dietAlgorithmService", () => {
 
       expect(result.status).toBe("requires_review");
       expect(result.isApproved).toBe(false);
-      const unknownIssue = result.issues.find((i) => i.code === "UNKNOWN_FOOD_ITEM");
+      const unknownIssue = result.issues.find(
+        (i) => i.code === "UNKNOWN_FOOD_ITEM",
+      );
       expect(unknownIssue).toBeDefined();
       expect(unknownIssue?.level).toBe("warning");
       expect(unknownIssue?.details?.foodName).toBe("Super Alimento Misterioso");
@@ -868,10 +901,15 @@ describe("dietAlgorithmService", () => {
       );
 
       expect(result.status).toBe("requires_review");
-      const unverifiedIssue = result.issues.find((i) => i.code === "UNVERIFIED_RESTRICTION");
+      const unverifiedIssue = result.issues.find(
+        (i) => i.code === "UNVERIFIED_RESTRICTION",
+      );
       expect(unverifiedIssue).toBeDefined();
       expect(unverifiedIssue?.level).toBe("warning");
-      expect(unverifiedIssue?.details?.unverifiedRestrictions).toEqual(["gluten_free", "dairy_free"]);
+      expect(unverifiedIssue?.details?.unverifiedRestrictions).toEqual([
+        "gluten_free",
+        "dairy_free",
+      ]);
     });
 
     it("marks status as infeasible when an active restriction is violated, and forbids approval", () => {
@@ -914,7 +952,9 @@ describe("dietAlgorithmService", () => {
 
       expect(result.status).toBe("infeasible");
       expect(result.isApproved).toBe(false);
-      const glutenViolation = result.issues.find((i) => i.code === "GLUTEN_VIOLATION");
+      const glutenViolation = result.issues.find(
+        (i) => i.code === "GLUTEN_VIOLATION",
+      );
       expect(glutenViolation).toBeDefined();
       expect(glutenViolation?.level).toBe("error");
     });
@@ -948,13 +988,152 @@ describe("dietAlgorithmService", () => {
       expect(unapprovedResult.status).toBe("requires_review");
       expect(unapprovedResult.isApproved).toBe(false);
 
-      const approvedResult = validateDietPlan(
+      // R06: the flag alone no longer approves — consent must name the
+      // exact version that was presented (its issuesSignature).
+      const flagOnly = validateDietPlan(
         [mealWithWarning],
         { calories: 350, protein: 10, carbs: 70, fat: 2 },
         { availableFoodsCatalog: [customFood], allowApprovedReview: true },
       );
+      expect(flagOnly.isApproved).toBe(false);
+
+      const approvedResult = validateDietPlan(
+        [mealWithWarning],
+        { calories: 350, protein: 10, carbs: 70, fat: 2 },
+        {
+          availableFoodsCatalog: [customFood],
+          allowApprovedReview: true,
+          reviewedSignature: unapprovedResult.issuesSignature,
+          approvedByUid: "nutri-1",
+        },
+      );
       expect(approvedResult.status).toBe("requires_review");
       expect(approvedResult.isApproved).toBe(true);
+      expect(approvedResult.approvedByUid).toBe("nutri-1");
+      expect(approvedResult.approvedAt).toBeDefined();
+    });
+
+    describe("R06 — review identity follows content and context", () => {
+      const targets = { calories: 350, protein: 10, carbs: 70, fat: 2 };
+      const sig = (
+        meals: Meal[],
+        t = targets,
+        opts: Record<string, unknown> = {},
+      ) =>
+        validateDietPlan(meals, t, {
+          availableFoodsCatalog: [customFood],
+          ...opts,
+        });
+      const withFood = (calories: number): Meal => ({
+        ...validMeal,
+        mainOption: {
+          ...validMeal.mainOption,
+          items: [
+            {
+              foodId: "unknown_id",
+              name: "Fruta Exótica",
+              portion: "100g",
+              portionGrams: 100,
+              unit: "g",
+              calories,
+              protein: 10,
+              carbs: 70,
+              fat: 2,
+            },
+          ],
+        },
+      });
+
+      it("same content and context → same signature (deterministic)", () => {
+        expect(sig([withFood(350)]).issuesSignature).toBe(
+          sig([withFood(350)]).issuesSignature,
+        );
+      });
+
+      it("content, targets, restrictions, tags, mode, catalog or tolerances change the signature", () => {
+        const base = sig([withFood(350)]).issuesSignature;
+        const variants = [
+          sig([withFood(351)]),
+          sig([withFood(350)], { ...targets, protein: 11 }),
+          sig([withFood(350)], targets, { restrictions: ["lactose"] }),
+          sig([withFood(350)], targets, { clinicalTags: ["diabetes_t2"] }),
+          sig([withFood(350)], targets, { mode: "sports" }),
+          sig([withFood(350)], targets, { catalogVersion: "2027.1" }),
+          sig([withFood(350)], targets, {
+            tolerances: {
+              caloriePercent: 1,
+              proteinPercent: 1,
+              carbsPercent: 1,
+              fatPercent: 1,
+            },
+          }),
+        ].map((r) => r.issuesSignature);
+        for (const v of variants) expect(v).not.toBe(base);
+      });
+
+      it("an alert with the same code but different values is a different review", () => {
+        const a = validateDietPlan([validMeal], {
+          calories: 1000,
+          protein: 10,
+          carbs: 70,
+          fat: 2,
+        });
+        const b = validateDietPlan([validMeal], {
+          calories: 1200,
+          protein: 10,
+          carbs: 70,
+          fat: 2,
+        });
+        const codes = (r: typeof a) =>
+          r.issues
+            .map((i) => i.code)
+            .sort()
+            .join();
+        expect(codes(a)).toBe(codes(b));
+        expect(b.status).toBe("requires_review");
+        expect(a.issuesSignature).not.toBe(b.issuesSignature);
+        // Approving version A does not approve version B...
+        expect(
+          validateDietPlan(
+            [validMeal],
+            { calories: 1200, protein: 10, carbs: 70, fat: 2 },
+            {
+              allowApprovedReview: true,
+              reviewedSignature: a.issuesSignature,
+            },
+          ).isApproved,
+        ).toBe(false);
+        // ...and a new explicit review of B is accepted (no stale blocker).
+        expect(
+          validateDietPlan(
+            [validMeal],
+            { calories: 1200, protein: 10, carbs: 70, fat: 2 },
+            {
+              allowApprovedReview: true,
+              reviewedSignature: b.issuesSignature,
+            },
+          ).isApproved,
+        ).toBe(true);
+      });
+
+      it("infeasible plans are never approved, whatever the signature", () => {
+        const infeasible = validateDietPlan([validMeal], {
+          calories: 0,
+          protein: 10,
+          carbs: 70,
+          fat: 2,
+        });
+        expect(infeasible.status).toBe("infeasible");
+        const attempt = validateDietPlan(
+          [validMeal],
+          { calories: 0, protein: 10, carbs: 70, fat: 2 },
+          {
+            allowApprovedReview: true,
+            reviewedSignature: infeasible.issuesSignature,
+          },
+        );
+        expect(attempt.isApproved).toBe(false);
+      });
     });
 
     it("emits warnings for all 4 macronutrient deviations (calories, protein, carbs, fat)", () => {
@@ -962,9 +1141,9 @@ describe("dietAlgorithmService", () => {
         mealName: "Refeição Completa",
         time: "12:00",
         calories: 800, // target: 500 (+60%)
-        protein: 50,  // target: 30 (+66%)
-        carbs: 10,    // target: 50 (-80%)
-        fat: 40,      // target: 15 (+166%)
+        protein: 50, // target: 30 (+66%)
+        carbs: 10, // target: 50 (-80%)
+        fat: 40, // target: 15 (+166%)
         mainOption: {
           name: "Opção",
           portion: "100g",
@@ -1035,15 +1214,27 @@ describe("dietAlgorithmService", () => {
         ],
       };
 
-      const result = validateDietPlan(
-        [mealWithDivergentAlt],
-        { calories: 400, protein: 30, carbs: 40, fat: 10 },
-      );
+      const result = validateDietPlan([mealWithDivergentAlt], {
+        calories: 400,
+        protein: 30,
+        carbs: 40,
+        fat: 10,
+      });
 
-      const altIssue = result.issues.find((i) => i.code === "ALTERNATIVE_CALORIE_DEVIATION");
+      const altIssue = result.issues.find(
+        (i) => i.code === "ALTERNATIVE_CALORIE_DEVIATION",
+      );
       expect(altIssue).toBeDefined();
-      expect(altIssue?.details?.alternativeName).toBe("Lanche rápido super calórico");
+      expect(altIssue?.details?.alternativeName).toBe(
+        "Lanche rápido super calórico",
+      );
       expect(altIssue?.details?.percentDiff).toBe(63);
+
+      const altMacroIssue = result.issues.find(
+        (i) => i.code === "ALTERNATIVE_MACRO_DEVIATION",
+      );
+      expect(altMacroIssue).toBeDefined();
+      expect(altMacroIssue?.details?.nutrient).toBe("protein");
 
       expect(result.worstCaseAlternativeTotals).toEqual({
         minCalories: 400,
@@ -1079,7 +1270,7 @@ describe("dietAlgorithmService", () => {
               portion: "100g",
               portionGrams: -50, // NEGATIVE!
               unit: "g",
-              calories: NaN,     // NaN!
+              calories: NaN, // NaN!
               protein: 10,
               carbs: 20,
               fat: 5,
@@ -1114,11 +1305,148 @@ describe("dietAlgorithmService", () => {
         meal.mainOption.items?.forEach((item) => {
           expect(Number.isInteger(item.portionGrams)).toBe(true);
           const food = getRequiredFood(item);
-          const factor = (item.portionGrams || 0) / (Number(food.portion) || 100);
+          const factor =
+            (item.portionGrams || 0) / (Number(food.portion) || 100);
           const expectedCalories = Math.round(food.calories * factor);
           expect(item.calories).toBe(expectedCalories);
         });
       });
+    });
+  });
+
+  // R07 (11.3 R07-A/B): combined macros. Expected values are literal
+  // fixtures (min/max of the options per meal, summed), never recomputed.
+  describe("R07 — worst-case macro combinations", () => {
+    type M = { kcal: number; p: number; c: number; f: number };
+    const option = (name: string, m: M) => ({
+      name,
+      portion: "1 porção",
+      calories: m.kcal,
+      protein: m.p,
+      carbs: m.c,
+      fat: m.f,
+      items: [],
+    });
+    const meal = (name: string, main: M, alts: M[] = []): Meal => ({
+      mealName: name,
+      time: "08:00",
+      calories: main.kcal,
+      protein: main.p,
+      carbs: main.c,
+      fat: main.f,
+      mainOption: option(`${name} principal`, main),
+      alternatives: alts.map((a, i) => option(`${name} alt ${i + 1}`, a)),
+    });
+    const run = (
+      meals: Meal[],
+      t: { protein: number; carbs: number; fat: number },
+      tolerances?: Record<string, number>,
+    ) =>
+      validateDietPlan(
+        meals,
+        { calories: 1000, ...t },
+        tolerances ? { tolerances } : undefined,
+      );
+    const find = (r: ReturnType<typeof run>, code: string) =>
+      r.issues.find((i) => i.code === code);
+
+    it("R07-A: 100 g target, 20% tolerance, main 119 g, alternative 124 g → daily worst-case alert", () => {
+      const r = run(
+        [
+          meal("Almoço", { kcal: 1000, p: 119, c: 100, f: 30 }, [
+            { kcal: 1000, p: 124, c: 100, f: 30 },
+          ]),
+        ],
+        { protein: 100, carbs: 100, fat: 30 },
+      );
+      expect(find(r, "WORST_CASE_PROTEIN_DEVIATION")).toMatchObject({
+        level: "warning",
+        details: { min: 119, max: 124, target: 100 },
+      });
+      // The local difference (124 vs 119 = 4.2%) is under the 5% margin and
+      // the main option alone (119 g, +19%) is within tolerance.
+      expect(r.issues.filter((i) => i.code.startsWith("ALTERNATIVE_"))).toEqual(
+        [],
+      );
+      expect(find(r, "PROTEIN_DEVIATION")).toBeUndefined();
+    });
+
+    const macros = [
+      ["protein", "p", "WORST_CASE_PROTEIN_DEVIATION"],
+      ["carbs", "c", "WORST_CASE_CARBS_DEVIATION"],
+      ["fat", "f", "WORST_CASE_FAT_DEVIATION"],
+    ] as const;
+    for (const [target, key, code] of macros) {
+      it(`R07-B ${target}: 120/80 g are within ±20% of 100 g; 121/79 g are not`, () => {
+        const base: M = { kcal: 1000, p: 100, c: 100, f: 100 };
+        const t = { protein: 100, carbs: 100, fat: 100 };
+        const withAlt = (v: number) =>
+          run([meal("Refeição", base, [{ ...base, [key]: v }])], t);
+        expect(find(withAlt(120), code)).toBeUndefined();
+        expect(find(withAlt(80), code)).toBeUndefined();
+        expect(find(withAlt(121), code)?.details).toMatchObject({
+          min: 100,
+          max: 121,
+          target: 100,
+        });
+        expect(find(withAlt(79), code)?.details).toMatchObject({
+          min: 79,
+          max: 100,
+          target: 100,
+        });
+      });
+    }
+
+    it("R07-B several meals: the per-meal extremes are summed", () => {
+      const t = { protein: 100, carbs: 100, fat: 30 };
+      const main: M = { kcal: 500, p: 50, c: 50, f: 15 };
+      const ok = run(
+        [
+          meal("A", main, [{ ...main, p: 60 }]),
+          meal("B", main, [{ ...main, p: 60 }]),
+        ],
+        t,
+      );
+      expect(find(ok, "WORST_CASE_PROTEIN_DEVIATION")).toBeUndefined(); // max 120
+      const over = run(
+        [
+          meal("A", main, [{ ...main, p: 60 }]),
+          meal("B", main, [{ ...main, p: 61 }]),
+        ],
+        t,
+      );
+      expect(find(over, "WORST_CASE_PROTEIN_DEVIATION")?.details).toMatchObject(
+        { min: 100, max: 121 },
+      );
+    });
+
+    it("R07-B custom tolerance: 124 g passes with ±25% and legitimate alternatives get no alert", () => {
+      const r = run(
+        [
+          meal("Almoço", { kcal: 1000, p: 119, c: 100, f: 30 }, [
+            { kcal: 1000, p: 124, c: 100, f: 30 },
+            { kcal: 1000, p: 110, c: 96, f: 29 },
+          ]),
+        ],
+        { protein: 100, carbs: 100, fat: 30 },
+        { proteinPercent: 25 },
+      );
+      expect(r.issues.filter((i) => i.code.startsWith("WORST_CASE_"))).toEqual(
+        [],
+      );
+    });
+
+    it("R07-B zero target: any amount in some combination asks for review; none when absent", () => {
+      const t = { protein: 100, carbs: 100, fat: 0 };
+      const main: M = { kcal: 1000, p: 100, c: 100, f: 0 };
+      const flagged = run([meal("Almoço", main, [{ ...main, f: 3 }])], t);
+      expect(find(flagged, "ZERO_TARGET_FAT")).toMatchObject({
+        level: "warning",
+        details: { max: 3 },
+      });
+      expect(find(flagged, "WORST_CASE_FAT_DEVIATION")).toBeUndefined();
+      const clean = run([meal("Almoço", main, [{ ...main }])], t);
+      expect(find(clean, "ZERO_TARGET_FAT")).toBeUndefined();
     });
   });
 });

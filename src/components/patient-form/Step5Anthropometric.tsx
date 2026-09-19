@@ -45,7 +45,7 @@ const OriginSelector: React.FC<{
   ];
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
         {label}
       </span>
       <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit gap-0.5">
@@ -136,7 +136,7 @@ const Step5Anthropometric: React.FC<Step5Props> = ({
               value={data.weight || ""}
               onChange={handleNumberChange}
               step="0.1"
-              className={`input-field ${errors.weight ? "!border-rose-400 focus:!ring-rose-500/60" : ""}`}
+              className={`input-field ${errors.weight ? "border-rose-400 focus:ring-rose-500/60" : ""}`}
               {...fieldErrorProps("weight", errors.weight)}
             />
             {errors.weight && (
@@ -166,7 +166,7 @@ const Step5Anthropometric: React.FC<Step5Props> = ({
               value={displayHeight}
               onChange={handleHeightChange}
               placeholder={t("patient_form.anthropometric.height_placeholder")}
-              className={`input-field ${errors.height ? "!border-rose-400 focus:!ring-rose-500/60" : ""}`}
+              className={`input-field ${errors.height ? "border-rose-400 focus:ring-rose-500/60" : ""}`}
               {...fieldErrorProps("height", errors.height)}
             />
             {errors.height && (

@@ -8,7 +8,14 @@ import {
   assertSucceeds,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { collection, doc, addDoc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  updateDoc,
+  setDoc,
+} from "firebase/firestore";
 import { generateAlgorithmicDietPlan } from "../src/services/dietAlgorithmService";
 import {
   validateAndSerializeDietPlan,
@@ -340,12 +347,16 @@ describe("Diet Persistence Contract - Firestore Integration", () => {
         status: "valid",
         isApproved: true,
         issues: [],
-        calculatedTotals: {
-          calories: 2000,
-          protein: 150,
-          carbs: 200,
-          fat: 67,
-        },
+        // Legacy shape: totals duplicated inside `validation` (stale 2000
+        // kcal). The update must drop them instead of carrying them over.
+        ...({
+          calculatedTotals: {
+            calories: 2000,
+            protein: 150,
+            carbs: 200,
+            fat: 67,
+          },
+        } as object),
         deviations: {
           caloriesDiff: 0,
           caloriesPercent: 0,
@@ -441,7 +452,9 @@ describe("Diet Persistence Contract - Firestore Integration", () => {
 
     // Validation metadata recalculated against target (1400 - 2000 = -600 kcal)
     expect(data.validation).toBeDefined();
-    expect(data.validation.calculatedTotals.calories).toBe(1400);
+    // Totals are not duplicated inside validation anymore (single source:
+    // data.calculatedTotals above); the stale legacy copy was dropped.
+    expect(data.validation.calculatedTotals).toBeUndefined();
     expect(data.validation.deviations.caloriesDiff).toBe(-600);
 
     // Traceability metadata records manual edit truthfully

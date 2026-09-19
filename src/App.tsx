@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./contexts/AuthContext";
@@ -63,8 +64,100 @@ const PageLoader: React.FC = () => {
   );
 };
 
-const App: React.FC = () => {
+const AccessRevokedScreen: React.FC<{ onLogout: () => void }> = ({
+  onLogout,
+}) => {
   const { t } = useTranslation();
+  return (
+    <div
+      role="alert"
+      aria-live="assertive"
+      className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900 p-6 text-center"
+    >
+      <div className="w-16 h-16 mb-4 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+        <svg
+          className="w-8 h-8"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+          />
+        </svg>
+      </div>
+      <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+        {t("app.access_revoked_title")}
+      </h1>
+      <p className="text-slate-600 dark:text-slate-400 max-w-md mb-6 text-sm">
+        {t("app.access_revoked_desc")}
+      </p>
+      <button
+        onClick={onLogout}
+        className="px-4 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg transition-colors"
+      >
+        {t("app.logout")}
+      </button>
+    </div>
+  );
+};
+
+const InvitationActivatingScreen: React.FC<{ onLogout?: () => void }> = ({
+  onLogout,
+}) => {
+  const { t } = useTranslation();
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900 p-6 text-center"
+    >
+      <div className="w-16 h-16 mb-4 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+        <svg
+          className="animate-spin h-8 w-8 text-emerald-600"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+      </div>
+      <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+        {t("app.invitation_activating_title")}
+      </h1>
+      <p className="text-slate-600 dark:text-slate-400 max-w-md mb-6 text-sm">
+        {t("app.invitation_activating_desc")}
+      </p>
+      {onLogout && (
+        <button
+          onClick={onLogout}
+          className="mt-4 px-4 py-2 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 underline"
+        >
+          {t("app.exit_button")}
+        </button>
+      )}
+    </div>
+  );
+};
+
+const AppRoutes: React.FC = () => {
+  const { t } = useTranslation();
+  const location = useLocation();
   const {
     currentUser,
     status,
@@ -74,6 +167,20 @@ const App: React.FC = () => {
     completeProfessionalRegistration,
     logout,
   } = useAuth();
+
+  const isInvitationRoute = location.pathname.startsWith("/convite");
+
+  // Passo C08.3: A rota de convite deve permanecer acessível durante a ativação,
+  // mesmo se status for incomplete_profile, invitation_pending ou revoked.
+  if (isInvitationRoute) {
+    return (
+      <Routes>
+        <Route path="/convite/:token" element={<AcceptInvitation />} />
+        <Route path="/convite" element={<AcceptInvitation />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    );
+  }
 
   if (status === "loading") {
     return <PageLoader />;
@@ -105,7 +212,11 @@ const App: React.FC = () => {
           {t("app.auth_error_title")}
         </h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-md mb-6 text-sm">
-          {authError?.message || t("app.auth_error_desc")}
+          {authError?.code
+            ? t(`app.auth_errors.${authError.code}`, {
+                defaultValue: t("app.auth_error_desc"),
+              })
+            : t("app.auth_error_desc")}
         </p>
         <div className="flex gap-3">
           <button
@@ -123,6 +234,16 @@ const App: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // Passo C08.7: Tratar vínculo revogado como estado explícito
+  if (status === "revoked") {
+    return <AccessRevokedScreen onLogout={logout} />;
+  }
+
+  // Passo C08.2: Modelar ativação de convite separadamente de cadastro profissional incompleto
+  if (status === "invitation_pending") {
+    return <InvitationActivatingScreen onLogout={logout} />;
   }
 
   if (status === "incomplete_profile") {
@@ -168,49 +289,57 @@ const App: React.FC = () => {
   }
 
   return (
+    <>
+      {!currentUser || status === "unauthenticated" ? (
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/paciente" element={<Login isPatient={true} />} />
+          <Route path="/convite/:token" element={<AcceptInvitation />} />
+          <Route path="/convite" element={<AcceptInvitation />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      ) : userRole === "patient" ? (
+        <Routes>
+          <Route path="/paciente" element={<PatientPortal />} />
+          <Route path="/convite/:token" element={<AcceptInvitation />} />
+          <Route path="/convite" element={<AcceptInvitation />} />
+          <Route path="*" element={<Navigate to="/paciente" />} />
+        </Routes>
+      ) : (
+        <PatientDirectoryProvider>
+          <AppShell>
+            <Routes>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/patients" element={<Patients />} />
+              <Route path="/patients/:id" element={<PatientProfile />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/diet-generator" element={<DietGenerator />} />
+              <Route
+                path="/metabolic-calculator"
+                element={<MetabolicCalculator />}
+              />
+              <Route path="/food-database" element={<FoodDatabase />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/email-admin" element={<EmailAdmin />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/convite/:token" element={<AcceptInvitation />} />
+              <Route path="/convite" element={<AcceptInvitation />} />
+              <Route path="*" element={<Navigate to="/dashboard" />} />
+            </Routes>
+          </AppShell>
+        </PatientDirectoryProvider>
+      )}
+    </>
+  );
+};
+
+const App: React.FC = () => {
+  return (
     <Router>
       <Suspense fallback={<PageLoader />}>
-        {!currentUser || status === "unauthenticated" ? (
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/paciente" element={<Login isPatient={true} />} />
-            <Route path="/convite/:token" element={<AcceptInvitation />} />
-            <Route path="/convite" element={<AcceptInvitation />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        ) : userRole === "patient" ? (
-          <Routes>
-            <Route path="/paciente" element={<PatientPortal />} />
-            <Route path="/convite/:token" element={<AcceptInvitation />} />
-            <Route path="/convite" element={<AcceptInvitation />} />
-            <Route path="*" element={<Navigate to="/paciente" />} />
-          </Routes>
-        ) : (
-          <PatientDirectoryProvider>
-            <AppShell>
-              <Routes>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/patients" element={<Patients />} />
-                <Route path="/patients/:id" element={<PatientProfile />} />
-                <Route path="/calendar" element={<Calendar />} />
-                <Route path="/diet-generator" element={<DietGenerator />} />
-                <Route
-                  path="/metabolic-calculator"
-                  element={<MetabolicCalculator />}
-                />
-                <Route path="/food-database" element={<FoodDatabase />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/email-admin" element={<EmailAdmin />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/convite/:token" element={<AcceptInvitation />} />
-                <Route path="/convite" element={<AcceptInvitation />} />
-                <Route path="*" element={<Navigate to="/dashboard" />} />
-              </Routes>
-            </AppShell>
-          </PatientDirectoryProvider>
-        )}
+        <AppRoutes />
       </Suspense>
     </Router>
   );

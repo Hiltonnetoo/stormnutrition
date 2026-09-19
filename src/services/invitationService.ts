@@ -2,9 +2,6 @@ import {
   doc,
   getDoc,
   collection,
-  query,
-  where,
-  getDocs,
   writeBatch,
   runTransaction,
   Timestamp,
@@ -27,6 +24,33 @@ export interface CreateInvitationParams {
 /**
  * Normalizes an invitation status considering expiration date.
  */
+/**
+ * Strict invitation contract, mirrored from firestore.rules: a recipient
+ * e-mail and a Firestore Timestamp expiry still in the future. The textual
+ * `expiresAt` is display-only and never decides validity on its own.
+ */
+export const isStrictlyUsableInvitation = (
+  data: { patientEmail?: unknown; expiresAtTimestamp?: unknown },
+  now: Date = new Date(),
+): boolean => {
+  const ts = data.expiresAtTimestamp as { toMillis?: () => number } | undefined;
+  return (
+    typeof data.patientEmail === "string" &&
+    data.patientEmail.trim() !== "" &&
+    typeof ts?.toMillis === "function" &&
+    ts.toMillis() > now.getTime()
+  );
+};
+
+const hasStrictFormat = (data: {
+  patientEmail?: unknown;
+  expiresAtTimestamp?: unknown;
+}): boolean =>
+  typeof data.patientEmail === "string" &&
+  data.patientEmail.trim() !== "" &&
+  typeof (data.expiresAtTimestamp as { toMillis?: unknown } | undefined)
+    ?.toMillis === "function";
+
 export const computeInvitationStatus = (
   status: InvitationStatus,
   expiresAt: string,
@@ -46,28 +70,7 @@ export const createOrGetPendingInvitation = async (
   const normalizedEmail = params.patientEmail.toLowerCase().trim();
   const validityDays = params.validityDays || 7;
 
-  // 1. First check existing pending invitation via query for backwards compatibility
-  const invRef = collection(db, "invitations");
-  const q = query(
-    invRef,
-    where("nutritionistId", "==", params.nutritionistId),
-    where("patientId", "==", params.patientId),
-  );
-
-  const snap = await getDocs(q);
-  for (const docSnap of snap.docs) {
-    const data = docSnap.data() as Omit<PatientInvitation, "id">;
-    const computed = computeInvitationStatus(data.status, data.expiresAt);
-    if (computed === "pending") {
-      return {
-        id: docSnap.id,
-        ...data,
-        status: "pending",
-      };
-    }
-  }
-
-  // 2. Concurrency-safe atomic creation via Firestore transaction
+  // 1. Concurrency-safe atomic creation via Firestore transaction
   return await runTransaction(db, async (tx) => {
     const patientRef = doc(
       db,
@@ -99,12 +102,26 @@ export const createOrGetPendingInvitation = async (
           existingData.status,
           existingData.expiresAt,
         );
-        if (computed === "pending") {
+        // Reuse only an invitation that satisfies the same strict contract
+        // as the rules, for the same (normalized) recipient (R04).
+        const reusable =
+          computed === "pending" &&
+          isStrictlyUsableInvitation(existingData) &&
+          existingData.patientEmail.toLowerCase().trim() === normalizedEmail;
+        if (reusable) {
           return {
             id: existingInvSnap.id,
             ...existingData,
             status: "pending",
           };
+        }
+        // Superseded: close it so it is not left "pending" (the moved pointer
+        // already makes the rules deny it).
+        if (existingData.status === "pending") {
+          tx.update(existingInvRef, {
+            status: "revoked",
+            revokedAt: new Date().toISOString(),
+          });
         }
       }
     }
@@ -161,7 +178,20 @@ export const getInvitationByToken = async (
   if (!snap.exists()) return null;
 
   const data = snap.data() as Omit<PatientInvitation, "id">;
-  const status = computeInvitationStatus(data.status, data.expiresAt);
+  let status = computeInvitationStatus(data.status, data.expiresAt);
+
+  if (status === "pending" && !hasStrictFormat(data)) {
+    // Legacy format: the rules will refuse it; report it up front.
+    return {
+      id: snap.id,
+      ...data,
+      status: "expired",
+      invalidReason: "legacy_format",
+    };
+  }
+  if (status === "pending" && !isStrictlyUsableInvitation(data)) {
+    status = "expired"; // the Timestamp expiry is authoritative
+  }
 
   return {
     id: snap.id,
@@ -213,6 +243,8 @@ export const acceptInvitationWithNewAccount = async (
 ): Promise<{ uid: string }> => {
   const inv = await getInvitationByToken(token);
   if (!inv) throw new Error("INVITATION_NOT_FOUND");
+  if (inv.invalidReason === "legacy_format")
+    throw new Error("INVITATION_LEGACY");
   if (inv.status === "expired") throw new Error("INVITATION_EXPIRED");
   if (inv.status === "revoked") throw new Error("INVITATION_REVOKED");
   if (inv.status === "accepted") throw new Error("INVITATION_ALREADY_ACCEPTED");
@@ -299,6 +331,8 @@ export const acceptInvitationWithExistingAccount = async (
 ): Promise<{ alreadyAccepted?: boolean }> => {
   const inv = await getInvitationByToken(token);
   if (!inv) throw new Error("INVITATION_NOT_FOUND");
+  if (inv.invalidReason === "legacy_format")
+    throw new Error("INVITATION_LEGACY");
   if (inv.status === "expired") throw new Error("INVITATION_EXPIRED");
   if (inv.status === "revoked") throw new Error("INVITATION_REVOKED");
 

@@ -89,7 +89,7 @@ export const DemoGuideModal: React.FC<DemoGuideModalProps> = ({
                   <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
                     {step.title}
                   </h4>
-                  <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-600">
+                  <span className="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-md bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-600">
                     {step.tag}
                   </span>
                 </div>

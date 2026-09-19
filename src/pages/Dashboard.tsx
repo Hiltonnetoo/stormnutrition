@@ -50,8 +50,12 @@ const Dashboard: React.FC = () => {
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             {t("dashboard.greeting_nutri", {
+              // "Dra. Clara Mendes" → "Clara": the title comes from the
+              // translation ("Dr(a). {{name}}"), not from the display name.
               name:
-                currentUser?.displayName?.split(" ")[0] ||
+                currentUser?.displayName
+                  ?.split(/\s+/)
+                  .find((w) => w && !/^dr(a|\(a\))?\.?$/i.test(w)) ||
                 t("settings.profile"),
             })}
           </h1>

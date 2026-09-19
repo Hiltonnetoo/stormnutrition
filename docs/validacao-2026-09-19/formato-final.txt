@@ -1,0 +1,6 @@
+
+> stormnutrition-v5---nutritional-management@0.0.0 format:check
+> prettier --check "src/**/*.{ts,tsx,css,json,md}" "index.html"
+
+Checking formatting...
+All matched files use Prettier code style!

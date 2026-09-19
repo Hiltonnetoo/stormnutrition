@@ -134,7 +134,7 @@ export class ErrorBoundary extends Component<
           </p>
 
           {correlationId && (
-            <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700/50 text-[11px] font-mono text-slate-600 dark:text-slate-300">
+            <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700/50 text-xs font-mono text-slate-600 dark:text-slate-300">
               <span className="text-slate-400 font-sans">
                 {t("error_boundary.correlation_id", "Código")}:
               </span>

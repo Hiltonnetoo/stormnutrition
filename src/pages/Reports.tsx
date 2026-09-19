@@ -29,7 +29,7 @@ const StatCard: React.FC<{
   loading: boolean;
   tone: { bg: string; text: string };
 }> = ({ title, value, icon, change, loading, tone }) => (
-  <Card hover className="p-6">
+  <Card className="p-6">
     <div className="flex items-center justify-between">
       <span className="text-sm font-medium text-slate-500">{title}</span>
       <span className={`p-2.5 rounded-xl ${tone.bg} ${tone.text}`}>{icon}</span>
@@ -62,12 +62,6 @@ const StatusWidget: React.FC<{
       : type === "warning"
         ? "bg-amber-500"
         : "bg-rose-500";
-  const pingColor =
-    type === "success"
-      ? "bg-emerald-400"
-      : type === "warning"
-        ? "bg-amber-400"
-        : "bg-rose-400";
   return (
     <Card className="p-4 flex items-center justify-between">
       <div>
@@ -77,9 +71,6 @@ const StatusWidget: React.FC<{
         </p>
       </div>
       <span className="relative flex h-3 w-3">
-        <span
-          className={`animate-ping absolute inline-flex h-full w-full rounded-full ${pingColor} opacity-75`}
-        />
         <span
           className={`relative inline-flex rounded-full h-3 w-3 ${dotColor}`}
         />
@@ -238,7 +229,7 @@ const Reports: React.FC = () => {
                         x={paddingLeft - 8}
                         y={yVal + 3}
                         textAnchor="end"
-                        className="text-[10px] font-bold fill-slate-400"
+                        className="text-xs font-semibold fill-slate-500 tabular"
                       >
                         {labelVal}
                       </text>
@@ -262,14 +253,14 @@ const Reports: React.FC = () => {
                         height={Math.max(barHeight, 0)}
                         rx="4"
                         fill="url(#barGradient)"
-                        className="transition-all duration-300 hover:brightness-105 cursor-pointer"
+                        className="transition-colors duration-200"
                       />
 
                       <text
                         x={x + barWidth / 2}
                         y={y - 6}
                         textAnchor="middle"
-                        className="text-[10px] font-black fill-sage-600 dark:fill-sage-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                        className="text-xs font-bold fill-sage-700 tabular"
                       >
                         {d.count}
                       </text>
@@ -278,7 +269,7 @@ const Reports: React.FC = () => {
                         x={x + barWidth / 2}
                         y={chartHeight + 16}
                         textAnchor="middle"
-                        className="text-[10px] font-bold fill-slate-400 dark:fill-slate-500 uppercase"
+                        className="text-xs font-semibold fill-slate-500 uppercase"
                       >
                         {d.label}
                       </text>

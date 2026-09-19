@@ -1,16 +1,20 @@
-import { deleteApp, initializeApp } from "firebase/app";
+import { deleteApp } from "firebase/app";
 import {
-  getAuth,
   createUserWithEmailAndPassword,
   signOut,
   deleteUser,
   sendPasswordResetEmail,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { app, auth, db, updateProfile } from "./firebaseCore";
+import {
+  app,
+  auth,
+  db,
+  updateProfile,
+  createIsolatedAuth,
+} from "./firebaseCore";
 import type { User } from "./firebaseCore";
 import type { PatientPortalProfile, NutritionistProfile } from "../types";
-import { firebaseConfig } from "./firebase.config";
 import { validateProfileImage } from "../utils/validation";
 
 export const sendPortalPasswordReset = (email: string) => {
@@ -117,11 +121,9 @@ export const setupPatientPortalAccess = async (
   nutritionistName: string,
   nutritionistEmail: string,
 ): Promise<string> => {
-  const secondaryApp = initializeApp(
-    firebaseConfig,
+  const { app: secondaryApp, auth: secondaryAuth } = createIsolatedAuth(
     "patientCreation_" + Date.now(),
   );
-  const secondaryAuth = getAuth(secondaryApp);
   let createdUser: User | null = null;
   let profileCreated = false;
   try {
@@ -177,11 +179,9 @@ export const createPatientAccount = async (
   email: string,
   password: string,
 ): Promise<string> => {
-  const secondaryApp = initializeApp(
-    firebaseConfig,
+  const { app: secondaryApp, auth: secondaryAuth } = createIsolatedAuth(
     "patientCreation_" + Date.now(),
   );
-  const secondaryAuth = getAuth(secondaryApp);
   try {
     const cred = await createUserWithEmailAndPassword(
       secondaryAuth,

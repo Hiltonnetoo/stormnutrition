@@ -341,7 +341,9 @@ describe("foodService — Dietary Restrictions Detection", () => {
       name: "Alimento y",
       restrictions: { containsGluten: true },
     });
-    expect(evaluateFoodRestriction(explicitIncompatible, "gluten_free")).toEqual({
+    expect(
+      evaluateFoodRestriction(explicitIncompatible, "gluten_free"),
+    ).toEqual({
       status: "incompatible",
       reason: "Contém glúten",
       source: "explicit_metadata",
@@ -383,14 +385,22 @@ describe("foodService — Dietary Restrictions Detection", () => {
       name: "Leite UHT Integral Zero Lactose",
       category: "Leite e Derivados",
     });
-    expect(evaluateFoodRestriction(zeroLactoseMilk, "lactose_free").status).toBe("compatible");
-    expect(evaluateFoodRestriction(zeroLactoseMilk, "dairy_free").status).toBe("incompatible");
+    expect(
+      evaluateFoodRestriction(zeroLactoseMilk, "lactose_free").status,
+    ).toBe("compatible");
+    expect(evaluateFoodRestriction(zeroLactoseMilk, "dairy_free").status).toBe(
+      "incompatible",
+    );
 
     // Sodium and hypertension
     const highSodiumFood = food({ name: "Carne seca", sodium: 500 });
     const lowSodiumFood = food({ name: "Maçã", sodium: 2 });
-    expect(evaluateFoodRestriction(highSodiumFood, "hypertension").status).toBe("incompatible");
-    expect(evaluateFoodRestriction(lowSodiumFood, "hypertension").status).toBe("compatible");
+    expect(evaluateFoodRestriction(highSodiumFood, "hypertension").status).toBe(
+      "incompatible",
+    );
+    expect(evaluateFoodRestriction(lowSodiumFood, "hypertension").status).toBe(
+      "compatible",
+    );
 
     // Structured compatibility with unknown items produces requires_review
     const res = isFoodCompatibleWithRestrictions(customPrep, ["gluten_free"]);

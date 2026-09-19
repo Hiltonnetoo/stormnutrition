@@ -101,7 +101,7 @@ const ModeSelector: React.FC<Props> = ({ selectedMode, onSelect }) => {
             className={`relative p-5 text-left rounded-2xl border-2 transition-all duration-200 group ${
               selected
                 ? `${mode.selectedBg} shadow-md`
-                : "bg-white dark:bg-slate-855 border-slate-200 dark:border-slate-700 hover:border-slate-300 shadow-soft hover:shadow-card"
+                : "bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-700 hover:border-slate-300 shadow-soft hover:shadow-card"
             }`}
           >
             <div
@@ -114,7 +114,7 @@ const ModeSelector: React.FC<Props> = ({ selectedMode, onSelect }) => {
             >
               {label}
             </h3>
-            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
               {description}
             </p>
             {selected && (

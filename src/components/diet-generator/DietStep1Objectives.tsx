@@ -11,7 +11,7 @@ interface Step1Props {
 }
 
 const errBorder = (on?: string) =>
-  on ? "!border-rose-400 focus:!ring-rose-500/60 focus:!border-rose-400" : "";
+  on ? "border-rose-400 focus:ring-rose-500/60 focus:border-rose-400" : "";
 
 const Step1Objectives: React.FC<Step1Props> = ({
   formData,

@@ -32,6 +32,11 @@ export interface RuntimeEnv {
   [key: string]: string | undefined;
 }
 
+/** Project ID of the synthetic emulator workspace (seed, rules, E2E). */
+export const DEMO_PROJECT_ID = "demo-storm";
+/** Firebase CLI treats "demo-" projects as fake: nothing reaches the cloud. */
+export const DEMO_PROJECT_PREFIX = "demo-";
+
 const REQUIRED_FIREBASE_KEYS = [
   "VITE_FIREBASE_API_KEY",
   "VITE_FIREBASE_AUTH_DOMAIN",
@@ -81,10 +86,32 @@ export const validateAppConfiguration = (
   const warnings: string[] = [];
 
   if (isEmulatorMode) {
-    // In emulator mode, missing production keys is normal and allowed
-    if (missingFirebaseKeys.length > 0) {
+    // Emulator mode runs on the synthetic configuration in config/emulator/.env.
+    // The SDK still needs a non-empty API key, and the project must be a
+    // "demo-" project: services without an emulator (e.g. Storage) then cannot
+    // reach a real Firebase project by accident.
+    const projectId = env.VITE_FIREBASE_PROJECT_ID;
+    if (!env.VITE_FIREBASE_API_KEY) {
+      errors.push(
+        "Emulator mode requires a synthetic VITE_FIREBASE_API_KEY (see config/emulator/.env).",
+      );
+    }
+    if (!projectId) {
+      errors.push(
+        `Emulator mode requires VITE_FIREBASE_PROJECT_ID=${DEMO_PROJECT_ID} (see config/emulator/.env).`,
+      );
+    } else if (!projectId.startsWith(DEMO_PROJECT_PREFIX)) {
+      errors.push(
+        `Emulator mode refuses project "${projectId}": use a "${DEMO_PROJECT_PREFIX}" project (${DEMO_PROJECT_ID}) so tests never reach a real Firebase project.`,
+      );
+    }
+    const optionalMissing = missingFirebaseKeys.filter(
+      (key) =>
+        key !== "VITE_FIREBASE_API_KEY" && key !== "VITE_FIREBASE_PROJECT_ID",
+    );
+    if (optionalMissing.length > 0) {
       warnings.push(
-        `Firebase emulators active; production credentials not provided (${missingFirebaseKeys.join(", ")}).`,
+        `Firebase emulators active; synthetic values not provided for ${optionalMissing.join(", ")}.`,
       );
     }
   } else {

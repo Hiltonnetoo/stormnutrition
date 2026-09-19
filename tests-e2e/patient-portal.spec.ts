@@ -15,7 +15,7 @@ test.describe("Patient Portal Journey (Patient E2E Flow)", () => {
   }) => {
     // 1. Authenticate via login page as the linked patient
     await page.goto("/#/login");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     await page.fill("#email", PATIENT_EMAIL);
     await page.fill("#password", PATIENT_PASSWORD);
@@ -31,34 +31,45 @@ test.describe("Patient Portal Journey (Patient E2E Flow)", () => {
     await expect(dietSectionHeader).toBeVisible({ timeout: 15000 });
 
     // The seeded diet is displayed in an accordion ("Plano Atual" / "Current Plan")
+    // Passo C09.1: Ações essenciais são obrigatórias com expect (sem if (isVisible()))
     const planAccordionBtn = page
       .getByRole("button", { name: /Plano Atual|Current Plan/i })
       .first();
-    if (await planAccordionBtn.isVisible()) {
-      await planAccordionBtn.click();
-      // Expanded content shows meal name
-      await expect(
-        page.getByRole("heading", { name: /Café da Manhã|Breakfast/i }).first(),
-      ).toBeVisible({ timeout: 10000 });
-    }
+    await expect(planAccordionBtn).toBeVisible({ timeout: 15000 });
+    await planAccordionBtn.click();
 
-    // 4. Daily adherence check-in
-    // Click "Segui 100%" or "Followed 100%" button
+    // Expanded content must show the meal name
+    await expect(
+      page.getByRole("heading", { name: /Café da Manhã|Breakfast/i }).first(),
+    ).toBeVisible({ timeout: 10000 });
+
+    // 4. Daily adherence check-in: mandatory action (Passo C09.1 e C09.4)
+    const checkInStatus = page
+      .getByRole("status")
+      .filter({ hasText: /Você seguiu o plano|You followed the plan/i })
+      .first();
     const followedBtn = page
       .getByRole("button", {
         name: /Segui 100%|Followed 100%/i,
       })
       .first();
-    if (await followedBtn.isVisible()) {
-      await followedBtn.click();
 
-      // Verify confirmed check-in feedback is displayed
-      await expect(
-        page.locator("text=🌟").first(),
-      ).toBeVisible({ timeout: 5000 });
-    }
+    // R08-C: the seed leaves Ana without a check-in for today, so the click
+    // is mandatory — if a record already existed this step fails instead of
+    // being skipped. (The "already recorded" case is the next test.)
+    await expect(checkInStatus).toHaveCount(0);
+    await expect(followedBtn).toBeVisible({ timeout: 10000 });
+    await followedBtn.click();
+    await expect(checkInStatus).toBeVisible({ timeout: 8000 });
 
-    // 5. Multi-tenant and role-based data isolation:
+    // 5. Confirm check-in persistence after reload (Passo C09.4)
+    await page.reload();
+    await page.waitForLoadState("domcontentloaded");
+    await expect(checkInStatus).toBeVisible({
+      timeout: 15000,
+    });
+
+    // 6. Multi-tenant and role-based data isolation:
     // Attempt to access nutritionist management routes directly
     await page.goto("/#/dashboard");
     // App router must redirect patient back to /paciente
@@ -72,6 +83,27 @@ test.describe("Patient Portal Journey (Patient E2E Flow)", () => {
 
     // Ensure nutritionist-specific management actions are not rendered
     await expect(page.locator("text=Cadastrar Paciente")).not.toBeVisible();
-    await expect(page.locator("text=Configurações da Clínica")).not.toBeVisible();
+    await expect(
+      page.locator("text=Configurações da Clínica"),
+    ).not.toBeVisible();
+  });
+
+  test("an existing check-in for today is shown without offering a new one (R08-C)", async ({
+    page,
+  }) => {
+    // Runs after the mandatory check-in above (same seeded data, serial run).
+    await page.goto("/#/login");
+    await page.fill("#email", "ana.silva@demo.stormnutrition.com");
+    await page.fill("#password", "Password123!");
+    await page.click('button[type="submit"]');
+    await expect(page).toHaveURL(/.*paciente/);
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: /Você seguiu o plano|You followed the plan/i }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.getByRole("button", { name: /Segui 100%|Followed 100%/i }),
+    ).toHaveCount(0);
   });
 });

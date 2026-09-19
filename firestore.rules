@@ -70,6 +70,21 @@ service cloud.firestore {
     // 2. Existing historical entries (weightHistory, adherenceLog) cannot be replaced, altered or truncated.
     // 3. New weight entries must have valid self-reported/remote-guided origin and match auth UID.
     // 4. Protocols in selfEvaluations cannot be fabricated or altered when no active protocol is requested.
+    // R02 — dates written by the patient: "YYYY-MM-DD" or an ISO timestamp
+    // starting with it; never more than one day ahead of the server clock
+    // (timezone slack). Legacy entries are not re-validated.
+    function isCivilDateString(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}.*');
+    }
+    function isNotFutureDate(value) {
+      let parts = value.split('T')[0].split('-');
+      return timestamp.date(int(parts[0]), int(parts[1]), int(parts[2])) <=
+        request.time + duration.value(1, 'd');
+    }
+    function isPatientDateValid(value) {
+      return isCivilDateString(value) && isNotFutureDate(value);
+    }
+
     function isCurrentWeightValid() {
       let diff = request.resource.data.diff(resource.data);
       let isAffected = 'weight' in diff.affectedKeys();
@@ -82,18 +97,46 @@ service cloud.firestore {
     function isWeightHistoryValid() {
       let diff = request.resource.data.diff(resource.data);
       let isAffected = 'weightHistory' in diff.affectedKeys();
-      let sizeOk = !('weightHistory' in resource.data) ||
-        (request.resource.data.weightHistory.size() >= resource.data.weightHistory.size() &&
-         request.resource.data.weightHistory.hasAll(resource.data.weightHistory));
-      let lastRec = request.resource.data.weightHistory[request.resource.data.weightHistory.size() - 1];
-      let lastRecOk = request.resource.data.weightHistory.size() == 0 ||
-        (lastRec.origin in ['self_reported', 'remote_guided'] &&
-         (!('authorUid' in lastRec) || lastRec.authorUid == request.auth.uid) &&
-         lastRec.weight is number &&
-         lastRec.weight >= 10 &&
-         lastRec.weight <= 500 &&
-         lastRec.date is string);
-      return !isAffected || (sizeOk && lastRecOk);
+
+      let oldHistory = ('weightHistory' in resource.data) ? resource.data.weightHistory : [];
+      let newHistory = request.resource.data.weightHistory;
+
+      let sizeOk = newHistory.size() == oldHistory.size() + 1;
+      let lastRec = sizeOk ? newHistory[newHistory.size() - 1] : null;
+      let appendOk = sizeOk && (newHistory == oldHistory.concat([lastRec]));
+
+      let lastRecOk = sizeOk &&
+        lastRec.keys().hasOnly(['id', 'date', 'weight', 'origin', 'authorUid', 'clientEventId']) &&
+        lastRec.origin in ['self_reported', 'remote_guided'] &&
+        'authorUid' in lastRec && lastRec.authorUid == request.auth.uid &&
+        lastRec.weight is number &&
+        lastRec.weight >= 10 &&
+        lastRec.weight <= 500 &&
+        isPatientDateValid(lastRec.date);
+
+      return !isAffected || (appendOk && lastRecOk);
+    }
+
+    // R02 — response fields a patient may fill when completing a protocol.
+    // Measurements: numbers 0–500 (0 = not informed); wellbeing scores 1–5.
+    function isMeasurementValid(m, key) {
+      return !(key in m) || (m[key] is number && m[key] >= 0 && m[key] <= 500);
+    }
+    function isScoreValid(w, key) {
+      return !(key in w) || (w[key] is int && w[key] >= 1 && w[key] <= 5);
+    }
+    function isEvaluationResponseValid(ev) {
+      let m = ev.get('measurements', {});
+      let w = ev.get('wellbeing', {});
+      return m is map && w is map &&
+        m.keys().hasOnly(['weight', 'waist', 'hip', 'neck']) &&
+        isMeasurementValid(m, 'weight') && isMeasurementValid(m, 'waist') &&
+        isMeasurementValid(m, 'hip') && isMeasurementValid(m, 'neck') &&
+        w.keys().hasOnly(['sleepQuality', 'energyLevel', 'satiety', 'digestiveHealth']) &&
+        isScoreValid(w, 'sleepQuality') && isScoreValid(w, 'energyLevel') &&
+        isScoreValid(w, 'satiety') &&
+        (!('digestiveHealth' in w) || (w.digestiveHealth is string && w.digestiveHealth.size() <= 200)) &&
+        (!('notes' in ev) || (ev.notes is string && ev.notes.size() <= 2000));
     }
 
     function isEvaluationsValid() {
@@ -101,17 +144,36 @@ service cloud.firestore {
       let evAffected = 'selfEvaluations' in diff.affectedKeys();
       let protoAffected = 'activeProtocolId' in diff.affectedKeys();
 
-      // If activeProtocolId is touched, patient can only transition it from non-null to null
+      // R02: the patient clears the active protocol only by answering it
+      // (a pending protocol cannot be dismissed without a response).
       let protoOk = !protoAffected || (
+        evAffected &&
         request.resource.data.activeProtocolId == null &&
         ('activeProtocolId' in resource.data && resource.data.activeProtocolId != null)
       );
 
-      // If selfEvaluations is touched, there must have been an active protocol, it must now be null, and size must remain identical
+      let oldEv = ('selfEvaluations' in resource.data) ? resource.data.selfEvaluations : [];
+      let newEv = request.resource.data.selfEvaluations;
+
+      let oldTarget = evAffected && oldEv.removeAll(newEv).size() == 1 ? oldEv.removeAll(newEv)[0] : null;
+      let newTarget = evAffected && newEv.removeAll(oldEv).size() == 1 ? newEv.removeAll(oldEv)[0] : null;
+
+      let targetFieldsOk = oldTarget != null && newTarget != null && (
+        newTarget.keys().hasOnly(['id', 'requestDate', 'status', 'completionDate', 'measurements', 'wellbeing', 'notes']) &&
+        newTarget.id == oldTarget.id &&
+        newTarget.requestDate == oldTarget.requestDate &&
+        newTarget.status == "completed" &&
+        oldTarget.status == "pending" &&
+        isPatientDateValid(newTarget.completionDate) &&
+        isEvaluationResponseValid(newTarget)
+      );
+
       let evOk = !evAffected || (
         ('activeProtocolId' in resource.data && resource.data.activeProtocolId != null) &&
         request.resource.data.activeProtocolId == null &&
-        request.resource.data.selfEvaluations.size() == resource.data.selfEvaluations.size()
+        newEv.size() == oldEv.size() &&
+        targetFieldsOk &&
+        oldTarget.id == resource.data.activeProtocolId
       );
 
       return protoOk && evOk;
@@ -120,10 +182,27 @@ service cloud.firestore {
     function isAdherenceValid() {
       let diff = request.resource.data.diff(resource.data);
       let isAffected = 'adherenceLog' in diff.affectedKeys();
-      let sizeOk = !('adherenceLog' in resource.data) ||
-        (request.resource.data.adherenceLog.size() >= resource.data.adherenceLog.size() &&
-         request.resource.data.adherenceLog.hasAll(resource.data.adherenceLog));
-      return !isAffected || sizeOk;
+
+      let oldLog = ('adherenceLog' in resource.data) ? resource.data.adherenceLog : [];
+      let newLog = request.resource.data.adherenceLog;
+
+      let appendedElements = newLog.removeAll(oldLog);
+      let removedElements = oldLog.removeAll(newLog);
+
+      let isAppend = removedElements.size() == 0 && appendedElements.size() == 1 && newLog == oldLog.concat(appendedElements);
+
+      let isUpdate = removedElements.size() == 1 && appendedElements.size() == 1 &&
+        newLog.size() == oldLog.size() &&
+        removedElements[0].date == appendedElements[0].date;
+
+      // R02: the written entry has only check-in fields, a boolean answer
+      // and a civil date that is not in the future.
+      let entryOk = appendedElements.size() == 1 &&
+        appendedElements[0].keys().hasOnly(['date', 'followed', 'timestamp', 'clientEventId']) &&
+        appendedElements[0].followed is bool &&
+        isPatientDateValid(appendedElements[0].date);
+
+      return !isAffected || ((isAppend || isUpdate) && entryOk);
     }
 
     function patientWriteIsSelfServiceValid() {
@@ -177,14 +256,16 @@ service cloud.firestore {
          request.resource.data.nutritionistId == resource.data.nutritionistId &&
          request.resource.data.patientId == resource.data.patientId &&
          request.resource.data.patientEmail == resource.data.patientEmail &&
-         (!('expiresAtTimestamp' in resource.data) || request.time < resource.data.expiresAtTimestamp) &&
-         (!('email' in request.auth.token) ||
-          request.auth.token.email.lower() == resource.data.patientEmail.lower()) &&
+         request.time < resource.data.expiresAtTimestamp &&
+         'email' in request.auth.token &&
+         request.auth.token.email.lower() == resource.data.patientEmail.lower() &&
          exists(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)) &&
          ((!('status' in get(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data) ||
            get(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data.status != 'Archived')) &&
          ((!('deletionPending' in get(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data) ||
            get(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data.deletionPending != true)) &&
+         'pendingInvitationId' in get(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data &&
+         get(/databases/$(database)/documents/users/$(resource.data.nutritionistId)/patients/$(resource.data.patientId)).data.pendingInvitationId == inviteId &&
          existsAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)) &&
          getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.patientId == resource.data.patientId &&
          getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.nutritionistId == resource.data.nutritionistId &&
@@ -227,10 +308,9 @@ service cloud.firestore {
             get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.status == "pending" &&
             get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.nutritionistId == request.resource.data.nutritionistId &&
             get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.patientId == request.resource.data.patientId &&
-            (!('expiresAtTimestamp' in get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data) ||
-             request.time < get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.expiresAtTimestamp) &&
-            (!('email' in request.auth.token) ||
-             request.auth.token.email.lower() == get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.patientEmail.lower()) &&
+            request.time < get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.expiresAtTimestamp &&
+            'email' in request.auth.token &&
+            request.auth.token.email.lower() == get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.patientEmail.lower() &&
             getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.status == "accepted" &&
             getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.acceptedByUid == request.auth.uid &&
             getAfter(/databases/$(database)/documents/users/$(request.resource.data.nutritionistId)/patients/$(request.resource.data.patientId)).data.portalUid == request.auth.uid
@@ -257,10 +337,9 @@ service cloud.firestore {
           get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.status == "pending" &&
           get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.nutritionistId == request.resource.data.nutritionistId &&
           get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.patientId == request.resource.data.patientId &&
-          (!('expiresAtTimestamp' in get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data) ||
-           request.time < get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.expiresAtTimestamp) &&
-          (!('email' in request.auth.token) ||
-           request.auth.token.email.lower() == get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.patientEmail.lower()) &&
+          request.time < get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.expiresAtTimestamp &&
+          'email' in request.auth.token &&
+          request.auth.token.email.lower() == get(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.patientEmail.lower() &&
           getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.status == "accepted" &&
           getAfter(/databases/$(database)/documents/invitations/$(request.resource.data.invitationId)).data.acceptedByUid == request.auth.uid &&
           getAfter(/databases/$(database)/documents/users/$(request.resource.data.nutritionistId)/patients/$(request.resource.data.patientId)).data.portalUid == request.auth.uid
@@ -315,10 +394,11 @@ service cloud.firestore {
           (!('deletionPending' in resource.data) || resource.data.deletionPending != true);
 
         // ...and update ONLY self-service fields with validated non-decreasing history.
-        // Blocked if deletion is pending or revoked.
+        // Archived records cannot be updated by the patient, even via the SDK.
         allow update: if isAssociatedPatient(userId, patientId) &&
           resource.data.portalUid == request.auth.uid &&
           (!('portalStatus' in resource.data) || resource.data.portalStatus != 'revoked') &&
+          (!('status' in resource.data) || resource.data.status != 'Archived') &&
           (!('deletionPending' in resource.data) || resource.data.deletionPending != true) &&
           patientWriteIsSelfServiceValid();
 
@@ -328,6 +408,8 @@ service cloud.firestore {
           (!('portalUid' in resource.data) || resource.data.portalUid == null || resource.data.portalUid == request.auth.uid) &&
           (!('deletionPending' in resource.data) || resource.data.deletionPending != true) &&
           (!('status' in resource.data) || resource.data.status != 'Archived') &&
+          'pendingInvitationId' in resource.data &&
+          resource.data.pendingInvitationId == getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId &&
           request.resource.data.portalUid == request.auth.uid &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['portalUid', 'portalStatus']) &&
           // Atomic batch verification with patientProfile and invitation:
@@ -339,10 +421,9 @@ service cloud.firestore {
           get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.status == "pending" &&
           get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.patientId == patientId &&
           get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.nutritionistId == userId &&
-          (!('email' in request.auth.token) ||
-           request.auth.token.email.lower() == get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.patientEmail.lower()) &&
-          (!('expiresAtTimestamp' in get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data) ||
-           request.time < get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.expiresAtTimestamp) &&
+          'email' in request.auth.token &&
+          request.auth.token.email.lower() == get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.patientEmail.lower() &&
+          request.time < get(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.expiresAtTimestamp &&
           getAfter(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.status == "accepted" &&
           getAfter(/databases/$(database)/documents/invitations/$(getAfter(/databases/$(database)/documents/patientProfiles/$(request.auth.uid)).data.invitationId)).data.acceptedByUid == request.auth.uid;
       }

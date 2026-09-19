@@ -44,20 +44,46 @@ describe("configValidation service", () => {
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
-  it("permits missing keys when in emulator mode with appropriate warning", () => {
-    const emulatorEnv: RuntimeEnv = {
-      VITE_USE_FIREBASE_EMULATOR: "true",
-      MODE: "development",
-    };
+  const syntheticEmulatorEnv: RuntimeEnv = {
+    VITE_USE_FIREBASE_EMULATOR: "true",
+    VITE_FIREBASE_API_KEY: "demo-api-key-not-a-secret",
+    VITE_FIREBASE_AUTH_DOMAIN: "demo-storm.firebaseapp.com",
+    VITE_FIREBASE_PROJECT_ID: "demo-storm",
+    VITE_FIREBASE_APP_ID: "1:000000000000:web:demostorm000000",
+    MODE: "emulator",
+  };
 
-    const result = validateAppConfiguration(emulatorEnv);
+  it("accepts the synthetic demo configuration in emulator mode", () => {
+    const result = validateAppConfiguration(syntheticEmulatorEnv);
 
     expect(result.isValid).toBe(true);
     expect(result.isEmulatorMode).toBe(true);
     expect(result.errors).toHaveLength(0);
-    expect(result.warnings.some((w) => w.includes("Firebase emulators"))).toBe(
+  });
+
+  it("refuses emulator mode pointing at a non-demo (real) project", () => {
+    const result = validateAppConfiguration({
+      ...syntheticEmulatorEnv,
+      VITE_FIREBASE_PROJECT_ID: "isamais-prod",
+    });
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.join(" ")).toMatch(/demo-/);
+  });
+
+  it("refuses emulator mode without the synthetic API key or project", () => {
+    const result = validateAppConfiguration({
+      VITE_USE_FIREBASE_EMULATOR: "true",
+      MODE: "development",
+    });
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some((e) => e.includes("VITE_FIREBASE_API_KEY"))).toBe(
       true,
     );
+    expect(
+      result.errors.some((e) => e.includes("VITE_FIREBASE_PROJECT_ID")),
+    ).toBe(true);
   });
 
   it("flags unconfigured EmailJS as inactive without breaking valid Firebase status", () => {

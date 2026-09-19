@@ -1,0 +1,65 @@
+
+> stormnutrition-v5---nutritional-management@0.0.0 test:e2e:emulated
+> firebase emulators:exec --only auth,firestore --project demo-storm "node scripts/seed-emulator.mjs && playwright test"
+
+i  emulators: Starting emulators: auth, firestore
+i  emulators: Detected demo project ID "demo-storm", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: node scripts/seed-emulator.mjs && playwright test
+🌱 Conectando ao emulador Firestore em 127.0.0.1:8080 e Auth em 127.0.0.1:9099 (Projeto: demo-storm)...
+1/7 Criando contas no Auth Emulator...
+[Auth Seed] Created user dra.clara@demo.stormnutrition.com (GuhrzttTgi8qYO0QH57hHWHfR190)
+[Auth Seed] Created user dr.marcos@demo.stormnutrition.com (UetTuhaFDbb4hbZHSSo7lqg74Fmi)
+[Auth Seed] Created user ana.silva@demo.stormnutrition.com (Us8eHmlnegwfEuFjuAtcsRpuruiv)
+[Auth Seed] Created user bruno.costa@demo.stormnutrition.com (e11rDGUydYMWis3h4jCRC9Z1r8V4)
+2/7 Criando perfis profissionais no Firestore...
+3/7 Criando pacientes vinculados...
+4/7 Criando perfis de acesso do portal...
+5/7 Criando planos alimentares estruturados...
+6/7 Criando agendamentos fictícios...
+7/7 Criando convites determinísticos...
+✅ Seed concluído com sucesso! Ambiente de testes pronto.
+[2m[WebServer] [22m(node:68644) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:68667) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 23 tests using 1 worker
+
+(node:68750) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:68750) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › tests-e2e/accessibility.spec.ts:62:3 › Accessibility — axe scan of the journey › public pages (3.8s)
+  ✓   2 [chromium] › tests-e2e/accessibility.spec.ts:77:3 › Accessibility — axe scan of the journey › professional screens and their dialogs (15.1s)
+  ✓   3 [chromium] › tests-e2e/accessibility.spec.ts:171:3 › Accessibility — axe scan of the journey › patient portal and its dialogs (2.2s)
+  ✓   4 [chromium] › tests-e2e/accessibility.spec.ts:197:3 › Accessibility — axe scan of the journey › mobile viewport (375px) (2.9s)
+  ✓   5 [chromium] › tests-e2e/accessibility.spec.ts:222:3 › Accessibility — reflow at 320 CSS px › journey screens fit without horizontal scrolling (5.3s)
+  ✓   6 [chromium] › tests-e2e/accessibility.spec.ts:250:3 › Accessibility — reflow at 320 CSS px (patient) › portal fits without horizontal scrolling (1.3s)
+  ✓   7 [chromium] › tests-e2e/accessibility.spec.ts:267:3 › Accessibility — keyboard journey › skip link, dialog focus management and menu button (3.0s)
+  ✓   8 [chromium] › tests-e2e/accessibility.spec.ts:325:3 › Accessibility — keyboard journey › mobile navigation drawer is a dialog that returns focus (1.4s)
+  ✓   9 [chromium] › tests-e2e/critical-flow.spec.ts:7:3 › Storm Nutrition V5 - E2E Critical Flow › should register a new nutritionist, access dashboard and settings (1.4s)
+  ✓  10 [chromium] › tests-e2e/design-system.spec.ts:24:1 › UI01/UI02 — variant gallery: sizes, utilities, states and contrast (1.2s)
+  ✓  11 [chromium] › tests-e2e/design-system.spec.ts:173:1 › UI05/UI09 — template name dialog and plan status badges (2.9s)
+  ✓  12 [chromium] › tests-e2e/design-system.spec.ts:223:1 › UI06/UI08 — no-results state, calendar and food table on a phone (3.8s)
+  ✓  13 [chromium] › tests-e2e/design-system.spec.ts:274:1 › UI07/UI10 — portal uses the shell's brand and no looping motion (1.3s)
+  ✓  14 [chromium] › tests-e2e/design-system.spec.ts:293:1 › UI10 — dashboard settles without infinite animations (1.4s)
+  ✓  15 [chromium] › tests-e2e/home.spec.ts:9:3 › Public site (smoke) › landing page renders the brand and language switcher (1.2s)
+  ✓  16 [chromium] › tests-e2e/home.spec.ts:22:3 › Public site (smoke) › language switcher toggles between English and Portuguese (1.3s)
+  ✓  17 [chromium] › tests-e2e/home.spec.ts:36:3 › Public site (smoke) › registration form rejects a weak password (1.3s)
+  ✓  18 [chromium] › tests-e2e/invitation-flow.spec.ts:12:3 › Invitation Flow (E2E) › displays friendly error message and recovery links for invalid invitation token (1.6s)
+  ✓  19 [chromium] › tests-e2e/invitation-flow.spec.ts:37:3 › Invitation Flow (E2E) › displays friendly error message for revoked invitation token (1.1s)
+  ✓  20 [chromium] › tests-e2e/invitation-flow.spec.ts:56:3 › Invitation Flow (E2E) › accepts valid pending invitation, creates account, and reaches patient portal (2.1s)
+  ✓  21 [chromium] › tests-e2e/journey.spec.ts:14:3 › Professional Journey (Nutri E2E Flow) › authenticates, accesses patient, generates diet, saves and exports real PDF (9.7s)
+  ✓  22 [chromium] › tests-e2e/patient-portal.spec.ts:13:3 › Patient Portal Journey (Patient E2E Flow) › logs in as patient, views assigned diet, performs adherence check-in and isolates professional data (2.3s)
+  ✓  23 [chromium] › tests-e2e/patient-portal.spec.ts:91:3 › Patient Portal Journey (Patient E2E Flow) › an existing check-in for today is shown without offering a new one (R08-C) (2.1s)
+
+  23 passed (1.2m)
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  auth: Stopping Authentication Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

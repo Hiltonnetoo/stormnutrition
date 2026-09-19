@@ -3,8 +3,16 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-export default defineConfig(() => {
+// Synthetic, versioned configuration for the Firebase emulators. In the
+// "emulator" mode (dev:emulated, E2E) and in unit tests, env files are read
+// ONLY from this directory, so a personal .env.local (real project, e-mail
+// keys) can never leak into tests or the local demo.
+const EMULATOR_ENV_DIR = path.resolve(__dirname, 'config/emulator');
+
+export default defineConfig(({ mode }) => {
+    const isolated = mode === 'emulator' || mode === 'test';
     return {
+      envDir: isolated ? EMULATOR_ENV_DIR : __dirname,
       server: {
         port: 5000,
         host: 'localhost',
@@ -37,6 +45,7 @@ export default defineConfig(() => {
             'src/i18n.ts',
             'src/main.tsx',
             'src/index.tsx',
+            'src/mountApp.tsx',
             'src/vite-env.d.ts',
           ],
           thresholds: {

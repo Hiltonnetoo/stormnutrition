@@ -1,0 +1,162 @@
+ M .env.example
+ M .github/workflows/ci.yml
+ M .gitignore
+ M .nvmrc
+ M README.md
+ M docs/architecture-decisions.md
+ M docs/baseline-matriz.md
+ M docs/demo-guide.md
+ M docs/deployment-and-config.md
+ M docs/screenshots/dashboard.png
+ M docs/screenshots/diet_generator.png
+ M firebase.json
+ M firestore.rules
+ M graphify-out/.graphify_labels.json
+ M graphify-out/.graphify_labels.json.sig
+ M graphify-out/GRAPH_REPORT.md
+ M graphify-out/graph.html
+ M graphify-out/graph.json
+ M graphify-out/manifest.json
+ M o-que-precisa-ser-feito.md
+ M package.json
+ M playwright.config.ts
+ M scripts/seed-emulator.mjs
+ M src/App.tsx
+ M src/components/AppShell.tsx
+ M src/components/AuthLayout.tsx
+ M src/components/ErrorBoundary.tsx
+ M src/components/LanguageSelector.tsx
+ M src/components/MealOptionTable.tsx
+ M src/components/Sidebar.tsx
+ M src/components/dashboard/PerformanceSection.tsx
+ M src/components/dashboard/StatCard.tsx
+ M src/components/diet-generator/ClinicalContextCard.tsx
+ M src/components/diet-generator/DietPlanDisplay.tsx
+ M src/components/diet-generator/DietProgressBar.tsx
+ M src/components/diet-generator/DietStep1Objectives.tsx
+ M src/components/diet-generator/DietStep2Nutrition.tsx
+ M src/components/diet-generator/DietStep3MealPlan.tsx
+ M src/components/diet-generator/LabExamsModule.tsx
+ M src/components/diet-generator/ModeSelector.tsx
+ M src/components/diet-generator/NutritionLabel.tsx
+ M src/components/icons.tsx
+ M src/components/modals/ClinicalReviewModal.tsx
+ M src/components/modals/DemoGuideModal.tsx
+ M src/components/modals/PatientAccessModal.tsx
+ M src/components/modals/PatientDietHistoryModal.tsx
+ M src/components/patient-form/ProgressBar.tsx
+ M src/components/patient-form/Step1Personal.tsx
+ M src/components/patient-form/Step2Contact.tsx
+ M src/components/patient-form/Step3Professional.tsx
+ M src/components/patient-form/Step5Anthropometric.tsx
+ M src/components/patient-form/Step6LabExams.tsx
+ M src/components/patient-list/EmptyState.tsx
+ M src/components/patient-portal/AdherenceCheckIn.tsx
+ M src/components/patient-portal/PortalDietsSection.tsx
+ M src/components/patient-portal/PortalPasswordModal.tsx
+ M src/components/patient-portal/SelfEvaluationForm.tsx
+ M src/components/patient-profile/BiomarkerEvolutionChart.tsx
+ M src/components/patient-profile/DietComparisonModal.tsx
+ M src/components/patient-profile/ProfileAssessmentTab.tsx
+ M src/components/patient-profile/ProfileDietsTab.tsx
+ M src/components/patient-profile/ProfileEvolutionTab.tsx
+ M src/components/patient-profile/ProfileExamsTab.tsx
+ M src/components/patient-profile/ProfileHeader.tsx
+ M src/components/patient-profile/ProfileTimelineTab.tsx
+ M src/components/patient-profile/WeightEvolutionChart.tsx
+ M src/components/ui.tsx
+ M src/contexts/AuthContext.tsx
+ M src/contexts/__tests__/AuthContext.test.tsx
+ M src/hooks/usePatientPortalData.ts
+ M src/index.css
+ M src/index.tsx
+ M src/locales/__tests__/i18nParity.test.ts
+ M src/locales/en/common.json
+ M src/locales/pt/common.json
+ M src/pages/AcceptInvitation.tsx
+ M src/pages/Calendar.tsx
+ M src/pages/Dashboard.tsx
+ M src/pages/DietGenerator.tsx
+ M src/pages/EmailAdmin.tsx
+ M src/pages/FoodDatabase.tsx
+ M src/pages/Home.tsx
+ M src/pages/Login.tsx
+ M src/pages/PatientPortal.tsx
+ M src/pages/Patients.tsx
+ M src/pages/Reports.tsx
+ M src/services/__tests__/configValidation.test.ts
+ M src/services/__tests__/dietAlgorithmService.test.ts
+ M src/services/__tests__/dietService.test.ts
+ M src/services/__tests__/emailService.test.ts
+ M src/services/__tests__/evaluationService.test.ts
+ M src/services/__tests__/foodService.test.ts
+ M src/services/__tests__/invitationService.test.ts
+ M src/services/__tests__/patientLifecycle.test.ts
+ M src/services/appointmentService.ts
+ M src/services/authService.ts
+ M src/services/configValidation.ts
+ M src/services/dietAlgorithmService.ts
+ M src/services/dietService.ts
+ M src/services/emailService.ts
+ M src/services/evaluationService.ts
+ M src/services/firebase.config.ts
+ M src/services/firebaseCore.ts
+ M src/services/foodService.ts
+ M src/services/invitationService.ts
+ M src/services/patientService.ts
+ M src/types/auth.ts
+ M src/types/diet.ts
+ M src/types/email.ts
+ M src/utils/__tests__/pdfExporter.test.ts
+ M src/utils/__tests__/validation.test.ts
+ M src/utils/pdfExporter.ts
+ M tests-e2e/accessibility.spec.ts
+ M tests-e2e/critical-flow.spec.ts
+ M tests-e2e/journey.spec.ts
+ M tests-e2e/patient-portal.spec.ts
+ M tests-perf/syntheticScenario.ts
+ M tests-rules/dietPersistence.integration.test.ts
+ M tests-rules/firestore.rules.test.ts
+ M tsconfig.json
+ M vite.config.ts
+ M vitest.perf.config.ts
+ M vitest.rules.config.ts
+?? config/
+?? docs/design-system.md
+?? docs/evidencias-revisao-10.md
+?? docs/evidencias-ui-manifesto.txt
+?? docs/historico-plano-antes-reorganizacao-ui-2026-09-18.md
+?? docs/screenshots/README.md
+?? docs/screenshots/calendar.png
+?? docs/screenshots/calendar_mobile.png
+?? docs/screenshots/dashboard_mobile.png
+?? docs/screenshots/diet_generator_step1.png
+?? docs/screenshots/historico/
+?? docs/screenshots/invitation_error.png
+?? docs/screenshots/manifest.json
+?? docs/screenshots/patient_profile.png
+?? docs/screenshots/patients.png
+?? docs/screenshots/patients_no_results.png
+?? docs/screenshots/portal.png
+?? docs/screenshots/portal_mobile.png
+?? docs/validacao-2026-09-19/
+?? feito.md
+?? playwright.screenshots.config.ts
+?? src/__tests__/
+?? src/components/StepProgress.tsx
+?? src/components/__tests__/DietPlanDisplay.clinicalContext.test.tsx
+?? src/components/__tests__/DietPlanViewer.i18n.test.tsx
+?? src/components/__tests__/PatientAccessModal.email.test.tsx
+?? src/components/__tests__/designSystem.test.tsx
+?? src/locales/__tests__/validationIssues.test.ts
+?? src/mountApp.tsx
+?? src/pages/__tests__/AcceptInvitation.coordination.test.tsx
+?? src/pages/__tests__/AcceptInvitation.i18n.test.tsx
+?? src/services/__tests__/firebaseConfig.test.ts
+?? src/startupErrorScreen.ts
+?? src/utils/__tests__/dietEditing.test.ts
+?? src/utils/dietEditing.ts
+?? tests-e2e/design-system.spec.ts
+?? tests-e2e/global-setup.ts
+?? tests-e2e/invitation-flow.spec.ts
+?? tests-e2e/screens.capture.ts

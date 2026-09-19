@@ -1,6 +1,12 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Dialog } from "./Dialog";
+import {
+  AlertTriangleIcon,
+  CheckCircleIcon,
+  InformationCircleIcon,
+  XCircleIcon,
+} from "./icons";
 
 /* ============================================================================
    cn — tiny class combiner
@@ -78,6 +84,47 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button";
 
 /* ============================================================================
+   IconButton — icon-only action (UI05). The accessible name is mandatory and
+   also shown as a tooltip; the target is a square of at least 36–40px.
+   ========================================================================== */
+export interface IconButtonProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "children"
+> {
+  /** Accessible name (aria-label) and tooltip. */
+  label: string;
+  icon: React.ReactNode;
+  variant?: ButtonVariant;
+  size?: "sm" | "md";
+}
+
+export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
+  (
+    { label, icon, variant = "ghost", size = "md", className, type, ...props },
+    ref,
+  ) => (
+    <button
+      ref={ref}
+      type={type ?? "button"}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "btn btn-icon",
+        buttonVariants[variant],
+        size === "sm" && "btn-sm",
+        className,
+      )}
+      {...props}
+    >
+      <span aria-hidden="true" className="inline-flex">
+        {icon}
+      </span>
+    </button>
+  ),
+);
+IconButton.displayName = "IconButton";
+
+/* ============================================================================
    Spinner
    ========================================================================== */
 export const Spinner: React.FC<{ className?: string }> = ({
@@ -110,7 +157,7 @@ export const Spinner: React.FC<{ className?: string }> = ({
    Card
    ========================================================================== */
 export const Card: React.FC<
-  React.HTMLAttributes<HTMLDivElement> & { hover?: boolean; elevated?: boolean }
+  React.ComponentPropsWithRef<"div"> & { hover?: boolean; elevated?: boolean }
 > = ({ hover, elevated, className, children, ...props }) => (
   <div
     className={cn(
@@ -126,12 +173,36 @@ export const Card: React.FC<
 /* ============================================================================
    Badge
    ========================================================================== */
-type BadgeTone = "sage" | "sky" | "amber" | "rose" | "slate" | "emerald";
+/** Semantic tones (UI02) — prefer these for states; palette tones remain as
+ *  aliases (sage=brand, sky=info, amber=warning, rose=danger, slate=neutral,
+ *  emerald=success). Color never carries meaning alone: always pair it with
+ *  text and, for states, an icon. */
+export type BadgeTone =
+  | "brand"
+  | "info"
+  | "warning"
+  | "danger"
+  | "neutral"
+  | "success"
+  | "sage"
+  | "sky"
+  | "amber"
+  | "rose"
+  | "slate"
+  | "emerald";
 
 export const Badge: React.FC<
-  React.HTMLAttributes<HTMLSpanElement> & { tone?: BadgeTone }
-> = ({ tone = "slate", className, children, ...props }) => (
+  React.HTMLAttributes<HTMLSpanElement> & {
+    tone?: BadgeTone;
+    icon?: React.ReactNode;
+  }
+> = ({ tone = "neutral", icon, className, children, ...props }) => (
   <span className={cn("badge", `badge-${tone}`, className)} {...props}>
+    {icon && (
+      <span aria-hidden="true" className="inline-flex shrink-0">
+        {icon}
+      </span>
+    )}
     {children}
   </span>
 );
@@ -180,12 +251,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             className={cn(
               "input-field",
-              // "!" garante que a folga para o ícone vença o px-4 da classe
-              // .input-field na cascata (correção D1 — lupa sobre o texto).
-              !!leftIcon && "!pl-11",
-              !!rightSlot && "!pr-11",
-              error &&
-                "!border-rose-400 focus:!ring-rose-500/60 focus:!border-rose-400",
+              // .input-field is in @layer components, so these utilities win
+              // without "!" (UI01). The error border comes from aria-invalid.
+              !!leftIcon && "pl-11",
+              !!rightSlot && "pr-11",
               className,
             )}
             {...props}
@@ -198,23 +267,154 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </span>
           )}
         </div>
-        {error ? (
-          <p
-            id={messageId}
-            className="mt-1.5 text-xs font-medium text-rose-600"
-          >
-            {error}
-          </p>
-        ) : hint ? (
-          <p id={messageId} className="mt-1.5 text-xs text-slate-500">
-            {hint}
-          </p>
-        ) : null}
+        <FieldMessage id={messageId} error={error} hint={hint} />
       </div>
     );
   },
 );
 Input.displayName = "Input";
+
+/* ============================================================================
+   Field primitives (UI05) — Select, Textarea and Checkbox share the label,
+   help and error pattern of Input (aria-describedby + aria-invalid).
+   ========================================================================== */
+const FieldMessage: React.FC<{ id: string; error?: string; hint?: string }> = ({
+  id,
+  error,
+  hint,
+}) =>
+  error ? (
+    <p id={id} className="field-error">
+      {error}
+    </p>
+  ) : hint ? (
+    <p id={id} className="field-hint">
+      {hint}
+    </p>
+  ) : null;
+
+const useFieldIds = (
+  id: string | undefined,
+  name: string | undefined,
+  describedBy: string | undefined,
+  hasMessage: boolean,
+) => {
+  const generatedId = React.useId();
+  const fieldId = id || name || generatedId;
+  const messageId = `${fieldId}-message`;
+  return {
+    fieldId,
+    messageId,
+    describedBy:
+      [describedBy, hasMessage ? messageId : undefined]
+        .filter(Boolean)
+        .join(" ") || undefined,
+  };
+};
+
+interface FieldProps {
+  label?: string;
+  hint?: string;
+  error?: string;
+}
+
+export const Select = React.forwardRef<
+  HTMLSelectElement,
+  React.SelectHTMLAttributes<HTMLSelectElement> & FieldProps
+>(({ label, hint, error, className, id, children, ...props }, ref) => {
+  const ids = useFieldIds(
+    id,
+    props.name,
+    props["aria-describedby"],
+    !!(error || hint),
+  );
+  return (
+    <div className="w-full">
+      {label && (
+        <label htmlFor={ids.fieldId} className="input-label">
+          {label}
+        </label>
+      )}
+      <select
+        ref={ref}
+        id={ids.fieldId}
+        className={cn("input-field pr-9", className)}
+        {...props}
+        aria-invalid={error ? true : props["aria-invalid"]}
+        aria-describedby={ids.describedBy}
+      >
+        {children}
+      </select>
+      <FieldMessage id={ids.messageId} error={error} hint={hint} />
+    </div>
+  );
+});
+Select.displayName = "Select";
+
+export const Textarea = React.forwardRef<
+  HTMLTextAreaElement,
+  React.TextareaHTMLAttributes<HTMLTextAreaElement> & FieldProps
+>(({ label, hint, error, className, id, ...props }, ref) => {
+  const ids = useFieldIds(
+    id,
+    props.name,
+    props["aria-describedby"],
+    !!(error || hint),
+  );
+  return (
+    <div className="w-full">
+      {label && (
+        <label htmlFor={ids.fieldId} className="input-label">
+          {label}
+        </label>
+      )}
+      <textarea
+        ref={ref}
+        id={ids.fieldId}
+        className={cn("input-field min-h-24", className)}
+        {...props}
+        aria-invalid={error ? true : props["aria-invalid"]}
+        aria-describedby={ids.describedBy}
+      />
+      <FieldMessage id={ids.messageId} error={error} hint={hint} />
+    </div>
+  );
+});
+Textarea.displayName = "Textarea";
+
+export const Checkbox = React.forwardRef<
+  HTMLInputElement,
+  Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> &
+    FieldProps & { label: React.ReactNode }
+>(({ label, hint, error, className, id, ...props }, ref) => {
+  const ids = useFieldIds(
+    id,
+    props.name,
+    props["aria-describedby"],
+    !!(error || hint),
+  );
+  return (
+    <div className={className}>
+      <label
+        htmlFor={ids.fieldId}
+        className="flex items-start gap-2.5 text-sm text-slate-700 cursor-pointer"
+      >
+        <input
+          ref={ref}
+          id={ids.fieldId}
+          type="checkbox"
+          className="checkbox mt-0.5"
+          {...props}
+          aria-invalid={error ? true : props["aria-invalid"]}
+          aria-describedby={ids.describedBy}
+        />
+        <span>{label}</span>
+      </label>
+      <FieldMessage id={ids.messageId} error={error} hint={hint} />
+    </div>
+  );
+});
+Checkbox.displayName = "Checkbox";
 
 /* ============================================================================
    PageHeader — consistent page title block
@@ -246,7 +446,10 @@ export const PageHeader: React.FC<{
       </div>
     </div>
     {actions && (
-      <div className="flex items-center gap-3 shrink-0">{actions}</div>
+      // Wraps on narrow screens instead of overflowing (UI05).
+      <div className="flex flex-wrap items-center gap-3 sm:shrink-0 sm:justify-end">
+        {actions}
+      </div>
     )}
   </div>
 );
@@ -454,31 +657,72 @@ export const CloseButton: React.FC<{
   label: string;
   className?: string;
 }> = ({ onClick, label, className }) => (
-  <button
-    type="button"
+  <IconButton
     onClick={onClick}
-    className={cn(
-      "shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors dark:hover:bg-slate-800 focus-ring",
-      className,
-    )}
-    aria-label={label}
-  >
-    <svg
-      aria-hidden="true"
-      className="w-5 h-5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6 18L18 6M6 6l12 12"
-      />
-    </svg>
-  </button>
+    label={label}
+    size="sm"
+    className={cn("text-slate-500", className)}
+    icon={
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    }
+  />
 );
+
+/* ============================================================================
+   Avatar — photo with an initials fallback when there is no URL or the image
+   fails to load (never a broken-image icon).
+   ========================================================================== */
+export const Avatar: React.FC<{
+  src?: string | null;
+  name: string;
+  /** Empty when the name is already next to the avatar (decorative). */
+  alt?: string;
+  className?: string;
+}> = ({ src, name, alt = "", className }) => {
+  const [failed, setFailed] = React.useState(false);
+  React.useEffect(() => setFailed(false), [src]);
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        onError={() => setFailed(true)}
+        className={cn("object-cover", className)}
+      />
+    );
+  }
+  return (
+    <span
+      role={alt ? "img" : undefined}
+      aria-label={alt || undefined}
+      aria-hidden={alt ? undefined : true}
+      className={cn(
+        "inline-flex items-center justify-center bg-sage-50 font-bold text-sage-700",
+        className,
+      )}
+    >
+      {initials}
+    </span>
+  );
+};
 
 /* ============================================================================
    Skeleton
@@ -486,3 +730,56 @@ export const CloseButton: React.FC<{
 export const Skeleton: React.FC<{ className?: string }> = ({ className }) => (
   <div aria-hidden="true" className={cn("skeleton", className)} />
 );
+
+/* ============================================================================
+   Alert (UI02)
+   ========================================================================== */
+export interface AlertProps {
+  title?: string;
+  children: React.ReactNode;
+  tone?: "success" | "warning" | "danger" | "info" | "neutral";
+  className?: string;
+  action?: React.ReactNode;
+}
+
+const alertStyles = {
+  success: "bg-success-bg border-success/20 text-success",
+  warning: "bg-warning-bg border-warning/20 text-warning",
+  danger: "bg-danger-bg border-danger/20 text-danger",
+  info: "bg-info-bg border-info/20 text-info",
+  neutral: "bg-slate-50 border-slate-200 text-slate-700",
+};
+
+const alertIcons = {
+  success: <CheckCircleIcon className="w-5 h-5 shrink-0" />,
+  warning: <AlertTriangleIcon className="w-5 h-5 shrink-0" />,
+  danger: <XCircleIcon className="w-5 h-5 shrink-0" />,
+  info: <InformationCircleIcon className="w-5 h-5 shrink-0" />,
+  neutral: <InformationCircleIcon className="w-5 h-5 shrink-0" />,
+};
+
+export const Alert: React.FC<AlertProps> = ({
+  title,
+  children,
+  tone = "info",
+  className,
+  action,
+}) => {
+  return (
+    <div
+      role="alert"
+      className={cn(
+        "flex gap-3 p-4 border rounded-xl items-start",
+        alertStyles[tone],
+        className,
+      )}
+    >
+      {alertIcons[tone]}
+      <div className="flex-1 text-sm">
+        {title && <h4 className="font-semibold mb-1">{title}</h4>}
+        <div className="opacity-90">{children}</div>
+      </div>
+      {action && <div className="shrink-0 ml-3">{action}</div>}
+    </div>
+  );
+};

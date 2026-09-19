@@ -3,6 +3,8 @@ export type AuthStatus =
   | "unauthenticated"
   | "authenticated"
   | "incomplete_profile"
+  | "invitation_pending"
+  | "revoked"
   | "error";
 
 export type UserRole = "nutritionist" | "patient";
@@ -36,4 +38,8 @@ export interface PatientInvitation {
   acceptedAt?: string;
   acceptedByUid?: string;
   revokedAt?: string;
+  /** Set when a stored "pending" invitation cannot be used: it predates the
+   *  strict contract (no recipient e-mail or no Timestamp expiry), which the
+   *  rules refuse. The UI asks for a new invitation instead (R03-B). */
+  invalidReason?: "legacy_format";
 }

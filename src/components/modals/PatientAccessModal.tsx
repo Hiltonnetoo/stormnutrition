@@ -57,7 +57,7 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
   const [error, setError] = useState("");
   const [sendEmail, setSendEmail] = useState(isEmailConfigured());
   const [emailStatus, setEmailStatus] = useState<
-    "idle" | "sending" | "sent" | "failed"
+    "idle" | "sending" | "sent" | "simulated" | "failed"
   >("idle");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -73,6 +73,9 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
   const [revokeConfirmOpen, setRevokeConfirmOpen] = useState(false);
   const [revokingAccess, setRevokingAccess] = useState(false);
   const [accessRevokedSuccess, setAccessRevokedSuccess] = useState(false);
+  // R04: revocation succeeded but old profiles/invitations could not all be
+  // closed (they stay denied by the cleared pointer) — shown, not hidden.
+  const [revokeCleanupIncomplete, setRevokeCleanupIncomplete] = useState(false);
 
   const alreadyHasAccess = !!patient.portalUid && !accessRevokedSuccess;
 
@@ -81,16 +84,25 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
     setRevokingAccess(true);
     setError("");
     try {
-      await revokePatientPortalAccess(currentUser.uid, patient.id);
+      const result = await revokePatientPortalAccess(
+        currentUser.uid,
+        patient.id,
+      );
+      setRevokeCleanupIncomplete(result.cleanupIncomplete);
       setAccessRevokedSuccess(true);
       setRevokeConfirmOpen(false);
       setActiveInvitation(null);
     } catch (err) {
       console.error("Erro ao revogar acesso:", err);
+      // Authorization failures are not "try again" errors.
+      const denied =
+        (err as { code?: string } | null)?.code === "permission-denied";
       setError(
-        t("modals.patient_access.error_revoke", {
-          defaultValue: "Falha ao revogar acesso ao portal.",
-        }),
+        t(
+          denied
+            ? "modals.patient_access.error_revoke_permission"
+            : "modals.patient_access.error_revoke",
+        ),
       );
     } finally {
       setRevokingAccess(false);
@@ -147,14 +159,14 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
       if (sendEmail) {
         setEmailStatus("sending");
         try {
-          await sendPortalAccessEmail({
+          const sendRes = await sendPortalAccessEmail({
             toEmail: patient.email,
             toName: `${patient.firstName} ${patient.lastName}`,
             fromName: senderName,
             portalUrl: inviteUrl,
             inviteUrl,
           });
-          setEmailStatus("sent");
+          setEmailStatus(sendRes.simulated ? "simulated" : "sent");
         } catch (mailErr) {
           console.error("Falha ao enviar e-mail de acesso:", mailErr);
           setEmailStatus("failed");
@@ -247,6 +259,18 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
       }
     >
       <div className="space-y-4 py-1">
+        {/* R04: failures while the patient is linked (revoke, reset) must be
+            visible here too — the error block below only renders when there
+            is no access yet. */}
+        {alreadyHasAccess && !success && error && (
+          <div
+            role="alert"
+            className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-sm text-rose-700"
+          >
+            <p>{error}</p>
+          </div>
+        )}
+
         {alreadyHasAccess && !success && (
           <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 text-sm text-amber-700 dark:text-amber-300">
             <p className="font-bold mb-1">
@@ -281,7 +305,7 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                       defaultValue: "Revogar acesso ao portal",
                     })}
                   </p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     {t("modals.patient_access.revoke_hint", {
                       defaultValue:
                         "Desconecta o paciente do app sem apagar histórico nem a conta Auth.",
@@ -356,12 +380,19 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
         )}
 
         {accessRevokedSuccess && (
-          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3.5 text-xs text-emerald-700 dark:text-emerald-300 font-medium">
-            ✅{" "}
-            {t("modals.patient_access.revoke_success_message", {
-              defaultValue:
-                "Acesso ao portal revogado com sucesso. O paciente não consegue mais visualizar os dados via app, mas o prontuário foi preservado integralmente.",
-            })}
+          <div
+            role="status"
+            className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-800 font-medium"
+          >
+            {t("modals.patient_access.revoke_success_message")}
+          </div>
+        )}
+        {accessRevokedSuccess && revokeCleanupIncomplete && (
+          <div
+            role="alert"
+            className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 font-medium"
+          >
+            {t("modals.patient_access.revoke_cleanup_incomplete")}
           </div>
         )}
 
@@ -456,7 +487,7 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                     {t("modals.patient_access.checkbox_send_email")}
                   </label>
                 </div>
-                <span className="text-[10px] text-slate-400">
+                <span className="text-xs text-slate-400">
                   {t("modals.patient_access.email_not_configured_hint")}
                 </span>
               </div>
@@ -482,6 +513,11 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                   {t("modals.patient_access.success_email_sent")}
                 </p>
               )}
+              {sendEmail && emailStatus === "simulated" && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-1">
+                  {t("modals.patient_access.success_email_simulated")}
+                </p>
+              )}
               {sendEmail && emailStatus === "failed" && (
                 <p className="text-xs text-rose-500 font-semibold mt-1">
                   {t("modals.patient_access.success_email_failed")}
@@ -503,7 +539,7 @@ const PatientAccessModal: React.FC<Props> = ({ patient, onClose }) => {
                   <p className="text-xs font-mono font-semibold text-slate-800 dark:text-slate-200 truncate">
                     {inviteUrl}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-400 mt-0.5">
                     {t("modals.patient_access.invite_expires", {
                       date: new Date(
                         activeInvitation.expiresAt,

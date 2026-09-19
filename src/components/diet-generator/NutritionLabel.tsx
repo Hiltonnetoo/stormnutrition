@@ -95,7 +95,7 @@ const NutritionLabel: React.FC<NutritionLabelProps> = ({
         </>
       )}
 
-      <div className="mt-4 text-[9px] leading-tight italic">
+      <div className="mt-4 text-xs leading-tight italic">
         {t("nutrition_label.footnote")}
       </div>
     </div>

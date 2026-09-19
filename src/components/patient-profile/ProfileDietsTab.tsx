@@ -2,8 +2,14 @@ import React, { useState, Suspense, lazy } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { Patient, DietPlan } from "../../types";
-import { Button } from "../ui";
-import { DownloadIcon, EditIcon, TrashIcon } from "../icons";
+import { Button, CloseButton } from "../ui";
+import {
+  CheckCircleIcon,
+  DownloadIcon,
+  EditIcon,
+  TrashIcon,
+  UtensilsIcon,
+} from "../icons";
 import DietPlanViewer from "../DietPlanViewer";
 import { ConfirmationModal } from "../modals/PatientModal";
 import { deleteDietPlan } from "../../services/firebaseService";
@@ -51,17 +57,15 @@ export const ProfileDietsTab: React.FC<ProfileDietsTabProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setExportDiet(viewingDiet)}
-                className="btn-secondary btn-sm flex items-center gap-1.5"
+                className="btn btn-secondary btn-sm"
               >
                 <DownloadIcon className="w-4 h-4" />{" "}
                 {t("profile.diets.export_btn")}
               </button>
-              <button
+              <CloseButton
                 onClick={() => setViewingDiet(null)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200 transition-colors"
-              >
-                ✕
-              </button>
+                label={t("a11y.close")}
+              />
             </div>
           </div>
           <div
@@ -123,6 +127,7 @@ export const ProfileDietsTab: React.FC<ProfileDietsTabProps> = ({
             return (
               <div
                 key={diet.id || i}
+                data-diet-id={diet.id}
                 className={`rounded-2xl border transition-all relative ${
                   isSelected
                     ? "bg-sky-50 dark:bg-sky-900/20 border-sky-200 ring-2 ring-sky-500 shadow-lg"
@@ -145,16 +150,19 @@ export const ProfileDietsTab: React.FC<ProfileDietsTabProps> = ({
                   {isSelected && (
                     <div
                       aria-hidden="true"
-                      className="absolute top-3 right-3 w-6 h-6 bg-sky-700 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md"
+                      className="absolute top-3 right-3 text-sky-700"
                     >
-                      ✓
+                      <CheckCircleIcon className="w-6 h-6" />
                     </div>
                   )}
                   <div className="flex justify-between items-start mb-3">
-                    <div className="p-2 bg-sage-50 dark:bg-sage-900/30 rounded-lg text-xl">
-                      🍲
+                    <div
+                      aria-hidden="true"
+                      className="p-2 bg-sage-50 text-sage-700 rounded-lg"
+                    >
+                      <UtensilsIcon className="w-5 h-5" />
                     </div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase">
+                    <span className="text-xs font-bold text-slate-400 uppercase">
                       {new Date(diet.createdAt).toLocaleDateString(
                         i18n.language === "pt" ? "pt-BR" : "en-US",
                       )}

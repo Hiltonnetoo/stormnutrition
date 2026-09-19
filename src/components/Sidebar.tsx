@@ -112,7 +112,7 @@ const NavItem: React.FC<NavItemProps> = ({
         <span className="tracking-wide">{label}</span>
         {badge && (
           <span
-            className={`ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full ${
+            className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full ${
               isActive
                 ? "bg-white/20 text-white"
                 : "bg-sage-100 text-sage-700 dark:bg-sage-500/15 dark:text-sage-300"
@@ -129,7 +129,7 @@ const NavItem: React.FC<NavItemProps> = ({
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => (
-  <p className="px-3.5 text-[0.65rem] font-bold text-slate-400 uppercase tracking-[0.12em] mb-1.5 mt-5 first:mt-1">
+  <p className="px-3.5 text-xs font-bold text-slate-400 uppercase tracking-[0.12em] mb-1.5 mt-5 first:mt-1">
     {children}
   </p>
 );
@@ -246,7 +246,7 @@ const NotificationBell: React.FC<{ onNavigate?: () => void }> = ({
         {count > 0 && (
           <span
             aria-hidden="true"
-            className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-rose-600 text-white text-[9px] font-extrabold flex items-center justify-center"
+            className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-rose-600 text-white text-xs font-extrabold flex items-center justify-center"
           >
             {count > 9 ? "9+" : count}
           </span>
@@ -389,7 +389,7 @@ const GlobalSearch: React.FC<{ onNavigate?: () => void }> = ({
           id={resultsId}
           role="region"
           aria-label={t("a11y.search_results")}
-          className="absolute left-3 right-3 top-full mt-1 bg-white dark:bg-slate-855 rounded-xl shadow-pop border border-slate-200/70 dark:border-slate-700 z-50 overflow-hidden"
+          className="absolute left-3 right-3 top-full mt-1 bg-white dark:bg-slate-850 rounded-xl shadow-pop border border-slate-200/70 dark:border-slate-700 z-50 overflow-hidden"
         >
           {results.map((p) => (
             <button
@@ -453,7 +453,7 @@ const Sidebar: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
             <span className="text-lg font-extrabold text-slate-900 dark:text-white leading-none tracking-tight">
               Storm Nutrition
             </span>
-            <span className="text-[0.6rem] font-bold text-sage-600 tracking-[0.18em] uppercase mt-0.5">
+            <span className="text-xs font-bold text-sage-600 tracking-[0.18em] uppercase mt-0.5">
               Professional v5
             </span>
           </div>

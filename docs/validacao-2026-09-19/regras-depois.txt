@@ -1,0 +1,24 @@
+
+> stormnutrition-v5---nutritional-management@0.0.0 test:rules
+> firebase emulators:exec --only firestore --project demo-storm "vitest run --config vitest.rules.config.ts"
+
+i  emulators: Starting emulators: firestore
+i  emulators: Detected demo project ID "demo-storm", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: vitest run --config vitest.rules.config.ts
+
+ RUN  v4.1.8 /Users/hiltonneto/Desktop/Isanutri V5
+
+
+ Test Files  2 passed (2)
+      Tests  101 passed (101)
+   Start at  10:44:49
+   Duration  4.37s (transform 129ms, setup 0ms, import 313ms, tests 3.94s, environment 0ms)
+
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

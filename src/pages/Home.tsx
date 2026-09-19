@@ -183,13 +183,13 @@ const DashFrame: React.FC = () => {
           ],
         ].map(([label, val, cls]) => (
           <div key={label} className={`${cls} rounded-xl p-3`}>
-            <p className="text-[11px] font-bold uppercase">{label}</p>
+            <p className="text-xs font-bold uppercase">{label}</p>
             <p className="text-xl font-extrabold stat-number">{val}</p>
           </div>
         ))}
       </div>
       <div className="bg-white rounded-xl p-3 border border-slate-100">
-        <p className="text-[11px] font-bold text-slate-400 uppercase mb-2">
+        <p className="text-xs font-bold text-slate-400 uppercase mb-2">
           {isEn
             ? "Performance · last 6 months"
             : "Performance · últimos 6 meses"}
@@ -211,7 +211,7 @@ const DashFrame: React.FC = () => {
                 className="w-full rounded-t-md bg-gradient-to-t from-sage-300 to-sage-500"
                 style={{ height: `${h}%` }}
               />
-              <span className="text-[9px] font-semibold text-slate-400 uppercase">
+              <span className="text-xs font-semibold text-slate-400 uppercase">
                 {label}
               </span>
             </div>
@@ -219,7 +219,7 @@ const DashFrame: React.FC = () => {
         </div>
       </div>
       <div className="bg-white rounded-xl p-3 border border-slate-100">
-        <p className="text-[11px] font-bold text-slate-400 uppercase mb-2">
+        <p className="text-xs font-bold text-slate-400 uppercase mb-2">
           {t("dashboard.recent_activity")}
         </p>
         <div className="space-y-2">
@@ -237,10 +237,10 @@ const DashFrame: React.FC = () => {
           ].map(([icon, text, when]) => (
             <div key={text} className="flex items-center gap-2.5">
               <span className="text-sm">{icon}</span>
-              <span className="text-[11px] text-slate-600 font-medium flex-1">
+              <span className="text-xs text-slate-600 font-medium flex-1">
                 {text}
               </span>
-              <span className="text-[11px] text-slate-400">{when}</span>
+              <span className="text-xs text-slate-400">{when}</span>
             </div>
           ))}
         </div>
@@ -257,7 +257,7 @@ const PatientsFrame: React.FC = () => {
     <div className="p-4 bg-slate-50 min-h-[296px]">
       <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-xl mb-3">
         <SearchIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-        <span className="text-[11px] text-slate-400">
+        <span className="text-xs text-slate-400">
           {t("search.placeholder")}
         </span>
       </div>
@@ -298,7 +298,7 @@ const PatientsFrame: React.FC = () => {
         ].map(([ini, name, age, status, badgeCls, avCls]) => (
           <div key={name} className="flex items-center gap-3 px-3 py-2.5">
             <div
-              className={`w-8 h-8 rounded-lg ${avCls} text-[10px] font-bold flex items-center justify-center`}
+              className={`w-8 h-8 rounded-lg ${avCls} text-xs font-bold flex items-center justify-center`}
             >
               {ini}
             </div>
@@ -306,10 +306,10 @@ const PatientsFrame: React.FC = () => {
               <p className="text-[12px] font-bold text-slate-800 truncate">
                 {name}
               </p>
-              <p className="text-[10px] text-slate-400">{age}</p>
+              <p className="text-xs text-slate-400">{age}</p>
             </div>
             <span
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badgeCls}`}
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badgeCls}`}
             >
               {status}
             </span>
@@ -335,7 +335,7 @@ const PlanFrame: React.FC = () => {
         ].map(([v, l, c]) => (
           <div key={l}>
             <p className={`text-sm font-extrabold stat-number ${c}`}>{v}</p>
-            <p className="text-[9px] text-slate-400 uppercase font-bold">{l}</p>
+            <p className="text-xs text-slate-400 uppercase font-bold">{l}</p>
           </div>
         ))}
       </div>
@@ -367,11 +367,11 @@ const PlanFrame: React.FC = () => {
               {meal}{" "}
               <span className="text-slate-400 font-medium">— {time}</span>
             </p>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sage-100 text-sage-700">
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-sage-100 text-sage-700">
               {kcal}
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 pl-1.5">{items}</p>
+          <p className="text-xs text-slate-500 pl-1.5">{items}</p>
         </div>
       ))}
     </div>
@@ -411,7 +411,7 @@ const ProductShowcase: React.FC = () => {
               <span className="w-3 h-3 rounded-full bg-emerald-400/80" />
             </div>
             <div className="flex-1 text-center">
-              <span className="inline-block bg-slate-800/60 text-slate-300 text-[11px] font-medium px-4 py-1 rounded-md border border-slate-700/50 transition-all">
+              <span className="inline-block bg-slate-800/60 text-slate-300 text-xs font-medium px-4 py-1 rounded-md border border-slate-700/50 transition-all">
                 {url}
               </span>
             </div>
@@ -445,10 +445,10 @@ const ProductShowcase: React.FC = () => {
           <ZapIcon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-[11px] font-bold text-slate-900">
+          <p className="text-xs font-bold text-slate-900">
             {t("home.portal_mock_checkin_title", "Dieta gerada")}
           </p>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-xs text-slate-400">
             {t("home.portal_mock_checkin_desc", "em 3 segundos")}
           </p>
         </div>
@@ -662,10 +662,10 @@ const PatientPortalHighlight: React.FC = () => {
                   <div className="flex items-center gap-2.5 rounded-xl bg-sage-50 border border-sage-100 px-3 py-2.5">
                     <span className="text-base">🌟</span>
                     <div>
-                      <p className="text-[9px] font-bold text-sage-600 uppercase tracking-wide">
+                      <p className="text-xs font-bold text-sage-600 uppercase tracking-wide">
                         {t("home.portal_mock_checkin_title")}
                       </p>
-                      <p className="text-[11px] font-bold text-slate-700">
+                      <p className="text-xs font-bold text-slate-700">
                         {t("home.portal_mock_checkin_desc")}
                       </p>
                     </div>
@@ -684,7 +684,7 @@ const PatientPortalHighlight: React.FC = () => {
                         <p className="text-[12px] font-semibold text-slate-700 leading-tight">
                           {m}
                         </p>
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-xs text-slate-400">
                           {time} · {kcal}
                         </p>
                       </div>
@@ -772,7 +772,7 @@ const Pricing: React.FC = () => {
               }`}
             >
               {plan.highlighted && (
-                <span className="absolute top-5 right-5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-[11px] font-bold uppercase tracking-wider">
+                <span className="absolute top-5 right-5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider">
                   {i18n.language.startsWith("pt")
                     ? "Mais popular"
                     : "Most popular"}

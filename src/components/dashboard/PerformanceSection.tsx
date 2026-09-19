@@ -30,7 +30,7 @@ export const PerformanceBars: React.FC<{ buckets: MonthBucket[] }> = ({
               style={{ height: `${(b.count / max) * 100}%` }}
               title={`${b.count} plano(s) em ${b.label}`}
             />
-            <span className="text-[11px] font-semibold text-slate-500 uppercase">
+            <span className="text-xs font-semibold text-slate-500 uppercase">
               {b.label}
             </span>
           </div>
@@ -86,7 +86,7 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({
         <PerformanceBars buckets={dietBuckets} />
       ) : (
         <div className="h-48 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-center p-6 group hover:border-sage-300 transition-colors">
-          <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4 group-hover:scale-110 transition-transform">
+          <div className="p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm mb-4">
             <BarChart3Icon className="w-8 h-8 text-sage-500" />
           </div>
           <p className="font-semibold text-slate-600 dark:text-slate-300">

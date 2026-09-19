@@ -113,7 +113,7 @@ const Step2Nutrition: React.FC<Step2Props> = ({
               id="dailyCalories"
               value={formData.dailyCalories}
               onChange={handleInputChange}
-              className={`input-field ${errors.dailyCalories ? "!border-rose-400 focus:!ring-rose-500/60" : ""}`}
+              className={`input-field ${errors.dailyCalories ? "border-rose-400 focus:ring-rose-500/60" : ""}`}
               {...fieldErrorProps("dailyCalories", errors.dailyCalories)}
             />
             {errors.dailyCalories && (

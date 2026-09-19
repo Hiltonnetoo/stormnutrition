@@ -25,7 +25,15 @@ import LoadingState from "../components/patient-list/LoadingState";
 import EmptyState from "../components/patient-list/EmptyState";
 import PatientActionsMenu from "../components/patient-list/PatientActionsMenu";
 import PatientAccessModal from "../components/modals/PatientAccessModal";
-import { PageHeader, Input, Button, Badge, ErrorState } from "../components/ui";
+import {
+  PageHeader,
+  Input,
+  Button,
+  Badge,
+  ErrorState,
+  EmptyState as EmptyStateBase,
+  Avatar,
+} from "../components/ui";
 
 /* ----------------------------------------------------------------- Toast */
 interface ToastProps {
@@ -340,24 +348,34 @@ const Patients: React.FC = () => {
       return <EmptyState onAddPatient={handleAddPatient} />;
     if (filteredPatients.length === 0)
       return (
-        <div className="py-16 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-            <SearchIcon className="w-6 h-6" />
-          </div>
-          <p className="font-semibold text-slate-700">
-            {t("patients.no_search_results", { query: searchTerm })}
-          </p>
-          <p className="text-sm text-slate-400 mt-1">
-            {t("patients.search_try_again")}
-          </p>
-        </div>
+        <EmptyStateBase
+          icon={<SearchIcon className="w-6 h-6" />}
+          title={
+            searchTerm
+              ? t("patients.no_search_results", { query: searchTerm })
+              : t("patients.no_filter_results")
+          }
+          description={t("patients.search_try_again")}
+          action={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("all");
+              }}
+            >
+              {t("patients.clear_filters")}
+            </Button>
+          }
+        />
       );
 
     return (
       <>
         {/* Desktop table */}
         <div className="hidden md:block overflow-x-auto">
-          <table className="min-w-full">
+          <table className="min-w-full text-left text-sm">
             <caption className="sr-only">{t("patients.title")}</caption>
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800">
@@ -397,10 +415,10 @@ const Patients: React.FC = () => {
                         to={`/patients/${patient.id}`}
                         className="flex items-center gap-3 rounded-xl focus-ring"
                       >
-                        <img
-                          className="h-10 w-10 rounded-xl object-cover ring-2 ring-white shadow-sm group-hover:scale-105 transition-transform"
-                          src={patient.avatarUrl || undefined}
-                          alt=""
+                        <Avatar
+                          className="h-10 w-10 rounded-xl object-cover ring-2 ring-white shadow-sm"
+                          src={patient.avatarUrl}
+                          name={`${patient.firstName} ${patient.lastName}`}
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
@@ -408,7 +426,7 @@ const Patients: React.FC = () => {
                               {patient.firstName} {patient.lastName}
                             </p>
                             {patient.status === "Archived" && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                                 {t("patients.badge_archived", {
                                   defaultValue: "Arquivado",
                                 })}
@@ -452,10 +470,10 @@ const Patients: React.FC = () => {
                   to={`/patients/${patient.id}`}
                   className="flex items-center gap-3 rounded-xl focus-ring"
                 >
-                  <img
+                  <Avatar
                     className="h-11 w-11 rounded-xl object-cover ring-2 ring-white shadow-sm"
-                    src={patient.avatarUrl || undefined}
-                    alt=""
+                    src={patient.avatarUrl}
+                    name={`${patient.firstName} ${patient.lastName}`}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -463,7 +481,7 @@ const Patients: React.FC = () => {
                         {patient.firstName} {patient.lastName}
                       </p>
                       {patient.status === "Archived" && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
                           {t("patients.badge_archived", {
                             defaultValue: "Arquivado",
                           })}

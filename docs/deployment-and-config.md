@@ -6,7 +6,7 @@ Este documento consolida as diretrizes de configuração pública versus privada
 
 ## 1. Arquitetura de Configuração e Separação de Segredos
 
-O Storm Nutrition é uma Single Page Application (SPA) construída com React 18, TypeScript e Vite, integrando-se diretamente aos serviços Firebase (Authentication, Firestore, Storage) e ao serviço transacional EmailJS.
+O Storm Nutrition é uma Single Page Application (SPA) construída com React 19, TypeScript e Vite, integrando-se diretamente aos serviços Firebase (Authentication, Firestore, Storage) e ao serviço transacional EmailJS.
 
 ### 1.1 Variáveis de Ambiente Públicas (Client-Side)
 
@@ -96,31 +96,40 @@ O projeto conta com taxonomia padronizada de falhas, identificadores de correla�
 ## 4. Auditoria de Dependências
 
 O projeto utiliza dependências fixadas no `package-lock.json` com versões auditadas:
-- O ecossistema React 18 e Vite 6 mantém compatibilidade estrita com TypeScript 5.6.
-- A ferramenta `firebase-tools` local é mantida na versão estável compatível com os emuladores Java do ambiente.
+- O ecossistema React 19 (`^19.2.0`) e Vite 6 (`^6.2.0`) mantêm compatibilidade estrita com TypeScript 5.8 (`~5.8.2`).
+- A ferramenta `firebase-tools` local (15.x) exige **Java 21+** para os emuladores e **Node 22.22.2+** (`.nvmrc`), porque dependências dela exigem Node 22.
 - **Diretriz de Manutenção:** Não executar `npm audit fix --force`, pois comandos forçados podem causar retrocesso de versões essenciais ou quebrar integrações dos emuladores.
 
 ---
 
-## 5. Procedimento de Implantação (Deployment)
+## 5. Matriz de Garantias e Procedimento de Implantação (Deployment)
 
-A implantação em produção é estritamente manual e controlada, exigindo validação prévia de todos os testes automatizados e builds. **Não há publicação automática sem aprovação humana.**
+A integridade do software é governada por múltiplas camadas independentes. **Uma camada não confirma nem substitui a outra:**
+
+| Camada | Escopo & Ferramenta | O que Garante | O que NÃO Garante |
+| :--- | :--- | :--- | :--- |
+| **1. Verificações Locais** | Vitest, Playwright, TSC, ESLint, Prettier | Validação do código em máquina local contra emuladores | Não garante que o código foi commitado, revisado ou aprovado em PR. |
+| **2. CI Remota (GitHub Actions)** | `.github/workflows/ci.yml` | Execução automática de build, testes unitários, regras de Firestore e E2E em ambiente limpo | Não impede merges diretos se a proteção de branch não estiver ativada nas configurações do GitHub. |
+| **3. Proteção de Branch** | Configuração administrativa no repositório GitHub | Obriga passagem de status checks e aprovação de PR antes de merge na `main` | Requer configuração humana com privilégios de administrador no repositório (não pode ser configurada apenas por código). |
+| **4. Implantação de Regras/Índices** | `firebase deploy --only firestore:rules,firestore:indexes,storage` | Atualiza políticas de autorização e índices no Cloud Firestore de produção | Não é executada automaticamente pelos testes locais nem pela CI; requer comando explícito com credenciais de produção. |
+| **5. Implantação de Frontend (Hosting)** | `firebase deploy --only hosting` (aponta para `dist/` via `firebase.json`) | Publica os assets estáticos gerados pelo `vite build` | Não valida se as regras de backend correspondentes foram implantadas previamente. |
+| **6. Acessibilidade Assistiva & Revisão Visual** | axe-core + Playwright (autônomo) vs. Avaliação Humana | Varredura automatizada de violações WCAG 2.1 AA e reflow a 320px | Não substitui testes manuais completos com usuários reais e leitores de tela (NVDA/VoiceOver). |
 
 ### 5.1 Checklist Pré-Implantação
 
 Antes de qualquer deploy, execute a suíte completa de verificação no terminal:
 
 ```bash
-# 1. Testes unitários e de integração
+# 1. Testes unitários e de componentes (contagens atuais: docs/evidencias-revisao-10.md)
 npm test
 
-# 2. Testes de regras de segurança do Firestore
+# 2. Regras de segurança do Firestore e integração de persistência (emulador)
 npm run test:rules
 
-# 3. Testes ponta a ponta (Playwright com emuladores)
+# 3. Jornadas ponta a ponta, acessibilidade e design system (emuladores)
 npm run test:e2e:emulated
 
-# 4. Verificação de tipos TypeScript
+# 4. Verificação de tipos TypeScript (strict)
 npm run type-check
 
 # 5. Análise estática e linting
@@ -137,6 +146,8 @@ Todos os 7 comandos devem passar com código de saída 0.
 
 ### 5.2 Comandos de Deploy Manual
 
+A publicação requer autenticação prévia na Firebase CLI (`npx firebase login`) e permissão de administrador/editor no projeto configurado.
+
 #### A. Implantação de Regras e Índices (Backend Firebase)
 
 ```bash
@@ -151,6 +162,15 @@ npx firebase deploy --only storage
 ```
 
 #### B. Implantação do Frontend Estático (Hosting)
+
+O arquivo `firebase.json` declara a configuração de hosting da SPA:
+```json
+"hosting": {
+  "public": "dist",
+  "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+  "rewrites": [{ "source": "**", "destination": "/index.html" }]
+}
+```
 
 ```bash
 # Gera o build final de produção

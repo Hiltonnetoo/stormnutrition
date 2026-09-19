@@ -103,7 +103,13 @@ export const revokePatientPortalAccess = async (
   userId: string,
   patientId: string,
   reason = "Acesso revogado pelo nutricionista.",
-): Promise<{ portalUid?: string; revokedInvitationsCount: number }> => {
+): Promise<{
+  portalUid?: string;
+  revokedInvitationsCount: number;
+  /** True when linked profiles or pending invitations could not be revoked;
+   *  the patient pointer is cleared anyway, so old links stay denied. */
+  cleanupIncomplete: boolean;
+}> => {
   const patientRef = getPatientDoc(userId, patientId);
   const patientSnap = await getDoc(patientRef);
   if (!patientSnap.exists()) {
@@ -125,10 +131,10 @@ export const revokePatientPortalAccess = async (
           revokedAt: new Date().toISOString(),
           revokedReason: reason,
         });
-      } catch (updateErr) {
+      } catch {
         try {
           await deleteDoc(profileRef);
-        } catch (deleteErr) {
+        } catch {
           throw new Error(
             `FALHA_REVOGACAO_PERFIL: Não foi possível revogar a autorização do perfil do paciente (${portalUid}). O acesso não foi encerrado com sucesso.`,
           );
@@ -138,15 +144,17 @@ export const revokePatientPortalAccess = async (
   }
 
   // Clean up any lingering patientProfile records pointing to this (userId, patientId)
+  let profilesCleanupIncomplete = false;
   try {
-    const orphanProfilesQuery = query(
-      collection(db, "patientProfiles"),
-      where("nutritionistId", "==", userId),
-      where("patientId", "==", patientId),
+    const pSnap = await getDocs(
+      query(
+        collection(db, "patientProfiles"),
+        where("patientId", "==", patientId),
+        where("nutritionistId", "==", userId),
+      ),
     );
-    const orphanSnap = await getDocs(orphanProfilesQuery);
-    for (const pDoc of orphanSnap.docs) {
-      if (pDoc.id !== portalUid) {
+    for (const pDoc of pSnap.docs) {
+      if (pDoc.data().status !== "revoked") {
         try {
           await updateDoc(pDoc.ref, {
             status: "revoked",
@@ -160,8 +168,10 @@ export const revokePatientPortalAccess = async (
     }
   } catch (err) {
     console.warn("Aviso ao revogar perfis vinculados ao paciente:", err);
+    profilesCleanupIncomplete = true;
   }
 
+  let invitationsCleanupIncomplete = false;
   // 2. Revoke any pending invitations for this patient
   let revokedInvitationsCount = 0;
   try {
@@ -183,6 +193,7 @@ export const revokePatientPortalAccess = async (
     }
   } catch (err) {
     console.warn("Aviso ao revogar convites do paciente:", err);
+    invitationsCleanupIncomplete = true;
   }
 
   // 3. Clear portalUid and record revocation on patient document
@@ -193,7 +204,12 @@ export const revokePatientPortalAccess = async (
     pendingInvitationId: null,
   });
 
-  return { portalUid, revokedInvitationsCount };
+  return {
+    portalUid,
+    revokedInvitationsCount,
+    cleanupIncomplete:
+      profilesCleanupIncomplete || invitationsCleanupIncomplete,
+  };
 };
 
 export interface CascadeDeletionResult {
@@ -243,7 +259,9 @@ export const deletePatientCascade = async (
       processedCount: 0,
       totalCount: 0,
     });
-    const existingDeletionStartedAt = patientData?.deletionStartedAt as string | undefined;
+    const existingDeletionStartedAt = patientData?.deletionStartedAt as
+      | string
+      | undefined;
     await updateDoc(patientRef, {
       deletionPending: true,
       deletionStartedAt: existingDeletionStartedAt || new Date().toISOString(),
@@ -301,7 +319,10 @@ export const deletePatientCascade = async (
       profileRefsMap.set(pDoc.id, pDoc.ref);
     }
   } catch (err) {
-    console.warn("Aviso ao buscar perfis do paciente para exclusão em cascata:", err);
+    console.warn(
+      "Aviso ao buscar perfis do paciente para exclusão em cascata:",
+      err,
+    );
   }
 
   // Collect all document references to delete in batches

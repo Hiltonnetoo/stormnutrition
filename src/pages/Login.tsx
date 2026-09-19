@@ -280,12 +280,12 @@ const Login: React.FC<LoginProps> = ({ isPatient = false }) => {
       <div className="mt-8 pt-6 border-t border-slate-200/80">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
               {t("demo.quick_login_title")}
             </h3>
           </div>
-          <span className="text-[11px] font-semibold text-slate-400">
+          <span className="text-xs font-semibold text-slate-400">
             Password123!
           </span>
         </div>
@@ -331,25 +331,25 @@ const Login: React.FC<LoginProps> = ({ isPatient = false }) => {
                   : "border-slate-200 hover:border-slate-300 bg-slate-50/50 hover:bg-slate-50"
               }`}
             >
-              <div className="min-w-0 pr-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-800 truncate">
+              <div className="min-w-0 flex-1 pr-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="min-w-0 font-bold text-slate-800 truncate">
                     {acc.name}
                   </span>
                   <span
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${acc.badgeStyle}`}
+                    className={`shrink-0 px-1.5 py-0.5 rounded text-xs font-semibold ${acc.badgeStyle}`}
                   >
                     {acc.badge}
                   </span>
                 </div>
-                <p className="text-slate-500 truncate text-[11px] mt-0.5">
+                <p className="text-slate-500 truncate text-xs mt-0.5">
                   {acc.email}
                 </p>
-                <p className="text-slate-400 text-[10px] truncate">
+                <p className="text-slate-400 text-xs truncate">
                   {acc.roleDesc}
                 </p>
               </div>
-              <span className="shrink-0 text-sage-600 font-semibold text-[11px] hover:underline">
+              <span className="shrink-0 text-sage-600 font-semibold text-xs hover:underline">
                 {t("demo.fill_credentials")}
               </span>
             </button>

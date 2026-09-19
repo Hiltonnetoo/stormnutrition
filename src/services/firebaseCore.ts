@@ -9,14 +9,17 @@ import {
   GoogleAuthProvider,
   updateProfile,
   createUserWithEmailAndPassword,
+  type Auth,
 } from "firebase/auth";
 import {
   initializeFirestore,
   connectFirestoreEmulator,
 } from "firebase/firestore";
-import { firebaseConfig } from "./firebase.config";
+import { firebaseRuntime } from "./firebase.config";
 
-const app: FirebaseApp = initializeApp(firebaseConfig);
+// firebaseRuntime has already been validated: an incomplete or unsafe
+// configuration throws FirebaseConfigError before anything is initialized.
+const app: FirebaseApp = initializeApp(firebaseRuntime.options);
 
 const auth = getAuth(app);
 const db = initializeFirestore(app, {
@@ -24,42 +27,51 @@ const db = initializeFirestore(app, {
 });
 const googleProvider = new GoogleAuthProvider();
 
-// Detect explicit emulator test mode
-const rawEmulatorHost =
-  typeof process !== "undefined"
-    ? process.env?.FIRESTORE_EMULATOR_HOST
-    : undefined;
-const useEmulator =
-  import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true" ||
-  Boolean(rawEmulatorHost);
 const globalState = globalThis as unknown as {
   __FIREBASE_EMULATORS_CONNECTED__?: boolean;
 };
 
-if (useEmulator && !globalState.__FIREBASE_EMULATORS_CONNECTED__) {
-  console.log("🛠️ Conectando cliente Firebase aos emuladores locais...");
-  const authHost =
-    import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST || "http://127.0.0.1:9099";
-  const parsedHost = rawEmulatorHost?.includes(":")
-    ? rawEmulatorHost.split(":")[0]
-    : rawEmulatorHost;
-  const parsedPort = rawEmulatorHost?.includes(":")
-    ? Number(rawEmulatorHost.split(":")[1])
-    : 8080;
-  const firestoreHost =
-    import.meta.env.VITE_FIREBASE_FIRESTORE_EMULATOR_HOST ||
-    parsedHost ||
-    "127.0.0.1";
-  const firestorePort = Number(
-    import.meta.env.VITE_FIREBASE_FIRESTORE_EMULATOR_PORT || parsedPort || 8080,
+if (firebaseRuntime.useEmulator) {
+  if (!globalState.__FIREBASE_EMULATORS_CONNECTED__) {
+    console.log("🛠️ Conectando cliente Firebase aos emuladores locais...");
+    connectAuthEmulator(auth, firebaseRuntime.emulator.authUrl, {
+      disableWarnings: true,
+    });
+    connectFirestoreEmulator(
+      db,
+      firebaseRuntime.emulator.firestoreHost,
+      firebaseRuntime.emulator.firestorePort,
+    );
+    globalState.__FIREBASE_EMULATORS_CONNECTED__ = true;
+  }
+  // Lets the E2E suite verify it is talking to the emulated demo project.
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.firebaseEnv = `emulator:${firebaseRuntime.options.projectId}`;
+  }
+} else {
+  console.log(
+    "🔥 Firebase conectado ao projeto:",
+    firebaseRuntime.options.projectId,
   );
-
-  connectAuthEmulator(auth, authHost, { disableWarnings: true });
-  connectFirestoreEmulator(db, firestoreHost, firestorePort);
-  globalState.__FIREBASE_EMULATORS_CONNECTED__ = true;
-} else if (!useEmulator) {
-  console.log("🔥 Firebase conectado ao projeto:", firebaseConfig.projectId);
 }
+
+/**
+ * Auth instance on a separate Firebase app (creating an account there does
+ * not sign the professional out). In emulator mode it is connected to the Auth
+ * emulator too, so it can never create accounts in a real project.
+ */
+export const createIsolatedAuth = (
+  name: string,
+): { app: FirebaseApp; auth: Auth } => {
+  const isolatedApp = initializeApp(firebaseRuntime.options, name);
+  const isolatedAuth = getAuth(isolatedApp);
+  if (firebaseRuntime.useEmulator) {
+    connectAuthEmulator(isolatedAuth, firebaseRuntime.emulator.authUrl, {
+      disableWarnings: true,
+    });
+  }
+  return { app: isolatedApp, auth: isolatedAuth };
+};
 
 export {
   app,

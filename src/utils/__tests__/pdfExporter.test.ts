@@ -172,14 +172,6 @@ const mockValidPlan: DietPlan = {
       fatDiff: -14,
       fatPercent: 23,
     },
-    calculatedTotals: {
-      calories: 1750,
-      protein: 115,
-      carbs: 200,
-      fat: 46,
-      fiber: 28,
-      sodium: 1450,
-    },
     issues: [
       {
         code: "CALORIE_VARIATION",
@@ -547,6 +539,31 @@ describe("PDF Exporter — Passo 17: Verificação de Entrega Final", () => {
         locale: "pt",
       });
       expect(docLegacy.output()).toContain("Plano Legado");
+    });
+
+    it("R07: prints combined-macro alerts translated with their values (not the PT fallback)", () => {
+      const plan: DietPlan = {
+        ...mockValidPlan,
+        validation: {
+          ...mockValidPlan.validation!,
+          status: "requires_review",
+          isApproved: false,
+          issues: [
+            {
+              level: "warning",
+              code: "WORST_CASE_PROTEIN_DEVIATION",
+              message: "fallback PT que não deve aparecer",
+              details: { min: 119, max: 124, target: 100 },
+            },
+          ],
+        },
+      };
+      const out = buildCustomLayoutPdfDocument(plan, undefined, {
+        locale: "en",
+      }).output();
+      expect(out).toContain("Alternative combinations vary daily protein");
+      expect(out).toMatch(/119 g/);
+      expect(out).not.toContain("fallback PT");
     });
   });
 

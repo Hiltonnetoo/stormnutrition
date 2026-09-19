@@ -39,7 +39,7 @@ const Step3Professional: React.FC<Step3Props> = ({
             value={data.profession || ""}
             onChange={handleChange}
             autoComplete="organization-title"
-            className={`input-field ${errors.profession ? "!border-rose-400 focus:!ring-rose-500/60 focus:!border-rose-400" : ""}`}
+            className={`input-field ${errors.profession ? "border-rose-400 focus:ring-rose-500/60 focus:border-rose-400" : ""}`}
             {...fieldErrorProps("profession", errors.profession)}
           />
           {errors.profession && (

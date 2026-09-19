@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { UtensilsIcon } from "../icons";
 import { useTranslation } from "react-i18next";
 import type { AnyDietPlan, DietPlan, Meal } from "../../types";
 import { translateMealName } from "../../utils/locale";
@@ -12,7 +13,7 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
   const [expandedDiet, setExpandedDiet] = useState<string | null>(null);
 
   return (
-    <div className="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-soft border border-slate-200/70 overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-50 flex items-center gap-2">
         <span className="text-sage-600">
           <svg
@@ -154,7 +155,7 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
                               key={stat.label}
                               className={`${stat.bg} p-3 rounded-2xl`}
                             >
-                              <p className="text-[11px] font-bold text-slate-500 uppercase">
+                              <p className="text-xs font-bold text-slate-500 uppercase">
                                 {stat.label}
                               </p>
                               <div className="flex items-baseline gap-1 mt-1">
@@ -163,7 +164,7 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
                                 >
                                   {stat.value}
                                 </span>
-                                <span className="text-[11px] font-bold text-slate-500">
+                                <span className="text-xs font-bold text-slate-500">
                                   {stat.unit}
                                 </span>
                               </div>
@@ -185,13 +186,15 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
                       {d2.meals?.map((meal: Meal, mIdx: number) => (
                         <div
                           key={mIdx}
-                          className="min-w-[85vw] md:min-w-0 bg-white border border-slate-200 rounded-3xl p-5 shadow-soft snap-center flex flex-col"
+                          className="min-w-[85vw] md:min-w-0 bg-white border border-slate-200 rounded-2xl p-5 shadow-soft snap-center flex flex-col"
                         >
                           <div className="flex items-start justify-between mb-4 gap-2">
                             <div className="flex items-center gap-3">
-                              <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-xl">
-                                {["🌅", "☕", "🥗", "🍏", "🍲", "🌙"][mIdx] ||
-                                  "🌙"}
+                              <div
+                                aria-hidden="true"
+                                className="w-11 h-11 rounded-xl bg-sage-50 text-sage-700 flex items-center justify-center"
+                              >
+                                <UtensilsIcon className="w-5 h-5" />
                               </div>
                               <div>
                                 <h4 className="font-extrabold text-slate-800">
@@ -206,7 +209,7 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
                               <p className="text-sm font-extrabold text-slate-800">
                                 {r(meal.calories)} kcal
                               </p>
-                              <p className="text-[11px] font-bold text-slate-500">
+                              <p className="text-xs font-bold text-slate-500">
                                 P:{r(meal.protein)}g C:{r(meal.carbs)}g G:
                                 {r(meal.fat)}g
                               </p>

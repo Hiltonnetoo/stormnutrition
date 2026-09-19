@@ -30,7 +30,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
   return (
     <div className="min-h-screen flex bg-white">
       {/* ---- Form side ---- */}
-      <div className="flex-1 flex flex-col justify-center px-5 sm:px-8 lg:flex-none lg:w-[480px] xl:w-[560px] relative">
+      <div className="flex-1 min-w-0 flex flex-col justify-center px-5 sm:px-8 lg:flex-none lg:w-[480px] xl:w-[560px] relative">
         <button
           onClick={() => navigate("/")}
           className="absolute top-7 left-6 sm:left-8 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-sage-600 transition-colors focus-ring rounded-lg px-1 py-1 cursor-pointer"

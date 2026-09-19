@@ -53,6 +53,10 @@ const TestConsumer: React.FC = () => {
     retryProfileFetch,
     completeProfessionalRegistration,
     logout,
+    beginInvitationActivation,
+    completeInvitationActivation,
+    cancelInvitationActivation,
+    refreshUserProfile,
   } = useAuth();
 
   return (
@@ -76,6 +80,30 @@ const TestConsumer: React.FC = () => {
       </button>
       <button onClick={() => logout()} data-testid="btn-logout">
         Logout
+      </button>
+      <button
+        onClick={() => beginInvitationActivation("token-123")}
+        data-testid="btn-begin-activation"
+      >
+        BeginActivation
+      </button>
+      <button
+        onClick={() => completeInvitationActivation()}
+        data-testid="btn-complete-activation"
+      >
+        CompleteActivation
+      </button>
+      <button
+        onClick={() => cancelInvitationActivation()}
+        data-testid="btn-cancel-activation"
+      >
+        CancelActivation
+      </button>
+      <button
+        onClick={() => refreshUserProfile()}
+        data-testid="btn-refresh-profile"
+      >
+        RefreshProfile
       </button>
     </div>
   );
@@ -351,6 +379,158 @@ describe("AuthContext - Explicit Finite State Machine", () => {
       expect(screen.getByTestId("status")).toHaveTextContent("authenticated");
       expect(screen.getByTestId("role")).toHaveTextContent("nutritionist");
       expect(screen.getByTestId("nutri")).toHaveTextContent("has-nutri");
+    });
+  });
+
+  it("resolves patient with revoked status to 'revoked' (Passo C08.7)", async () => {
+    const revokedProfile: PatientPortalProfile = {
+      uid: "revoked-patient-123",
+      patientId: "p-revoked",
+      nutritionistId: "n1",
+      nutritionistName: "Dr. Silva",
+      nutritionistEmail: "silva@test.com",
+      role: "patient",
+      status: "revoked",
+      createdAt: "2026-09-17",
+    };
+
+    vi.mocked(firebaseService.getPatientPortalProfile).mockResolvedValueOnce(
+      revokedProfile,
+    );
+
+    render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>,
+    );
+
+    await act(async () => {
+      await authCallback(
+        createMockUser("revoked-patient-123", "revogado@test.com"),
+      );
+    });
+
+    expect(screen.getByTestId("status")).toHaveTextContent("revoked");
+    expect(screen.getByTestId("role")).toHaveTextContent("patient");
+    expect(screen.getByTestId("patient")).toHaveTextContent("has-patient");
+  });
+
+  it("transitions to invitation_pending when activation is in progress before profile exists (Passo C08.1 / C08.2)", async () => {
+    vi.mocked(firebaseService.getPatientPortalProfile).mockResolvedValueOnce(
+      null,
+    );
+    vi.mocked(firebaseService.getNutritionistProfile).mockResolvedValueOnce(
+      null,
+    );
+
+    render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>,
+    );
+
+    // Simulate clicking beginInvitationActivation before Auth state resolution completes
+    await act(async () => {
+      screen.getByTestId("btn-begin-activation").click();
+    });
+
+    expect(screen.getByTestId("status")).toHaveTextContent(
+      "invitation_pending",
+    );
+
+    // Firebase Auth triggers onAuthStateChanged with the newly created account
+    await act(async () => {
+      await authCallback(
+        createMockUser("new-patient-123", "paciente.novo@test.com"),
+      );
+    });
+
+    // CRUCIAL: It must NOT transition to incomplete_profile (which would show professional onboarding)
+    expect(screen.getByTestId("status")).toHaveTextContent(
+      "invitation_pending",
+    );
+    expect(screen.getByTestId("role")).toHaveTextContent("none");
+  });
+
+  it("completes invitation activation and transitions to authenticated patient (Passo C08.4 / C08.5)", async () => {
+    vi.mocked(firebaseService.getPatientPortalProfile)
+      .mockResolvedValueOnce(null) // First query during Auth account creation: not ready yet
+      .mockResolvedValueOnce({
+        uid: "activated-patient-123",
+        patientId: "p-act",
+        nutritionistId: "n-act",
+        nutritionistName: "Dr. Active",
+        nutritionistEmail: "nutri@test.com",
+        role: "patient",
+        status: "active",
+        createdAt: "2026-09-18",
+      }); // Second query after completeInvitationActivation commits to Firestore
+
+    vi.mocked(firebaseService.getNutritionistProfile).mockResolvedValueOnce(
+      null,
+    );
+
+    render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>,
+    );
+
+    await act(async () => {
+      screen.getByTestId("btn-begin-activation").click();
+      await authCallback(
+        createMockUser("activated-patient-123", "activated@test.com"),
+      );
+    });
+
+    expect(screen.getByTestId("status")).toHaveTextContent(
+      "invitation_pending",
+    );
+
+    // Finish activation (simulating Firestore batch commit and explicit context completion)
+    await act(async () => {
+      screen.getByTestId("btn-complete-activation").click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("status")).toHaveTextContent("authenticated");
+      expect(screen.getByTestId("role")).toHaveTextContent("patient");
+      expect(screen.getByTestId("patient")).toHaveTextContent("has-patient");
+    });
+  });
+
+  it("cancels invitation activation and recovers user state on failure (Passo C08.6)", async () => {
+    vi.mocked(firebaseService.getPatientPortalProfile)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    vi.mocked(firebaseService.getNutritionistProfile)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+
+    render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>,
+    );
+
+    await act(async () => {
+      screen.getByTestId("btn-begin-activation").click();
+      await authCallback(createMockUser("cancel-user", "cancel@test.com"));
+    });
+
+    expect(screen.getByTestId("status")).toHaveTextContent(
+      "invitation_pending",
+    );
+
+    // Activation fails or is cancelled
+    await act(async () => {
+      screen.getByTestId("btn-cancel-activation").click();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("status")).toHaveTextContent(
+        "incomplete_profile",
+      );
     });
   });
 });

@@ -283,11 +283,9 @@ export const recalculateDietTotals = (meals: Meal[]): CalculatedDietTotals => {
       : isFiniteNumber(meal.fat)
         ? meal.fat
         : 0;
-    const fiber =
-      meal.mainOption?.micros?.fiber ?? meal.micros?.fiber ?? 0;
+    const fiber = meal.mainOption?.micros?.fiber ?? meal.micros?.fiber ?? 0;
     if (isFiniteNumber(fiber)) totals.fiber += fiber;
-    const sodium =
-      meal.mainOption?.micros?.sodium ?? meal.micros?.sodium ?? 0;
+    const sodium = meal.mainOption?.micros?.sodium ?? meal.micros?.sodium ?? 0;
     if (isFiniteNumber(sodium)) totals.sodium += sodium;
   }
 
@@ -351,17 +349,9 @@ export const sanitizeValidation = (
 
   const isApproved = Boolean(v.isApproved);
 
-  const rawTotals = sanitizeCalculatedTotals(v.calculatedTotals);
-  const calculatedTotals: CalculatedDietTotals = rawTotals || {
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-  };
-
-  const dev = (v.deviations && typeof v.deviations === "object"
-    ? v.deviations
-    : {}) as Record<string, unknown>;
+  const dev = (
+    v.deviations && typeof v.deviations === "object" ? v.deviations : {}
+  ) as Record<string, unknown>;
 
   const deviations = {
     caloriesDiff: isFiniteNumber(dev.caloriesDiff)
@@ -382,9 +372,7 @@ export const sanitizeValidation = (
     carbsPercent: isFiniteNumber(dev.carbsPercent)
       ? Number(dev.carbsPercent.toFixed(1))
       : 0,
-    fatDiff: isFiniteNumber(dev.fatDiff)
-      ? Number(dev.fatDiff.toFixed(1))
-      : 0,
+    fatDiff: isFiniteNumber(dev.fatDiff) ? Number(dev.fatDiff.toFixed(1)) : 0,
     fatPercent: isFiniteNumber(dev.fatPercent)
       ? Number(dev.fatPercent.toFixed(1))
       : 0,
@@ -392,14 +380,13 @@ export const sanitizeValidation = (
 
   const issues: PlanValidationIssue[] = Array.isArray(v.issues)
     ? v.issues
-        .filter(
-          (issue): issue is Record<string, unknown> =>
-            Boolean(
-              issue &&
-                typeof issue === "object" &&
-                typeof issue.code === "string" &&
-                typeof issue.message === "string",
-            ),
+        .filter((issue): issue is Record<string, unknown> =>
+          Boolean(
+            issue &&
+            typeof issue === "object" &&
+            typeof issue.code === "string" &&
+            typeof issue.message === "string",
+          ),
         )
         .map((issue) => {
           const cleanIssue: PlanValidationIssue = {
@@ -421,14 +408,43 @@ export const sanitizeValidation = (
     status,
     isApproved,
     issues,
-    calculatedTotals,
     deviations,
   };
+
+  if (typeof v.issuesSignature === "string" && v.issuesSignature.trim()) {
+    result.issuesSignature = v.issuesSignature.trim();
+  }
+
+  if (typeof v.approvedByUid === "string" && v.approvedByUid.trim()) {
+    result.approvedByUid = v.approvedByUid.trim();
+  }
+
+  if (typeof v.approvedAt === "string" && v.approvedAt.trim()) {
+    result.approvedAt = v.approvedAt.trim();
+  }
 
   if (isFiniteNumber(v.worstCaseAlternativeSodium)) {
     result.worstCaseAlternativeSodium = Math.round(
       v.worstCaseAlternativeSodium,
     );
+  }
+
+  if (
+    v.worstCaseAlternativeTotals &&
+    typeof v.worstCaseAlternativeTotals === "object"
+  ) {
+    const wcat = v.worstCaseAlternativeTotals as Record<string, unknown>;
+    result.worstCaseAlternativeTotals = {
+      minCalories: isFiniteNumber(wcat.minCalories)
+        ? Number(wcat.minCalories)
+        : 0,
+      maxCalories: isFiniteNumber(wcat.maxCalories)
+        ? Number(wcat.maxCalories)
+        : 0,
+      worstCaseSodium: isFiniteNumber(wcat.worstCaseSodium)
+        ? Number(wcat.worstCaseSodium)
+        : 0,
+    };
   }
 
   return result;
@@ -437,16 +453,15 @@ export const sanitizeValidation = (
 export const sanitizeLabExams = (raw: unknown): LabTest[] | undefined => {
   if (!Array.isArray(raw)) return undefined;
   const cleaned = raw
-    .filter(
-      (exam): exam is Record<string, unknown> =>
-        Boolean(
-          exam &&
-            typeof exam === "object" &&
-            typeof exam.name === "string" &&
-            exam.name.trim() &&
-            typeof exam.value === "string" &&
-            typeof exam.unit === "string",
-        ),
+    .filter((exam): exam is Record<string, unknown> =>
+      Boolean(
+        exam &&
+        typeof exam === "object" &&
+        typeof exam.name === "string" &&
+        exam.name.trim() &&
+        typeof exam.value === "string" &&
+        typeof exam.unit === "string",
+      ),
     )
     .map((exam) => {
       const clean: LabTest = {
@@ -483,17 +498,16 @@ export const sanitizeDecisionLog = (
 ): DecisionEntry[] | undefined => {
   if (!Array.isArray(raw)) return undefined;
   const cleaned = raw
-    .filter(
-      (entry): entry is Record<string, unknown> =>
-        Boolean(
-          entry &&
-            typeof entry === "object" &&
-            typeof entry.reason === "string" &&
-            entry.reason.trim() &&
-            (entry.type === "filter" ||
-              entry.type === "substitution" ||
-              entry.type === "warning"),
-        ),
+    .filter((entry): entry is Record<string, unknown> =>
+      Boolean(
+        entry &&
+        typeof entry === "object" &&
+        typeof entry.reason === "string" &&
+        entry.reason.trim() &&
+        (entry.type === "filter" ||
+          entry.type === "substitution" ||
+          entry.type === "warning"),
+      ),
     )
     .map((entry) => {
       const cleanEntry: DecisionEntry = {
@@ -528,8 +542,36 @@ export const sanitizeDecisionLog = (
   return cleaned.length > 0 ? cleaned : undefined;
 };
 
+/**
+ * R06: the professional asked to approve a plan that needs review, but the
+ * version being saved is not the one they reviewed (content, targets,
+ * restrictions, catalog or alerts changed). Nothing is saved; the UI must
+ * present the current alerts for a new explicit decision.
+ */
+export class DietReviewOutdatedError extends Error {
+  readonly code = "REVIEW_OUTDATED";
+  constructor() {
+    super("REVIEW_OUTDATED");
+    this.name = "DietReviewOutdatedError";
+  }
+}
+
+const assertReviewMatches = (
+  result: PlanValidationResult,
+  options?: ValidateDietPlanOptions,
+): void => {
+  if (
+    options?.allowApprovedReview &&
+    result.status === "requires_review" &&
+    !result.isApproved
+  ) {
+    throw new DietReviewOutdatedError();
+  }
+};
+
 export const validateAndSerializeDietPlan = (
   plan: DietPlan,
+  validationOptions?: ValidateDietPlanOptions,
 ): DietPlanFirestoreDto => {
   if (!plan || typeof plan !== "object") {
     throw new Error("Plano alimentar inválido: deve ser um objeto.");
@@ -639,10 +681,23 @@ export const validateAndSerializeDietPlan = (
     dto.calculatedTotals = cleanTotals;
   }
 
-  const cleanValidation = sanitizeValidation(plan.validation);
-  if (cleanValidation) {
-    dto.validation = cleanValidation;
-  }
+  // Re-validate unconditionally during creation
+  const targets = {
+    calories: dto.dailyCalories,
+    protein: dto.macronutrients.proteinGrams,
+    carbs: dto.macronutrients.carbsGrams,
+    fat: dto.macronutrients.fatGrams,
+  };
+  // Context defaults come from the plan itself; explicit options win (R06).
+  const revalidated = validateDietPlan(dto.meals, targets, {
+    ...validationOptions,
+    clinicalTags: validationOptions?.clinicalTags ?? dto.clinicalTags,
+    mode: validationOptions?.mode ?? dto.mode,
+    catalogVersion: validationOptions?.catalogVersion ?? dto.datasetVersion,
+  });
+  assertReviewMatches(revalidated, validationOptions);
+  const { calculatedTotals: _revalTotals, ...revalidatedClean } = revalidated;
+  dto.validation = revalidatedClean;
 
   if (
     typeof plan.algorithmVersion === "string" &&
@@ -811,27 +866,48 @@ export const validateAndSerializeDietUpdate = (
     const recalculatedTotals = recalculateDietTotals(dto.meals);
     dto.calculatedTotals = recalculatedTotals;
 
-    // Determine target goals to recompute validation deviations
-    let targets: {
-      calories: number;
-      protein: number;
-      carbs: number;
-      fat: number;
-    } | null = null;
+    // Passo C05: Mark manual edit unless explicitly specified otherwise
+    if (partial.isManuallyEdited !== undefined) {
+      dto.isManuallyEdited = Boolean(partial.isManuallyEdited);
+    } else {
+      dto.isManuallyEdited = true;
+    }
+  }
 
-    if (dto.dailyCalories !== undefined && dto.macronutrients !== undefined) {
-      targets = {
-        calories: dto.dailyCalories,
-        protein: dto.macronutrients.proteinGrams,
-        carbs: dto.macronutrients.carbsGrams,
-        fat: dto.macronutrients.fatGrams,
-      };
-    } else if (
-      partial.validation?.calculatedTotals &&
-      partial.validation?.deviations
-    ) {
-      const prevCalc = partial.validation.calculatedTotals;
-      const prevDev = partial.validation.deviations;
+  // Determine target goals to recompute validation deviations
+  let targets: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  } | null = null;
+
+  if (dto.dailyCalories !== undefined && dto.macronutrients !== undefined) {
+    targets = {
+      calories: dto.dailyCalories,
+      protein: dto.macronutrients.proteinGrams,
+      carbs: dto.macronutrients.carbsGrams,
+      fat: dto.macronutrients.fatGrams,
+    };
+  } else if (
+    existingPlan &&
+    existingPlan.dailyCalories &&
+    existingPlan.macronutrients
+  ) {
+    targets = {
+      calories: existingPlan.dailyCalories,
+      protein: existingPlan.macronutrients.proteinGrams,
+      carbs: existingPlan.macronutrients.carbsGrams,
+      fat: existingPlan.macronutrients.fatGrams,
+    };
+  } else if (
+    (partial.calculatedTotals || existingPlan?.calculatedTotals) &&
+    (partial.validation?.deviations || existingPlan?.validation?.deviations)
+  ) {
+    const prevCalc = partial.calculatedTotals || existingPlan?.calculatedTotals;
+    const prevDev =
+      partial.validation?.deviations || existingPlan?.validation?.deviations;
+    if (prevCalc && prevDev) {
       targets = {
         calories: Math.max(
           1,
@@ -845,80 +921,67 @@ export const validateAndSerializeDietUpdate = (
           0,
           Number((prevCalc.carbs - prevDev.carbsDiff).toFixed(1)),
         ),
-        fat: Math.max(
-          0,
-          Number((prevCalc.fat - prevDev.fatDiff).toFixed(1)),
-        ),
+        fat: Math.max(0, Number((prevCalc.fat - prevDev.fatDiff).toFixed(1))),
       };
     }
+  }
 
-    if (targets) {
-      const options: ValidateDietPlanOptions = {
-        clinicalTags:
-          dto.clinicalTags || partial.clinicalTags || existingPlan?.clinicalTags,
-        mode: dto.mode || partial.mode || existingPlan?.mode,
-        restrictions:
-          validationOptions?.restrictions ||
-          (partial as unknown as { restrictions?: string[] })?.restrictions ||
-          (existingPlan as unknown as { restrictions?: string[] })?.restrictions,
-        availableFoodsCatalog: validationOptions?.availableFoodsCatalog,
-        catalogVersion:
-          validationOptions?.catalogVersion ||
-          dto.datasetVersion ||
-          partial.datasetVersion ||
-          existingPlan?.datasetVersion,
-        tolerances: validationOptions?.tolerances,
-        allowApprovedReview:
-          validationOptions?.allowApprovedReview ??
-          (partial.validation?.isApproved === true),
-      };
-      const revalidated = validateDietPlan(dto.meals, targets, options);
-      if (
-        partial.validation?.isApproved !== undefined &&
-        revalidated.status !== "infeasible"
-      ) {
-        revalidated.isApproved = Boolean(partial.validation.isApproved);
-      }
-      dto.validation = revalidated;
-    } else if (partial.validation) {
-      const cleanVal = sanitizeValidation(partial.validation);
-      if (cleanVal) {
-        cleanVal.calculatedTotals = recalculatedTotals;
-        dto.validation = cleanVal;
-      }
-    }
+  let didRevalidate = false;
+  if (targets) {
+    const options: ValidateDietPlanOptions = {
+      clinicalTags:
+        dto.clinicalTags || partial.clinicalTags || existingPlan?.clinicalTags,
+      mode: dto.mode || partial.mode || existingPlan?.mode,
+      restrictions:
+        validationOptions?.restrictions ||
+        (partial as unknown as { restrictions?: string[] })?.restrictions ||
+        (existingPlan as unknown as { restrictions?: string[] })?.restrictions,
+      availableFoodsCatalog: validationOptions?.availableFoodsCatalog,
+      catalogVersion:
+        validationOptions?.catalogVersion ||
+        dto.datasetVersion ||
+        partial.datasetVersion ||
+        existingPlan?.datasetVersion,
+      tolerances: validationOptions?.tolerances,
+      allowApprovedReview: validationOptions?.allowApprovedReview ?? false,
+      approvedByUid: validationOptions?.approvedByUid,
+      reviewedSignature: validationOptions?.reviewedSignature,
+    };
 
-    // Passo C05: Mark manual edit unless explicitly specified otherwise
-    if (partial.isManuallyEdited !== undefined) {
-      dto.isManuallyEdited = Boolean(partial.isManuallyEdited);
-    } else {
-      dto.isManuallyEdited = true;
+    // Always validate with latest meals, whether from dto or existingPlan
+    const mealsToValidate = dto.meals || existingPlan?.meals || [];
+    if (mealsToValidate.length > 0) {
+      const revalidated = validateDietPlan(mealsToValidate, targets, options);
+      assertReviewMatches(revalidated, options);
+      const { calculatedTotals: _revalTotals, ...revalidatedClean } =
+        revalidated;
+      dto.validation = revalidatedClean;
+      didRevalidate = true;
     }
+  }
 
-    if (typeof partial.editedAt === "string" && partial.editedAt.trim()) {
-      dto.editedAt = partial.editedAt.trim();
-    } else if (dto.isManuallyEdited) {
-      dto.editedAt = new Date().toISOString();
-    }
-  } else {
-    // Meals not being updated directly
+  if (!didRevalidate) {
     if (partial.calculatedTotals !== undefined) {
       const cleanTotals = sanitizeCalculatedTotals(partial.calculatedTotals);
       if (cleanTotals) dto.calculatedTotals = cleanTotals;
     }
-
     if (partial.validation !== undefined) {
       const cleanVal = sanitizeValidation(partial.validation);
       if (cleanVal) dto.validation = cleanVal;
     }
+  }
 
-    if (partial.isManuallyEdited !== undefined) {
-      dto.isManuallyEdited = Boolean(partial.isManuallyEdited);
-    }
+  if (
+    partial.isManuallyEdited !== undefined &&
+    dto.isManuallyEdited === undefined
+  ) {
+    dto.isManuallyEdited = Boolean(partial.isManuallyEdited);
+  }
 
-    if (typeof partial.editedAt === "string" && partial.editedAt.trim()) {
-      dto.editedAt = partial.editedAt.trim();
-    }
+  if (typeof partial.editedAt === "string" && partial.editedAt.trim()) {
+    dto.editedAt = partial.editedAt.trim();
+  } else if (dto.isManuallyEdited) {
+    dto.editedAt = new Date().toISOString();
   }
 
   if (
@@ -947,11 +1010,19 @@ const getDietsCollection = (userId: string) =>
 const getDietDoc = (userId: string, dietId: string) =>
   doc(db, "users", userId, "diets", dietId);
 
-export const saveDietPlan = async (userId: string, dietPlan: DietPlan) => {
+export const saveDietPlan = async (
+  userId: string,
+  dietPlan: DietPlan,
+  validationOptions?: ValidateDietPlanOptions,
+) => {
   if (!userId || typeof userId !== "string") {
     throw new Error("ID do usuário nutricionista é obrigatório.");
   }
-  if (!dietPlan.patientId || typeof dietPlan.patientId !== "string" || !dietPlan.patientId.trim()) {
+  if (
+    !dietPlan.patientId ||
+    typeof dietPlan.patientId !== "string" ||
+    !dietPlan.patientId.trim()
+  ) {
     throw new Error("ID do paciente é obrigatório para prescrever dieta.");
   }
   const patientSnap = await getDoc(
@@ -972,7 +1043,7 @@ export const saveDietPlan = async (userId: string, dietPlan: DietPlan) => {
     );
   }
 
-  const dto = validateAndSerializeDietPlan(dietPlan);
+  const dto = validateAndSerializeDietPlan(dietPlan, validationOptions);
   try {
     return await addDoc(getDietsCollection(userId), dto);
   } catch (error) {
@@ -1028,10 +1099,14 @@ export const updateDietPlan = async (
     }
   }
 
-  const needsMerge =
-    (dietPlan.meals && (!dietPlan.dailyCalories || !dietPlan.macronutrients)) ||
-    (!dietPlan.meals && (dietPlan.dailyCalories || dietPlan.macronutrients));
-
+  const needsMerge = Boolean(
+    dietPlan.meals ||
+    dietPlan.dailyCalories ||
+    dietPlan.macronutrients ||
+    dietPlan.clinicalTags ||
+    dietPlan.mode ||
+    dietPlan.algorithmVersion,
+  );
   if (needsMerge && existing) {
     fullPartial = {
       meals: existing.meals,
@@ -1046,7 +1121,11 @@ export const updateDietPlan = async (
     };
   }
 
-  const updateDto = validateAndSerializeDietUpdate(fullPartial, existing, options);
+  const updateDto = validateAndSerializeDietUpdate(
+    fullPartial,
+    existing,
+    options,
+  );
   try {
     return await updateDoc(getDietDoc(userId, dietId), updateDto);
   } catch (error) {

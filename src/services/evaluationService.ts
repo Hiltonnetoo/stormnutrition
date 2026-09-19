@@ -14,6 +14,18 @@ import {
   DEFAULT_CLINIC_TIMEZONE,
 } from "../utils/dateTime";
 
+/**
+ * Array field exactly as stored. `weightHistory`, `adherenceLog` and
+ * `selfEvaluations` are append-only for the patient: the rules require the
+ * stored prefix to stay identical, so writes are `stored + [new]`. The
+ * sanitized view from validatePatient (defaults filled in, invalid entries
+ * dropped) and any re-sorting must never be written back — legacy histories
+ * out of order or with future dates are preserved as they are (R02-C).
+ * Readers sort for display.
+ */
+const storedArray = <T>(raw: DocumentData | undefined, field: string): T[] =>
+  Array.isArray(raw?.[field]) ? (raw[field] as T[]) : [];
+
 export interface LogWeightOptions {
   clientEventId?: string;
   authorUid?: string;
@@ -42,8 +54,7 @@ export const logPatientWeight = async (
       throw new Error("Paciente não encontrado.");
     }
 
-    const data = validatePatient({ ...snap.data(), id: snap.id });
-    const history = data.weightHistory || [];
+    const history = storedArray<WeightRecord>(snap.data(), "weightHistory");
 
     // Idempotency / Deduplication check
     if (options?.clientEventId) {
@@ -74,10 +85,8 @@ export const logPatientWeight = async (
     if (options?.muscleMassKg != null)
       newRecord.muscleMassKg = options.muscleMassKg;
 
-    // Maintain strictly sorted history by date
-    const updatedHistory = [...history, newRecord].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
+    // Append-only: never reorder stored records (see storedArray).
+    const updatedHistory = [...history, newRecord];
 
     tx.update(patientRef, {
       weight: validWeight,
@@ -154,21 +163,29 @@ export const completeSelfEvaluation = async (
       throw new Error("Paciente não encontrado.");
     }
 
-    const data = validatePatient({ ...snap.data(), id: snap.id });
+    const raw = snap.data();
     let found = false;
 
-    const evaluations = (data.selfEvaluations || []).map((ev) => {
-      if (ev.id === protocolId) {
+    // Only the answered protocol changes; every other stored entry is written
+    // back untouched (the rules compare them element by element).
+    const evaluations = storedArray<SelfEvaluation>(raw, "selfEvaluations").map(
+      (ev) => {
+        if (ev.id !== protocolId) return ev;
         found = true;
-        return {
+        const completed: SelfEvaluation = {
           ...ev,
-          ...evaluationData,
-          status: "completed" as const,
+          status: "completed",
           completionDate: ev.completionDate || toUtcIsoString(),
         };
-      }
-      return ev;
-    });
+        const measurements = evaluationData.measurements ?? ev.measurements;
+        const wellbeing = evaluationData.wellbeing ?? ev.wellbeing;
+        const notes = evaluationData.notes ?? ev.notes;
+        if (measurements !== undefined) completed.measurements = measurements;
+        if (wellbeing !== undefined) completed.wellbeing = wellbeing;
+        if (notes !== undefined) completed.notes = notes;
+        return completed;
+      },
+    );
 
     if (!found) {
       throw new Error(
@@ -187,7 +204,7 @@ export const completeSelfEvaluation = async (
       );
       updates.weight = validWeight;
 
-      const history = data.weightHistory || [];
+      const history = storedArray<WeightRecord>(raw, "weightHistory");
       const weightRecordId = `eval_weight_${protocolId}`;
 
       // Deduplicate if weight for this evaluation was already registered
@@ -208,9 +225,7 @@ export const completeSelfEvaluation = async (
         if (options?.clientEventId)
           newRecord.clientEventId = options.clientEventId;
 
-        updates.weightHistory = [...history, newRecord].sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-        );
+        updates.weightHistory = [...history, newRecord];
       }
     }
 
@@ -247,8 +262,7 @@ export const logAdherence = async (
       throw new Error("Paciente não encontrado.");
     }
 
-    const data = validatePatient({ ...snap.data(), id: snap.id });
-    const log = (data.adherenceLog || []) as AdherenceEntry[];
+    const log = storedArray<AdherenceEntry>(snap.data(), "adherenceLog");
 
     const nowUtc = toUtcIsoString();
     let updatedLog: AdherenceEntry[];
@@ -279,9 +293,7 @@ export const logAdherence = async (
           ? { clientEventId: options.clientEventId }
           : {}),
       };
-      updatedLog = [...log, newEntry].sort((a, b) =>
-        a.date.localeCompare(b.date),
-      );
+      updatedLog = [...log, newEntry];
     }
 
     tx.update(patientRef, {

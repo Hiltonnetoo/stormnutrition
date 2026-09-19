@@ -115,7 +115,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           >
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs text-slate-800 dark:text-slate-200">
-                <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                <span className="inline-block w-2 h-2 rounded-full bg-amber-500 shrink-0" />
                 <span className="font-bold text-amber-950 dark:text-amber-200">
                   {t("demo.banner_title")}:
                 </span>
@@ -127,7 +127,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <button
                   type="button"
                   onClick={() => setGuideModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-950 dark:text-amber-200 font-bold text-[11px] transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-950 dark:text-amber-200 font-bold text-xs transition-colors cursor-pointer"
                 >
                   <SparklesIcon className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                   {t("demo.guide_button")}

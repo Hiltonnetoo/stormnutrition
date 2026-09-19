@@ -74,7 +74,7 @@ const ClinicalReviewModal: React.FC<ClinicalReviewModalProps> = ({
               </span>
             </div>
             {isDivergent && (
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Meta prescrita:{" "}
                 <span className="font-semibold">{targetCalories} kcal</span>
               </p>

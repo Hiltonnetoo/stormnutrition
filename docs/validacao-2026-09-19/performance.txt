@@ -1,0 +1,55 @@
+
+> stormnutrition-v5---nutritional-management@0.0.0 test:perf:queries
+> firebase emulators:exec --only firestore --project demo-storm "vitest run --config vitest.perf.config.ts"
+
+i  emulators: Starting emulators: firestore
+i  emulators: Detected demo project ID "demo-storm", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: vitest run --config vitest.perf.config.ts
+
+ RUN  v4.1.8 /Users/hiltonneto/Desktop/Isanutri V5
+
+
+Cenário: 300 pacientes · 1500 dietas · 903 consultas
+
+### Antes (réplica do plano anterior à etapa 14)
+
+| Tela | Listeners | Alvos distintos | Documentos lidos | Agregações | Payload aprox. | Leituras estimadas |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Busca global (shell) | 1 | 1 | 300 | 0 | 452 KB | 300 |
+| Dashboard | 7 | 2 | 1800 | 0 | 39514 KB | 1800 |
+| Pacientes | 2 | 2 | 1800 | 0 | 39514 KB | 1800 |
+| Agenda | 2 | 2 | 1203 | 0 | 630 KB | 1203 |
+| Relatórios | 6 | 2 | 1800 | 0 | 39514 KB | 1800 |
+| Configurações (plano) | 1 | 1 | 300 | 0 | 452 KB | 300 |
+| Portal do paciente | 2 | 2 | 12 | 0 | 133 KB | 12 |
+
+### Depois (serviços atuais)
+
+| Tela | Listeners | Alvos distintos | Documentos lidos | Agregações | Payload aprox. | Leituras estimadas |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Diretório de pacientes (1× por sessão) | 1 | 1 | 300 | 0 | 452 KB | 300 |
+| Dashboard | 1 | 1 | 6 | 7 | 156 KB | 14 |
+| Pacientes (1ª página) | 20 | 20 | 20 | 0 | 521 KB | 20 |
+| Agenda (mês visível + próximas) | 2 | 2 | 67 | 0 | 13 KB | 67 |
+| Relatórios | 0 | 0 | 0 | 2 | 0 KB | 3 |
+| Configurações (plano) | 0 | 0 | 0 | 1 | 0 KB | 1 |
+| Portal do paciente | 2 | 2 | 7 | 0 | 132 KB | 7 |
+
+### Sessão típica (dashboard → pacientes → agenda → relatórios → configurações)
+
+- Antes: 7203 documentos · 120076 KB · ~7203 leituras
+- Depois: 393 documentos · 1142 KB · ~405 leituras
+
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  10:47:27
+   Duration  9.39s (transform 121ms, setup 0ms, import 238ms, tests 9.09s, environment 0ms)
+
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

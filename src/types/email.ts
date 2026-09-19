@@ -4,5 +4,5 @@ export interface EmailLog {
   patientEmail: string;
   dietDate: string;
   sentAt: string;
-  status: "Sent" | "Failed";
+  status: "Sent" | "Failed" | "Simulated";
 }

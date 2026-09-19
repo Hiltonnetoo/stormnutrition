@@ -16,7 +16,7 @@ const errMsg = (m?: string, id?: string) =>
     </p>
   ) : null;
 const errBorder = (on?: string) =>
-  on ? "!border-rose-400 focus:!ring-rose-500/60 focus:!border-rose-400" : "";
+  on ? "border-rose-400 focus:ring-rose-500/60 focus:border-rose-400" : "";
 
 const Step2Contact: React.FC<Step2Props> = ({ data, onDataChange, errors }) => {
   const { t } = useTranslation();

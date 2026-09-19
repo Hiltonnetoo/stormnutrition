@@ -1,14 +1,6 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import "./i18n";
 import "./index.css";
-import App from "./App";
-import { AuthProvider } from "./contexts/AuthContext";
-import { ErrorBoundary } from "./components/ErrorBoundary";
 import { runStartupDiagnostics } from "./services/configValidation";
-
-// Run configuration validation diagnostics
-runStartupDiagnostics();
+import { renderStartupError } from "./startupErrorScreen";
 
 // Initialize theme state (moved from index.html inline script to adhere to strict CSP)
 try {
@@ -23,13 +15,21 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <ErrorBoundary level="app">
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </ErrorBoundary>
-  </React.StrictMode>,
-);
+// Validate the configuration BEFORE loading the app: importing App or
+// AuthProvider initializes Firebase, which throws on a missing API key or an
+// unsafe emulator setup. With a static import that error would happen before
+// this check could report it.
+const config = runStartupDiagnostics();
+
+if (!config.isValid) {
+  renderStartupError(rootElement, config.errors);
+} else {
+  import("./mountApp")
+    .then(({ mountApp }) => mountApp(rootElement))
+    .catch((error: unknown) => {
+      console.error("[Storm Nutrition] Falha ao carregar a aplicação:", error);
+      renderStartupError(rootElement, [
+        error instanceof Error ? error.message : String(error),
+      ]);
+    });
+}

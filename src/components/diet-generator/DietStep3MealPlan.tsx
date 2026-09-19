@@ -182,27 +182,27 @@ const Step3MealPlan: React.FC<Step3Props> = ({
                     <span className="text-sm font-extrabold text-slate-900 dark:text-white">
                       {Math.round(mCal)}
                     </span>
-                    <span className="text-[11px] text-slate-500">kcal</span>
+                    <span className="text-xs text-slate-500">kcal</span>
                   </span>
                   <span className="flex items-baseline gap-1">
                     <span className="text-xs font-bold text-sky-600">
                       {Math.round(mProt)}g
                     </span>
-                    <span className="text-[9px] text-slate-400">P</span>
+                    <span className="text-xs text-slate-400">P</span>
                   </span>
                   <span className="flex items-baseline gap-1">
                     <span className="text-xs font-bold text-amber-600">
                       {Math.round(mCarb)}g
                     </span>
-                    <span className="text-[9px] text-slate-400">C</span>
+                    <span className="text-xs text-slate-400">C</span>
                   </span>
                   <span className="flex items-baseline gap-1">
                     <span className="text-xs font-bold text-orange-600">
                       {Math.round(mFat)}g
                     </span>
-                    <span className="text-[9px] text-slate-400">G</span>
+                    <span className="text-xs text-slate-400">G</span>
                   </span>
-                  <span className="ml-auto text-[11px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                  <span className="ml-auto text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
                     {meal.percentage}% {t("diet_generator.meal_plan.of_day")}
                   </span>
                 </div>

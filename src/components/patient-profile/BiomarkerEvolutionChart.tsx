@@ -57,7 +57,7 @@ const BiomarkerEvolutionChart: React.FC<BiomarkerEvolutionChartProps> = ({
     <div className="space-y-4">
       <div className="flex justify-between items-end">
         <div>
-          <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">
             {label}
           </p>
           <p className="text-xl font-black text-gray-800 dark:text-white">
@@ -66,7 +66,7 @@ const BiomarkerEvolutionChart: React.FC<BiomarkerEvolutionChartProps> = ({
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">
             {t("profile.biomarkers.trend")}
           </p>
           <p
@@ -132,7 +132,7 @@ const BiomarkerEvolutionChart: React.FC<BiomarkerEvolutionChartProps> = ({
       </svg>
       <div
         aria-hidden="true"
-        className="flex justify-between text-[10px] font-black text-gray-500 uppercase"
+        className="flex justify-between text-xs font-black text-gray-500 uppercase"
       >
         <span>{formatDateWithLocale(sortedData[0].date, i18n.language)}</span>
         <span>

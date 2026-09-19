@@ -1,0 +1,925 @@
+
+ RUN  v4.1.8 /Users/hiltonneto/Desktop/Isanutri V5
+
+ ❯ src/components/__tests__/DietPlanDisplay.clinicalContext.test.tsx (2 tests | 2 failed) 43ms
+     × labels a selected condition as context, even with a related warning (pt) 35ms
+     × labels a selected condition as context, even with a related warning (en) 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/__tests__/DietPlanDisplay.clinicalContext.test.tsx > Clinical context is not a validation guarantee > labels a selected condition as context, even with a related warning (pt)
+TestingLibraryElementError: Unable to find an element with the text: diet_generator.display.considered. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"card p-6 animate-fade-in"[39m
+      [33mid[39m=[32m"diet-plan-display-content"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col sm:flex-row justify-between sm:items-center mb-5 pb-5 border-b border-slate-100 dark:border-slate-800"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<h2[39m
+            [33mclass[39m=[32m"text-xl font-extrabold text-slate-900 dark:text-white"[39m
+          [36m>[39m
+            [0mPlano Gerado para Synthetic Patient[0m
+          [36m</h2>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"text-sm text-slate-500 mt-0.5"[39m
+          [36m>[39m
+            [0mInício em 19/09/2026 · Duração: 7 dias[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex flex-wrap items-center gap-2 mt-3 sm:mt-0 no-export"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"btn btn-ghost btn-sm text-rose-700 hover:text-rose-800 hover:bg-rose-50 mr-auto sm:mr-2"[39m
+          [36m>[39m
+            [0mDescartar[0m
+          [36m</button>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-wrap gap-2"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"btn btn-secondary btn-sm"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"shrink-0"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"w-4 h-4"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mfocusable[39m=[32m"false"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"[39m
+                  [36m/>[39m
+                  [36m<polyline[39m
+                    [33mpoints[39m=[32m"7 10 12 15 17 10"[39m
+                  [36m/>[39m
+                  [36m<line[39m
+                    [33mx1[39m=[32m"12"[39m
+                    [33mx2[39m=[32m"12"[39m
+                    [33my1[39m=[32m"15"[39m
+                    [33my2[39m=[32m"3"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [0mExportar[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"btn btn-secondary btn-sm"[39m
+            [36m>[39m
+              [0mSalvar como modelo[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"btn btn-primary btn-md bg-sky-600 hover:bg-sky-700 shadow-sky-600/25 font-bold"[39m
+            [36m>[39m
+              [0mSalvar Plano[0m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"mb-5 space-y-3 no-export"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-start gap-3 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-700 dark:text-amber-300 text-xs"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"w-5 h-5 shrink-0 mt-0.5"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mfocusable[39m=[32m"false"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 9v4"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 17h.01"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"font-bold"[39m
+            [36m>[39m
+              [0mAviso de Validação Cruzada[0m
+            [36m</p>[39m
+            [36m<p>[39m
+              [0mA soma das refeições (0 kcal) diverge da meta (2000 kcal). Ajuste porções manualmente se necessário.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"mb-5 flex flex-wrap items-center gap-2"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"badge badge-info"[39m
+        [36m>[39m
+          [0mMotor Clínico Storm Nutrition[0m
+        [36m</span>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"badge badge-warning"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"inline-flex shrink-0"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"w-3.5 h-3.5"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mfocusable[39m=[32m"false"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 9v4"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 17h.01"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+          [36m</span>[39m
+          [0mRequer revisão clínica[0m
+        [36m</span>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"badge badge-brand uppercase"[39m
+        [36m>[39m
+          [0mModo: Geral[0m
+        [36m</span>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"badge badge-success"[39m
+        [36m>[39m
+          [0m✅ Hipertensão Arterial Respeitado[0m
+        [36m</span>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"mb-5 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200 text-xs space-y-1.5 no-export"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-start gap-2"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"w-4 h-4 shrink-0"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mfocusable[39m=[32m"false"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 9v4"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 17h.01"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"sr-only"[39m
+          [36m>[39m
+            [0mAtenção[0m
+            [0m:[0m
+            [0m [0m
+          [36m</span>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"font-medium"[39m
+          [36m>[39m
+            [0mPior cenário de sódio nas combinações de alternativas atinge 3000mg (limite: 2000mg).[0m
+          [36m</span>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"bg-sage-50 dark:bg-sage-900/30 p-4 rounded-2xl mb-6 space-y-3"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-sage-200/60 dark:border-sage-800 pb-2"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs font-bold text-sage-800 dark:text-sage-200 uppercase tracking-wider"[39m
+            [36m>[39m
+              [0mTotais Calculados do Cardápio[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs text-slate-500"[39m
+            [36m>[39m
+              [0mResumo Nutricional Diário[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid grid-cols-2 md:grid-cols-4 gap-3"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-white/80 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs font-semibold text-slate-500 uppercase"[39m
+            [36m>[39m
+              [0mCalorias (kcal)[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-lg font-extrabold text-slate-900 dark:text-white mt-0.5 stat-number"[39m
+            [36m>[39m
+              [0m0 kcal[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs text-slate-400 mt-0.5"[39m
+            [36m>[39m
+              [0mMetas Prescritas[0m
+              [0m:[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"font-semibold text-slate-600 dark:text-slate-300"[39m
+              [36m>[39m
+                [0m2000 kcal[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1 font-bold text-amber-600"[39m
+              [36m>[39m
+                [0m([0m
+                [0m-2000[0m
+                [0m)[0m
+              [36m</span>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-white/80 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs font-semibold text-slate-500 uppercase"[39m
+            [36m>[39m
+              [0mProteínas (20%)[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-lg font-extrabold text-slate-900 dark:text-white mt-0.5 stat-number"[39m
+            [36m>[39m
+              [0m0.0g[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs text-slate-400 mt-0.5"[39m
+            [36m>[39m
+              [0mMetas Prescritas[0m
+              [0m:[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"font-semibold text-slate-600 dark:text-slate-300"[39m
+              [36m>[39m
+                [0m100.0g[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1 font-bold text-amber-600"[39m
+              [36m>[39m
+                [0m([0m
+                [0m-100[0m
+                [0m)[0m
+              [36m</span>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-white/80 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs font-semibold text-slate-500 uppercase"[39m
+            [36m>[39m
+              [0mCarboidratos (50%)[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-lg font-extrabold text-slate-900 dark:text-white mt-0.5 stat-number"[39m
+            [36m>[39m
+              [0m0.0g[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs text-slate-400 mt-0.5"[39m
+            [36m>[39m
+              [0mMetas Prescritas[0m
+              [0m:[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"font-semibold text-slate-600 dark:text-slate-300"[39m
+              [36m>[39m
+                [0m250.0g[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1 font-bold text-amber-600"[39m
+              [36m>[39m
+                [0m([0m
+                [0m-250[0m
+                [0m)[0m
+              [36m</span>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-white/80 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs font-semibold text-slate-500 uppercase"[39m
+            [36m>[39m
+              [0mGorduras (30%)[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-lg font-extrabold text-slate-900 dark:text-white mt-0.5 stat-number"[39m
+            [36m>[39m
+              [0m0.0g[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs text-slate-400 mt-0.5"[39m
+            [36m>[39m
+              [0mMetas Prescritas[0m
+              [0m:[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"font-semibold text-slate-600 dark:text-slate-300"[39m
+              [36m>[39m
+                [0m67.0g[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1 font-bold text-amber-600"[39m
+              [36m>[39m
+                [0m([0m
+                [0m-67[0m
+                [0m)[0m
+              [36m</span>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"space-y-4"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"mt-6"[39m
+      [36m>[39m
+        [36m<h3[39m
+          [33mclass[39m=[32m"text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"w-5 h-5"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mfocusable[39m=[32m"false"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<rect[39m
+              [33mheight[39m=[32m"4"[39m
+              [33mrx[39m=[32m"1"[39m
+              [33mry[39m=[32m"1"[39m
+              [33mwidth[39m=[32m"8"[39m
+              [33mx[39m=[32m"8"[39m
+              [33my[39m=[32m"2"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 11h4"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 16h4"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M8 11h.01"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M8 16h.01"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0m [0m
+          [0mRecomendações Gerais[0m
+        [36m</h3>[39m
+        [36m<ul[39m
+          [33mclass[39m=[32m"mt-2 list-disc list-inside space-y-1 text-slate-600 dark:text-slate-300"[39m
+        [36m>[39m
+          [36m<li>[39m
+            [0mBeba aproximadamente 2.0 litros de água por dia.[0m
+          [36m</li>[39m
+        [36m</ul>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/components/__tests__/DietPlanDisplay.clinicalContext.test.tsx:28:26
+     26|     render(<DietPlanDisplay plan={plan} onSave={vi.fn()} onDiscard={vi…
+     27|     const label = i18n.t("diet_generator.display.considered", { tag: i…
+     28|     const badge = screen.getByText(label);
+       |                          ^
+     29|     expect(badge).toHaveClass("badge-info");
+     30|     expect(badge).not.toHaveClass("badge-success");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/components/__tests__/DietPlanDisplay.clinicalContext.test.tsx > Clinical context is not a validation guarantee > labels a selected condition as context, even with a related warning (en)
+TestingLibraryElementError: Unable to find an element with the text: diet_generator.display.considered. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"card p-6 animate-fade-in"[39m
+      [33mid[39m=[32m"diet-plan-display-content"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex flex-col sm:flex-row justify-between sm:items-center mb-5 pb-5 border-b border-slate-100 dark:border-slate-800"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<h2[39m
+            [33mclass[39m=[32m"text-xl font-extrabold text-slate-900 dark:text-white"[39m
+          [36m>[39m
+            [0mPlan Generated for Synthetic Patient[0m
+          [36m</h2>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"text-sm text-slate-500 mt-0.5"[39m
+          [36m>[39m
+            [0mStarts on 9/19/2026 · Duration: 7 days[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex flex-wrap items-center gap-2 mt-3 sm:mt-0 no-export"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"btn btn-ghost btn-sm text-rose-700 hover:text-rose-800 hover:bg-rose-50 mr-auto sm:mr-2"[39m
+          [36m>[39m
+            [0mDiscard[0m
+          [36m</button>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex flex-wrap gap-2"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"btn btn-secondary btn-sm"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"shrink-0"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"w-4 h-4"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mfocusable[39m=[32m"false"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"[39m
+                  [36m/>[39m
+                  [36m<polyline[39m
+                    [33mpoints[39m=[32m"7 10 12 15 17 10"[39m
+                  [36m/>[39m
+                  [36m<line[39m
+                    [33mx1[39m=[32m"12"[39m
+                    [33mx2[39m=[32m"12"[39m
+                    [33my1[39m=[32m"15"[39m
+                    [33my2[39m=[32m"3"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</span>[39m
+              [0mExport[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"btn btn-secondary btn-sm"[39m
+            [36m>[39m
+              [0mSave as model[0m
+            [36m</button>[39m
+            [36m<button[39m
+              [33mclass[39m=[32m"btn btn-primary btn-md bg-sky-600 hover:bg-sky-700 shadow-sky-600/25 font-bold"[39m
+            [36m>[39m
+              [0mSave Plan[0m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"mb-5 space-y-3 no-export"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-start gap-3 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-700 dark:text-amber-300 text-xs"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"w-5 h-5 shrink-0 mt-0.5"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mfocusable[39m=[32m"false"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 9v4"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 17h.01"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"font-bold"[39m
+            [36m>[39m
+              [0mCross-Validation Warning[0m
+            [36m</p>[39m
+            [36m<p>[39m
+              [0mThe sum of the meals (0 kcal) diverges from target (2000 kcal). Adjust portions manually if needed.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"mb-5 flex flex-wrap items-center gap-2"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"badge badge-info"[39m
+        [36m>[39m
+          [0mStorm Nutrition Clinical Engine[0m
+        [36m</span>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"badge badge-warning"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"inline-flex shrink-0"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"w-3.5 h-3.5"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mfocusable[39m=[32m"false"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 9v4"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12 17h.01"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+          [36m</span>[39m
+          [0mRequires clinical review[0m
+        [36m</span>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"badge badge-brand uppercase"[39m
+        [36m>[39m
+          [0mMode: General[0m
+        [36m</span>[39m
+        [36m<span[39m
+          [33mclass[39m=[32m"badge badge-success"[39m
+        [36m>[39m
+          [0m✅ Hypertension Respected[0m
+        [36m</span>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"mb-5 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200 text-xs space-y-1.5 no-export"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-start gap-2"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"w-4 h-4 shrink-0"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mfocusable[39m=[32m"false"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<path[39m
+              [33md[39m=[32m"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 9v4"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 17h.01"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"sr-only"[39m
+          [36m>[39m
+            [0mWarning[0m
+            [0m:[0m
+            [0m [0m
+          [36m</span>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"font-medium"[39m
+          [36m>[39m
+            [0mWorst-case sodium across alternative combinations reaches 3000mg (ceiling: 2000mg).[0m
+          [36m</span>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"bg-sage-50 dark:bg-sage-900/30 p-4 rounded-2xl mb-6 space-y-3"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-sage-200/60 dark:border-sage-800 pb-2"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs font-bold text-sage-800 dark:text-sage-200 uppercase tracking-wider"[39m
+            [36m>[39m
+              [0mEffective Calculated Totals[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs text-slate-500"[39m
+            [36m>[39m
+              [0mDaily Nutritional Summary[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid grid-cols-2 md:grid-cols-4 gap-3"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-white/80 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs font-semibold text-slate-500 uppercase"[39m
+            [36m>[39m
+              [0mCalories (kcal)[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-lg font-extrabold text-slate-900 dark:text-white mt-0.5 stat-number"[39m
+            [36m>[39m
+              [0m0 kcal[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs text-slate-400 mt-0.5"[39m
+            [36m>[39m
+              [0mPrescribed Targets[0m
+              [0m:[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"font-semibold text-slate-600 dark:text-slate-300"[39m
+              [36m>[39m
+                [0m2000 kcal[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1 font-bold text-amber-600"[39m
+              [36m>[39m
+                [0m([0m
+                [0m-2000[0m
+                [0m)[0m
+              [36m</span>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-white/80 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs font-semibold text-slate-500 uppercase"[39m
+            [36m>[39m
+              [0mProteins (20%)[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-lg font-extrabold text-slate-900 dark:text-white mt-0.5 stat-number"[39m
+            [36m>[39m
+              [0m0.0g[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs text-slate-400 mt-0.5"[39m
+            [36m>[39m
+              [0mPrescribed Targets[0m
+              [0m:[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"font-semibold text-slate-600 dark:text-slate-300"[39m
+              [36m>[39m
+                [0m100.0g[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1 font-bold text-amber-600"[39m
+              [36m>[39m
+                [0m([0m
+                [0m-100[0m
+                [0m)[0m
+              [36m</span>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-white/80 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs font-semibold text-slate-500 uppercase"[39m
+            [36m>[39m
+              [0mCarbohydrates (50%)[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-lg font-extrabold text-slate-900 dark:text-white mt-0.5 stat-number"[39m
+            [36m>[39m
+              [0m0.0g[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs text-slate-400 mt-0.5"[39m
+            [36m>[39m
+              [0mPrescribed Targets[0m
+              [0m:[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"font-semibold text-slate-600 dark:text-slate-300"[39m
+              [36m>[39m
+                [0m250.0g[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1 font-bold text-amber-600"[39m
+              [36m>[39m
+                [0m([0m
+                [0m-250[0m
+                [0m)[0m
+              [36m</span>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-white/80 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50"[39m
+          [36m>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs font-semibold text-slate-500 uppercase"[39m
+            [36m>[39m
+              [0mFats (30%)[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-lg font-extrabold text-slate-900 dark:text-white mt-0.5 stat-number"[39m
+            [36m>[39m
+              [0m0.0g[0m
+            [36m</p>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"text-xs text-slate-400 mt-0.5"[39m
+            [36m>[39m
+              [0mPrescribed Targets[0m
+              [0m:[0m
+              [0m [0m
+              [36m<span[39m
+                [33mclass[39m=[32m"font-semibold text-slate-600 dark:text-slate-300"[39m
+              [36m>[39m
+                [0m67.0g[0m
+              [36m</span>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"ml-1 font-bold text-amber-600"[39m
+              [36m>[39m
+                [0m([0m
+                [0m-67[0m
+                [0m)[0m
+              [36m</span>[39m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"space-y-4"[39m
+      [36m/>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"mt-6"[39m
+      [36m>[39m
+        [36m<h3[39m
+          [33mclass[39m=[32m"text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"w-5 h-5"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mfocusable[39m=[32m"false"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<rect[39m
+              [33mheight[39m=[32m"4"[39m
+              [33mrx[39m=[32m"1"[39m
+              [33mry[39m=[32m"1"[39m
+              [33mwidth[39m=[32m"8"[39m
+              [33mx[39m=[32m"8"[39m
+              [33my[39m=[32m"2"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 11h4"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M12 16h4"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M8 11h.01"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M8 16h.01"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0m [0m
+          [0mGeneral Recommendations[0m
+        [36m</h3>[39m
+        [36m<ul[39m
+          [33mclass[39m=[32m"mt-2 list-disc list-inside space-y-1 text-slate-600 dark:text-slate-300"[39m
+        [36m>[39m
+          [36m<li>[39m
+            [0mDrink approximately 2.0 liters of water per day.[0m
+          [36m</li>[39m
+        [36m</ul>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/components/__tests__/DietPlanDisplay.clinicalContext.test.tsx:28:26
+     26|     render(<DietPlanDisplay plan={plan} onSave={vi.fn()} onDiscard={vi…
+     27|     const label = i18n.t("diet_generator.display.considered", { tag: i…
+     28|     const badge = screen.getByText(label);
+       |                          ^
+     29|     expect(badge).toHaveClass("badge-info");
+     30|     expect(badge).not.toHaveClass("badge-success");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  10:40:54
+   Duration  659ms (transform 110ms, setup 44ms, import 144ms, tests 43ms, environment 361ms)
+

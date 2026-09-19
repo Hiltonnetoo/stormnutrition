@@ -363,7 +363,13 @@
       "INVALID_NUTRIENT_VALUE": "Invalid value for field \"{{field}}\" in food \"{{foodName}}\" of meal \"{{mealName}}\".",
       "INVALID_TARGET_VALUE": "Prescribed nutritional targets contain non-numeric, negative or invalid values.",
       "HIGH_SODIUM_CEILING_HYPERTENSION": "Worst-case sodium across alternative combinations reaches {{worstCaseAlternativeSodium}}mg (ceiling: {{limit}}mg).",
-      "HIGH_SODIUM_CEILING_RENAL": "Worst-case sodium across alternative combinations reaches {{worstCaseAlternativeSodium}}mg for renal patient (ceiling: {{limit}}mg)."
+      "HIGH_SODIUM_CEILING_RENAL": "Worst-case sodium across alternative combinations reaches {{worstCaseAlternativeSodium}}mg for renal patient (ceiling: {{limit}}mg).",
+      "WORST_CASE_PROTEIN_DEVIATION": "Alternative combinations vary daily protein between {{min}} g and {{max}} g (target: {{target}} g).",
+      "WORST_CASE_CARBS_DEVIATION": "Alternative combinations vary daily carbohydrates between {{min}} g and {{max}} g (target: {{target}} g).",
+      "WORST_CASE_FAT_DEVIATION": "Alternative combinations vary daily fat between {{min}} g and {{max}} g (target: {{target}} g).",
+      "ZERO_TARGET_PROTEIN": "The daily protein target is 0 g, but the plan reaches {{max}} g in some combination. Percentage tolerance does not apply; review manually.",
+      "ZERO_TARGET_CARBS": "The daily carbohydrate target is 0 g, but the plan reaches {{max}} g in some combination. Percentage tolerance does not apply; review manually.",
+      "ZERO_TARGET_FAT": "The daily fat target is 0 g, but the plan reaches {{max}} g in some combination. Percentage tolerance does not apply; review manually."
     }
   },
   "food": {
@@ -517,7 +523,12 @@
     "counter_patient_other": "{{count}} patients",
     "counter_of": "of",
     "toast_error_title": "Error",
-    "toast_success_title": "Success!"
+    "toast_success_title": "Success!",
+    "empty_title": "No patients yet",
+    "empty_description": "Add your first patient to record assessments, generate meal plans and grant portal access.",
+    "empty_cta": "Add first patient",
+    "no_filter_results": "No patients in this filter",
+    "clear_filters": "Clear search and filters"
   },
   "profile": {
     "error_load": "Could not load profile",
@@ -761,6 +772,7 @@
     "sending_btn": "Sending...",
     "validation_error": "Select a patient and a diet plan before continuing.",
     "send_success": "Email sent successfully!",
+    "send_success_simulated": "Simulated dispatch completed (test/demo mode — no external email was sent).",
     "send_error_not_configured": "Email sending is not configured yet. Define VITE_EMAILJS_* variables in .env.local.",
     "send_error_failed": "Failed to send email. Check patient email and connection, and try again.",
     "history_title": "Delivery History",
@@ -768,6 +780,7 @@
     "th_diet": "Diet",
     "th_status": "Status",
     "status_sent": "Sent",
+    "status_simulated": "Simulated (Test/Demo Mode)",
     "status_failed": "Failed",
     "default_sender": "Your nutritionist"
   },
@@ -853,7 +866,7 @@
       "start_on": "Starts on {{date}} · Duration: {{days}} days",
       "discard": "Discard",
       "export": "Export",
-      "saved_template_notice": "✅ Model saved!",
+      "saved_template_notice": "Template saved",
       "save_as_template": "Save as model",
       "save_success_btn": "Saved Successfully!",
       "save_plan_btn": "Save Plan",
@@ -868,16 +881,16 @@
       "see_which": "see which",
       "clinical_engine": "Storm Nutrition Clinical Engine",
       "mode": "Mode: {{mode}}",
-      "respected": "✅ {{tag}} Respected",
+      "considered": "Condition considered: {{tag}}",
       "based_on_exams": "🧪 Based on Exams",
       "daily_summary": "Daily Nutritional Summary",
       "prescribed_targets": "Prescribed Targets",
       "effective_totals": "Effective Calculated Totals",
-      "status_valid": "Valid / Approved Plan",
-      "status_requires_review": "Requires Clinical Review",
-      "status_infeasible": "Infeasible Plan",
-      "status_legacy": "Legacy Plan / Not Revalidated",
-      "status_manually_edited": "Manual Edit",
+      "status_valid": "Within targets",
+      "status_requires_review": "Requires clinical review",
+      "status_infeasible": "Infeasible: adjust the targets",
+      "status_legacy": "Earlier plan, not revalidated",
+      "status_manually_edited": "Manual edit",
       "worst_case_sodium_warning": "Worst-case sodium across alternatives: {{sodium}}mg/day",
       "divergence_label": "Variance",
       "calories": "Calories (kcal)",
@@ -887,7 +900,7 @@
       "approx": "Approx.",
       "general_recommendations": "General Recommendations",
       "drink_water": "Drink approximately {{liters}} liters of water per day.",
-      "template_name_prompt": "Diet template name:",
+      "template_name_prompt": "Template name",
       "default_template_name": "Model {{date}}",
       "modes": {
         "general_title": "General / Health",
@@ -900,7 +913,12 @@
         "pediatric_desc": "Focus on growth, food introduction, and childhood selectivity.",
         "recovery_title": "Recovery & Hypertrophy",
         "recovery_desc": "Caloric density for malnutrition or advanced muscle gain."
-      }
+      },
+      "template_name_help": "The template becomes available under \"Templates\" to start new plans from this one.",
+      "template_name_required": "Enter a name for the template.",
+      "issue_error": "Error",
+      "issue_warning": "Warning",
+      "status_approved": "Approved by the professional"
     },
     "save_error": "Could not save the meal plan. Check your connection and try again.",
     "generation_failed": "Failed to generate meal plan.",
@@ -913,7 +931,19 @@
       "calories_invalid": "Daily calories must be a valid number.",
       "macros_sum": "Macronutrient sum must equal 100%.",
       "infeasible_plan": "Cannot approve or save a meal plan with infeasible status. Correct the incompatible items."
-    }
+    },
+    "errors": {
+      "INVALID_INPUT": "Missing or invalid nutritional targets.",
+      "INVALID_CALORIES": "Daily caloric target must be a positive finite number.",
+      "INVALID_MACROS": "Prescribed macronutrients must be non-negative finite numbers.",
+      "EMPTY_MEALS": "The meal plan configuration must contain at least one meal.",
+      "INVALID_MEAL_PERCENTAGES": "The sum of meal caloric percentages must be approximately 100% (current sum: {{totalPercentage}}%).",
+      "INVALID_MEAL_NAME": "Every configured meal must have a valid name.",
+      "INVALID_MEAL_PERCENT": "The caloric percentage for meal \"{{mealName}}\" must be greater than zero.",
+      "PLAN_INFEASIBLE": "Could not generate a feasible plan satisfying all clinical constraints and targets.",
+      "CATALOG_EXHAUSTED": "Not enough foods available in catalog after applying all clinical restrictions."
+    },
+    "review_outdated": "The plan changed since it was reviewed (content, targets, restrictions or alerts). Check the current alerts and confirm the review again."
   },
   "meal_table": {
     "breakfast": "Breakfast",
@@ -937,7 +967,8 @@
     "show_alternatives": "View {{count}} alternative",
     "show_alternatives_plural": "View {{count}} alternatives",
     "hide_alternatives": "Hide alternative",
-    "hide_alternatives_plural": "Hide alternatives"
+    "hide_alternatives_plural": "Hide alternatives",
+    "portion_input": "Portion in grams of {{food}}"
   },
   "nutrition_label": {
     "title": "Nutrition Facts",
@@ -1340,6 +1371,7 @@
       "error_reset_email": "Could not send reset email. Check your settings.",
       "success_title": "Invitation generated successfully!",
       "success_email_sent": "✓ An email with the secure invitation link has been sent to the patient!",
+      "success_email_simulated": "ℹ️ Simulated dispatch completed successfully (test/demo mode — no external email was sent). The link below is active.",
       "success_email_failed": "⚠️ Email delivery failed, but the invitation link is active. Copy the link below to share.",
       "success_share": "Copy the link below and share it with the patient (via WhatsApp, SMS, or message):",
       "invite_link_label": "Secure invitation link",
@@ -1359,7 +1391,9 @@
       "revoke_effect_3": "The patient's email account is preserved and you can issue a new invitation in the future.",
       "btn_confirm_revoke": "Yes, Revoke Access",
       "revoke_success_message": "Portal access revoked successfully. The patient can no longer view data via the app, but all clinic records remain preserved.",
-      "error_revoke": "Could not revoke portal access. Please try again."
+      "error_revoke": "Could not revoke portal access. Please try again.",
+      "revoke_cleanup_incomplete": "Access was revoked, but some old invitations or links could not be closed right now. They remain blocked; a new invitation will use a new link.",
+      "error_revoke_permission": "You are not allowed to revoke this patient's access. Check that you are signed in as the responsible professional."
     },
     "invite": {
       "accept_title": "Portal Access Activation",
@@ -1473,6 +1507,36 @@
     "profile_sections": "Patient record sections",
     "food_table": "Food table (scroll horizontally)"
   },
+  "invite": {
+    "accept_title": "Portal Access Activation",
+    "welcome_msg": "Hello, {{name}}! You have been invited by {{nutri}} to access your Patient Portal.",
+    "set_password_title": "Create your access password",
+    "password_placeholder": "Minimum 6 characters",
+    "confirm_password": "Confirm your password",
+    "btn_activate": "Activate My Account",
+    "btn_activating": "Activating account...",
+    "password_mismatch": "Passwords do not match.",
+    "password_too_short": "Password must be at least 6 characters long.",
+    "status_expired": "This invitation has expired. Contact your nutritionist to request a new invitation.",
+    "status_revoked": "This invitation has been revoked by your nutritionist.",
+    "status_accepted": "This invitation has already been accepted.",
+    "status_not_found": "Invitation not found or invalid link.",
+    "existing_account_title": "Account already registered",
+    "existing_account_desc": "You are currently logged in with {{email}}. Confirm below to link this account to your record with {{nutri}}.",
+    "btn_confirm_link": "Confirm and Link Account",
+    "link_success": "Link confirmed successfully! Redirecting to your portal...",
+    "btn_go_to_login": "Log In",
+    "verifying": "Verifying invitation...",
+    "redirecting_portal": "Accessing portal...",
+    "notice_title": "Invitation Notice",
+    "go_home": "Go to homepage",
+    "error_firestore_link_failed": "Failed to complete invitation linking on the server. Registration was safely reverted. Please try again.",
+    "error_email_already_in_use": "This email already has an account. Please sign in to link.",
+    "error_email_mismatch": "The signed-in account email does not match this invitation.",
+    "error_multi_professional": "This account is already linked to another nutritionist. Single-professional linking is supported in this version.",
+    "error_generic": "Could not complete invitation activation. Please try again.",
+    "status_legacy": "This invitation was issued in an old format and can no longer be used. Ask your nutritionist for a new invitation."
+  },
   "app": {
     "loading": "Loading...",
     "auth_error_title": "Account verification failed",
@@ -1482,7 +1546,27 @@
     "incomplete_profile_title": "Complete professional registration",
     "incomplete_profile_desc": "Your account is authenticated, but your professional profile has not been initialized yet. Would you like to initialize your workspace?",
     "init_profile_button": "Initialize professional profile",
-    "exit_button": "Sign out"
+    "exit_button": "Sign out",
+    "access_revoked_title": "Portal access terminated",
+    "access_revoked_desc": "Access to this patient portal has been revoked by your nutritionist. If you believe this is an error, please contact your professional directly.",
+    "invitation_activating_title": "Activating portal access...",
+    "invitation_activating_desc": "We are securely finalizing your account link with your nutritionist. Please wait a moment.",
+    "auth_errors": {
+      "auth/profile-fetch-failed": "Could not load your profile data. Check your internet connection and try again.",
+      "permission-denied": "You do not have permission to access this profile.",
+      "unavailable": "Authentication service is temporarily unavailable. Check your internet connection."
+    }
+  },
+  "errors": {
+    "categories": {
+      "permission_denied": "Unauthorized access to this resource.",
+      "unavailable": "Service temporarily unavailable. Check your internet connection.",
+      "not_found": "The requested resource was not found.",
+      "unauthenticated": "Session expired or user not authenticated.",
+      "rate_limited": "Request limit exceeded. Please wait a moment before trying again.",
+      "validation": "Invalid data provided.",
+      "unknown": "An unexpected error occurred."
+    }
   },
   "error_boundary": {
     "title": "Something went wrong in this section",
@@ -1517,5 +1601,13 @@
     "step_5_title": "5. Multi-Tenant Isolation & Security",
     "step_5_desc": "Log in as Dr. Marcos Lima. Verify that Firestore Security Rules isolate 100% of the data: he cannot view any patients or meal plans belonging to Dra. Clara.",
     "close_guide": "Understood, start evaluation"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "back": "Back",
+    "delete": "Delete"
+  },
+  "progress": {
+    "step_of": "Step {{current}} of {{total}} · {{label}}"
   }
 }

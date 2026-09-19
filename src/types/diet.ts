@@ -192,13 +192,20 @@ export interface ValidateDietPlanOptions {
   catalogVersion?: string;
   tolerances?: MacroTolerances;
   allowApprovedReview?: boolean;
+  approvedByUid?: string;
+  /** R06: signature of the exact version the professional reviewed (the
+   *  `issuesSignature` shown in the review dialog). Approval is granted only
+   *  when it matches the version being saved. */
+  reviewedSignature?: string;
 }
 
 export interface PlanValidationResult {
   status: PlanValidationStatus;
   isApproved: boolean;
+  approvedByUid?: string;
+  approvedAt?: string;
   issues: PlanValidationIssue[];
-  calculatedTotals: CalculatedDietTotals;
+  issuesSignature?: string;
   deviations: {
     caloriesDiff: number;
     caloriesPercent: number;

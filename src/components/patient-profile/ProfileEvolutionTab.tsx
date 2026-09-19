@@ -36,7 +36,7 @@ export const ProfileEvolutionTab: React.FC<ProfileEvolutionTabProps> = ({
       <WeightEvolutionChart data={weightData} />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-5">
-          <p className="text-[11px] text-slate-400 font-bold uppercase mb-1.5">
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1.5">
             {t("profile.evolution.initial_weight")}
           </p>
           <p className="text-2xl font-extrabold text-slate-800 dark:text-white">
@@ -44,7 +44,7 @@ export const ProfileEvolutionTab: React.FC<ProfileEvolutionTabProps> = ({
           </p>
         </Card>
         <Card className="p-5">
-          <p className="text-[11px] text-slate-400 font-bold uppercase mb-1.5">
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1.5">
             {t("profile.evolution.total_variation")}
           </p>
           <p
@@ -54,7 +54,7 @@ export const ProfileEvolutionTab: React.FC<ProfileEvolutionTabProps> = ({
           </p>
         </Card>
         <Card className="p-5">
-          <p className="text-[11px] text-slate-400 font-bold uppercase mb-1.5">
+          <p className="text-xs text-slate-400 font-bold uppercase mb-1.5">
             {t("profile.evolution.goal")}
           </p>
           <p className="text-2xl font-extrabold text-slate-800 dark:text-white">

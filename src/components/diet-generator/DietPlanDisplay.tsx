@@ -6,12 +6,16 @@ import {
   DownloadIcon,
   AlertTriangleIcon,
   BrainIcon,
+  XCircleIcon,
+  CheckCircleIcon,
+  ShieldIcon,
+  EditIcon,
 } from "../icons";
 import ClinicalReviewModal from "../modals/ClinicalReviewModal";
 
 const ExportDietModal = lazy(() => import("../modals/ExportDietModal"));
 import MealOptionTable from "../MealOptionTable";
-import { Button } from "../ui";
+import { Badge, Button, Input, Modal } from "../ui";
 import { useAuth } from "../../contexts/AuthContext";
 import { loadUserState, saveUserState } from "../../utils/localStorage";
 import { translateMealName } from "../../utils/locale";
@@ -22,7 +26,7 @@ const DecisionLogItem: React.FC<{ log: DecisionEntry }> = ({ log }) => {
   const [showFoods, setShowFoods] = useState(false);
   const foods = log.removedFoods || [];
   return (
-    <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+    <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
       <span className="mt-0.5 text-sky-500">•</span>
       <div className="min-w-0">
         <span className="font-bold text-slate-800 dark:text-slate-200">
@@ -56,7 +60,20 @@ const DecisionLogItem: React.FC<{ log: DecisionEntry }> = ({ log }) => {
 
 interface DietPlanDisplayProps {
   plan: DietPlan;
-  onSave: () => void;
+  onSave: (options?: {
+    allowApprovedReview: boolean;
+    /** Signature of the version shown in the review dialog (R06). */
+    reviewedSignature?: string;
+  }) => void;
+  /** Recomputes the plan's alerts before the review dialog opens (R06). */
+  onBeforeReview?: () => void;
+  /** Manual portion edit of one item (R08); omit for a read-only plan. */
+  onEditPortion?: (
+    mealIndex: number,
+    option: "main" | number,
+    itemIndex: number,
+    grams: number,
+  ) => void;
   onDiscard: () => void;
   isSaving?: boolean;
   saveSuccess?: boolean;
@@ -64,6 +81,8 @@ interface DietPlanDisplayProps {
 
 const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
   plan,
+  onBeforeReview,
+  onEditPortion,
   onSave,
   onDiscard,
   isSaving,
@@ -78,25 +97,43 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
 
   const handleSaveClick = () => {
     if (saveSuccess) return;
+    onBeforeReview?.();
     setIsReviewModalOpen(true);
   };
   const handleConfirmSave = () => {
     setIsReviewModalOpen(false);
-    onSave();
+    // The approval names the version the dialog presented.
+    onSave({
+      allowApprovedReview: true,
+      reviewedSignature: plan.validation?.issuesSignature,
+    });
   };
+
+  // Template name is asked in a system dialog (UI05), not window.prompt:
+  // null = closed; string = the name being edited.
+  const [templateName, setTemplateName] = useState<string | null>(null);
+  const [templateNameError, setTemplateNameError] = useState<string>();
 
   const handleSaveAsTemplate = () => {
     const formattedDate = new Date().toLocaleDateString(
       i18n.language === "pt" ? "pt-BR" : "en-US",
     );
-    const defaultName = t("diet_generator.display.default_template_name", {
-      date: formattedDate,
-    });
-    const name = window.prompt(
-      t("diet_generator.display.template_name_prompt"),
-      defaultName,
+    setTemplateNameError(undefined);
+    setTemplateName(
+      t("diet_generator.display.default_template_name", {
+        date: formattedDate,
+      }),
     );
-    if (!name) return;
+  };
+
+  const handleConfirmTemplate = (event: React.FormEvent) => {
+    event.preventDefault();
+    const name = (templateName ?? "").trim();
+    if (!name) {
+      setTemplateNameError(t("diet_generator.display.template_name_required"));
+      return;
+    }
+    setTemplateName(null);
     const currentTemplates = currentUser?.uid
       ? loadUserState<{ id: string; name: string; plan: DietPlan }[]>(
           currentUser.uid,
@@ -150,7 +187,7 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
               variant="ghost"
               size="sm"
               onClick={onDiscard}
-              className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 mr-auto sm:mr-2"
+              className="text-rose-700 hover:text-rose-800 hover:bg-rose-50 mr-auto sm:mr-2"
             >
               {t("diet_generator.display.discard")}
             </Button>
@@ -209,7 +246,7 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
             <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
               <button
                 onClick={() => setIsLogExpanded(!isLogExpanded)}
-                className="w-full px-4 py-2.5 flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="w-full px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <span className="flex items-center gap-2">
                   <BrainIcon className="w-4 h-4" />{" "}
@@ -234,47 +271,61 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
 
         {/* Seals & Validation Badges */}
         <div className="mb-5 flex flex-wrap items-center gap-2">
-          <span className="badge badge-sky">
+          <Badge tone="info">
             {t("diet_generator.display.clinical_engine")}
-          </span>
+          </Badge>
+          {/* UI09: one badge per state, each with its own tone + icon + text,
+              so valid / requires review / infeasible / approved / edited are
+              never told apart by color alone. */}
           {plan.validation ? (
-            <span
-              className={`badge font-bold ${
-                plan.validation.status === "valid"
-                  ? "badge-emerald"
-                  : plan.validation.status === "requires_review"
-                    ? "badge-amber"
-                    : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-200"
-              }`}
-            >
-              {plan.validation.status === "valid"
-                ? t("diet_generator.display.status_valid")
-                : plan.validation.status === "requires_review"
-                  ? t("diet_generator.display.status_requires_review")
-                  : t("diet_generator.display.status_infeasible")}
-            </span>
-          ) : (
-            <span className="badge badge-slate font-medium text-slate-600 dark:text-slate-400">
-              {t(
-                "diet_generator.display.status_legacy",
-                "Plano Legado / Não Revalidado",
+            <>
+              {plan.validation.status === "valid" ? (
+                <Badge
+                  tone="success"
+                  icon={<CheckCircleIcon className="w-3.5 h-3.5" />}
+                >
+                  {t("diet_generator.display.status_valid")}
+                </Badge>
+              ) : plan.validation.status === "requires_review" ? (
+                <Badge
+                  tone="warning"
+                  icon={<AlertTriangleIcon className="w-3.5 h-3.5" />}
+                >
+                  {t("diet_generator.display.status_requires_review")}
+                </Badge>
+              ) : (
+                <Badge
+                  tone="danger"
+                  icon={<XCircleIcon className="w-3.5 h-3.5" />}
+                >
+                  {t("diet_generator.display.status_infeasible")}
+                </Badge>
               )}
-            </span>
+              {plan.validation.isApproved && (
+                <Badge
+                  tone="brand"
+                  icon={<ShieldIcon className="w-3.5 h-3.5" />}
+                >
+                  {t("diet_generator.display.status_approved")}
+                </Badge>
+              )}
+            </>
+          ) : (
+            <Badge tone="neutral">
+              {t("diet_generator.display.status_legacy")}
+            </Badge>
           )}
           {plan.isManuallyEdited && (
-            <span className="badge badge-amber font-medium">
-              {t(
-                "diet_generator.display.status_manually_edited",
-                "Edição Manual",
-              )}
-            </span>
+            <Badge tone="info" icon={<EditIcon className="w-3.5 h-3.5" />}>
+              {t("diet_generator.display.status_manually_edited")}
+            </Badge>
           )}
           {plan.mode && (
-            <span className="badge badge-sage uppercase">
+            <Badge tone="brand" className="uppercase">
               {t("diet_generator.display.mode", {
                 mode: t("profile.modes." + plan.mode),
               })}
-            </span>
+            </Badge>
           )}
           {(plan.clinicalTags || []).map((tag) => {
             const translatedTag = t(
@@ -282,9 +333,9 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
               tag.replace(/_/g, " "),
             );
             return (
-              <span key={tag} className="badge badge-emerald">
-                {t("diet_generator.display.respected", { tag: translatedTag })}
-              </span>
+              <Badge key={tag} tone="info">
+                {t("diet_generator.display.considered", { tag: translatedTag })}
+              </Badge>
             );
           })}
           {(plan.labExams || []).length > 0 && (
@@ -306,7 +357,17 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
                 : issue.message;
               return (
                 <div key={idx} className="flex items-start gap-2">
-                  <span>{issue.level === "error" ? "⛔" : "⚠️"}</span>
+                  {issue.level === "error" ? (
+                    <XCircleIcon className="w-4 h-4 shrink-0 text-rose-700" />
+                  ) : (
+                    <AlertTriangleIcon className="w-4 h-4 shrink-0" />
+                  )}
+                  <span className="sr-only">
+                    {issue.level === "error"
+                      ? t("diet_generator.display.issue_error")
+                      : t("diet_generator.display.issue_warning")}
+                    :{" "}
+                  </span>
                   <span className="font-medium">{displayMsg}</span>
                 </div>
               );
@@ -321,13 +382,13 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
               <p className="text-xs font-bold text-sage-800 dark:text-sage-200 uppercase tracking-wider">
                 {t("diet_generator.display.effective_totals")}
               </p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-xs text-slate-500">
                 {t("diet_generator.display.daily_summary")}
               </p>
             </div>
             {plan.validation?.worstCaseAlternativeSodium != null &&
               plan.validation.worstCaseAlternativeSodium > 0 && (
-                <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 mt-1 sm:mt-0">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1 sm:mt-0">
                   {t("diet_generator.display.worst_case_sodium_warning", {
                     sodium: plan.validation.worstCaseAlternativeSodium,
                   })}
@@ -376,13 +437,13 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
                   key={col.label}
                   className="bg-white/80 dark:bg-slate-800/70 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50"
                 >
-                  <p className="text-[11px] font-semibold text-slate-500 uppercase">
+                  <p className="text-xs font-semibold text-slate-500 uppercase">
                     {col.label}
                   </p>
                   <p className="text-lg font-extrabold text-slate-900 dark:text-white mt-0.5 stat-number">
                     {col.calculated}
                   </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-400 mt-0.5">
                     {t("diet_generator.display.prescribed_targets")}:{" "}
                     <span className="font-semibold text-slate-600 dark:text-slate-300">
                       {col.target}
@@ -407,9 +468,10 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
 
         {/* Meals */}
         <div className="space-y-4">
-          {plan.meals.map((meal) => (
+          {plan.meals.map((meal, mealIndex) => (
             <div
               key={meal.mealName}
+              data-meal-index={mealIndex}
               className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-700"
             >
               <h4 className="font-bold text-lg text-slate-800 dark:text-white">
@@ -431,6 +493,12 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
                 mainOption={meal.mainOption}
                 alternatives={meal.alternatives}
                 accentColor="sage"
+                onItemPortionChange={
+                  onEditPortion && !saveSuccess
+                    ? (option, item, grams) =>
+                        onEditPortion(mealIndex, option, item, grams)
+                    : undefined
+                }
               />
             </div>
           ))}
@@ -463,6 +531,42 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
           targetElementId="diet-plan-display-content"
         />
       </Suspense>
+      <Modal
+        open={templateName !== null}
+        onClose={() => setTemplateName(null)}
+        size="sm"
+        title={t("diet_generator.display.save_as_template")}
+        description={t("diet_generator.display.template_name_help")}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setTemplateName(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" form="diet-template-form">
+              {t("diet_generator.display.save_as_template")}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="diet-template-form"
+          onSubmit={handleConfirmTemplate}
+          noValidate
+        >
+          <Input
+            name="templateName"
+            label={t("diet_generator.display.template_name_prompt")}
+            value={templateName ?? ""}
+            onChange={(e) => {
+              setTemplateName(e.target.value);
+              if (templateNameError) setTemplateNameError(undefined);
+            }}
+            error={templateNameError}
+            maxLength={80}
+            autoFocus
+          />
+        </form>
+      </Modal>
       <ClinicalReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}

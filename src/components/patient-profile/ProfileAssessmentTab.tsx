@@ -161,7 +161,7 @@ export const ProfileAssessmentTab: React.FC<ProfileAssessmentTabProps> = ({
                   {t("profile.assessment.days_option", { days: 30 })}
                 </option>
               </select>
-              <span className="text-[11px] text-sky-400 font-medium">
+              <span className="text-xs text-sky-400 font-medium">
                 {patient.automationSettings.lastAutoRequestDate
                   ? t("profile.assessment.last_triggered", {
                       date: formatDateWithLocale(
@@ -176,7 +176,7 @@ export const ProfileAssessmentTab: React.FC<ProfileAssessmentTabProps> = ({
         </div>
 
         {/* Protocols History */}
-        <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">
+        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-3">
           {t("profile.assessment.protocols_history")}
         </h4>
         <div className="space-y-3">
@@ -270,7 +270,7 @@ export const ProfileAssessmentTab: React.FC<ProfileAssessmentTabProps> = ({
                           key={l}
                           className="text-center px-2 py-1.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700"
                         >
-                          <p className="text-[9px] font-bold text-slate-400 uppercase">
+                          <p className="text-xs font-bold text-slate-400 uppercase">
                             {l}
                           </p>
                           <p className="text-xs font-extrabold text-slate-800 dark:text-white mt-0.5">
@@ -281,7 +281,7 @@ export const ProfileAssessmentTab: React.FC<ProfileAssessmentTabProps> = ({
                     </div>
                     {evalItem.notes && (
                       <div className="px-3 py-2 bg-sky-50 dark:bg-sky-900/20 border border-sky-100 dark:border-sky-800 rounded-xl">
-                        <p className="text-[11px] font-bold text-sky-600 uppercase mb-0.5">
+                        <p className="text-xs font-bold text-sky-600 uppercase mb-0.5">
                           {t("profile.assessment.patient_notes")}
                         </p>
                         <p className="text-xs text-slate-600 dark:text-slate-300 italic">

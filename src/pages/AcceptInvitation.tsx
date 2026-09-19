@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   useParams,
   useSearchParams,
@@ -24,7 +24,13 @@ const AcceptInvitation: React.FC = () => {
 
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const {
+    currentUser,
+    beginInvitationActivation,
+    completeInvitationActivation,
+    cancelInvitationActivation,
+    refreshUserProfile,
+  } = useAuth();
 
   const [invitation, setInvitation] = useState<PatientInvitation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +43,16 @@ const AcceptInvitation: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
+  // Prevent memory leaks / updates on unmounted component
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const fetchInvitation = useCallback(async () => {
     if (!token) {
       setError(t("invite.status_not_found"));
@@ -47,11 +63,15 @@ const AcceptInvitation: React.FC = () => {
       setLoading(true);
       setError(null);
       const inv = await getInvitationByToken(token);
+      if (!isMountedRef.current) return;
+
       if (!inv) {
         setError(t("invite.status_not_found"));
       } else {
         setInvitation(inv);
-        if (inv.status === "expired") {
+        if (inv.invalidReason === "legacy_format") {
+          setError(t("invite.status_legacy"));
+        } else if (inv.status === "expired") {
           setError(t("invite.status_expired"));
         } else if (inv.status === "revoked") {
           setError(t("invite.status_revoked"));
@@ -59,9 +79,10 @@ const AcceptInvitation: React.FC = () => {
           // Passo C03.6: Idempotência de retry para o mesmo usuário autenticado
           if (currentUser && currentUser.uid === inv.acceptedByUid) {
             setSuccess(true);
-            setTimeout(() => {
+            await refreshUserProfile();
+            if (isMountedRef.current) {
               navigate("/paciente");
-            }, 2000);
+            }
           } else {
             setError(t("invite.status_accepted"));
           }
@@ -69,15 +90,60 @@ const AcceptInvitation: React.FC = () => {
       }
     } catch (err) {
       console.error("Erro ao carregar convite:", err);
-      setError(t("invite.status_not_found"));
+      if (isMountedRef.current) {
+        setError(t("invite.status_not_found"));
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [token, t, currentUser, navigate]);
+  }, [token, t, currentUser, navigate, refreshUserProfile]);
 
   useEffect(() => {
     fetchInvitation();
   }, [fetchInvitation]);
+
+  const mapInvitationError = (err: unknown): string => {
+    const rawCode =
+      err instanceof FirebaseError
+        ? err.code
+        : err instanceof Error
+          ? err.message
+          : String(err || "");
+
+    if (
+      rawCode === "AUTH_EMAIL_ALREADY_IN_USE" ||
+      rawCode === "auth/email-already-in-use"
+    ) {
+      return t("invite.error_email_already_in_use");
+    }
+    if (rawCode === "FIRESTORE_LINK_FAILED") {
+      return t("invite.error_firestore_link_failed");
+    }
+    if (rawCode === "INVITATION_NOT_FOUND") {
+      return t("invite.status_not_found");
+    }
+    if (rawCode === "INVITATION_LEGACY") {
+      return t("invite.status_legacy");
+    }
+    if (rawCode === "INVITATION_EXPIRED") {
+      return t("invite.status_expired");
+    }
+    if (rawCode === "INVITATION_REVOKED") {
+      return t("invite.status_revoked");
+    }
+    if (rawCode === "INVITATION_ALREADY_ACCEPTED") {
+      return t("invite.status_accepted");
+    }
+    if (rawCode === "EMAIL_MISMATCH") {
+      return t("invite.error_email_mismatch");
+    }
+    if (rawCode.includes("MULTI_PROFESSIONAL_NOT_SUPPORTED")) {
+      return t("invite.error_multi_professional");
+    }
+    return t("invite.error_generic");
+  };
 
   const handleActivateNewAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,41 +160,24 @@ const AcceptInvitation: React.FC = () => {
     }
 
     setSubmitting(true);
+    beginInvitationActivation(token);
     try {
       await acceptInvitationWithNewAccount(token, password);
+      // Passo C08.4: Atualizar perfil/papel do contexto após confirmar C03; só então redirecionar
+      await completeInvitationActivation();
+      if (!isMountedRef.current) return;
+
       setSuccess(true);
-      setTimeout(() => {
-        navigate("/paciente");
-      }, 2000);
+      navigate("/paciente");
     } catch (err: unknown) {
-      if (
-        (err instanceof Error &&
-          err.message === "AUTH_EMAIL_ALREADY_IN_USE") ||
-        (err instanceof FirebaseError &&
-          err.code === "auth/email-already-in-use")
-      ) {
-        setError(
-          t(
-            "modals.patient_access.error_already_use",
-            "Este e-mail já possui uma conta no sistema. Por favor, faça login para vincular.",
-          ),
-        );
-      } else if (
-        err instanceof Error &&
-        err.message === "FIRESTORE_LINK_FAILED"
-      ) {
-        setError(
-          "Falha ao concluir o vínculo do convite no servidor. O cadastro foi revertido com segurança. Por favor, tente novamente.",
-        );
-      } else {
-        setError(
-          err instanceof Error
-            ? err.message
-            : t("modals.patient_access.error_create_access"),
-        );
-      }
+      await cancelInvitationActivation();
+      if (!isMountedRef.current) return;
+
+      setError(mapInvitationError(err));
     } finally {
-      setSubmitting(false);
+      if (isMountedRef.current) {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -136,20 +185,24 @@ const AcceptInvitation: React.FC = () => {
     if (!currentUser) return;
     setSubmitting(true);
     setError(null);
+    beginInvitationActivation(token);
     try {
       await acceptInvitationWithExistingAccount(token, currentUser);
+      // Passo C08.4: Atualizar perfil/papel do contexto após confirmar C03; só então redirecionar
+      await completeInvitationActivation();
+      if (!isMountedRef.current) return;
+
       setSuccess(true);
-      setTimeout(() => {
-        navigate("/paciente");
-      }, 2000);
+      navigate("/paciente");
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t("modals.patient_access.error_create_access"),
-      );
+      await cancelInvitationActivation();
+      if (!isMountedRef.current) return;
+
+      setError(mapInvitationError(err));
     } finally {
-      setSubmitting(false);
+      if (isMountedRef.current) {
+        setSubmitting(false);
+      }
     }
   };
 
@@ -159,9 +212,9 @@ const AcceptInvitation: React.FC = () => {
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 mb-4 shadow-sm">
           <LogoIcon className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
           {t("invite.accept_title")}
-        </h2>
+        </h1>
         {invitation && (
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
             {t("invite.welcome_msg", {
@@ -177,7 +230,7 @@ const AcceptInvitation: React.FC = () => {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 space-y-3">
               <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-slate-500">Verificando convite...</p>
+              <p className="text-sm text-slate-500">{t("invite.verifying")}</p>
             </div>
           ) : success ? (
             <div className="text-center py-6 space-y-4">
@@ -187,7 +240,9 @@ const AcceptInvitation: React.FC = () => {
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {t("invite.link_success")}
               </h3>
-              <p className="text-sm text-slate-500">Acessando portal...</p>
+              <p className="text-sm text-slate-500">
+                {t("invite.redirecting_portal")}
+              </p>
             </div>
           ) : error && invitation?.status !== "pending" ? (
             <div className="space-y-6">
@@ -197,7 +252,7 @@ const AcceptInvitation: React.FC = () => {
               >
                 <div className="flex items-center gap-2 font-semibold mb-1">
                   <ShieldIcon className="w-5 h-5 text-amber-600" />
-                  <span>Aviso do Convite</span>
+                  <span>{t("invite.notice_title")}</span>
                 </div>
                 <p>{error}</p>
               </div>
@@ -213,7 +268,7 @@ const AcceptInvitation: React.FC = () => {
                   to="/"
                   className="w-full inline-flex justify-center py-2.5 px-4 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
-                  Ir para página inicial
+                  {t("invite.go_home")}
                 </Link>
               </div>
             </div>
