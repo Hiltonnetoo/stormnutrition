@@ -12,15 +12,14 @@ Versão anterior deste arquivo (com relatos de 18/09 e tabelas que ficaram desat
 
 ---
 
-## 1. Publicação (situação em 19/09/2026)
+## 1. Publicação (situação em 19/09/2026, 20h)
 
 | Fato | Evidência |
 | --- | --- |
-| Código enviado para `origin/main` (`dd0d241`) | `git log` / `git status` limpos |
-| Frontend publicado na Vercel (projeto `stormnutricion`) com esse código | Publicado às 13:13 (UTC−3); os chunks publicados contêm `clinically_approved`, `EXCLUDE_ALLERGEN` e os arquétipos de refeição |
-| Último commit com CI remota verde: `9bec01f` (run 35447715912) | `gh run list` |
-
-**Não comprovado (backlog E0):** CI verde nos commits P0–P2 (falha em Prettier) e publicação das regras do Firestore no projeto de produção.
+| Código enviado para `origin/main` (`0402baa`) | `git log` / `git status` limpos; consolida fases A1–A7, auditoria de 180 planos e melhorias de UI |
+| Frontend publicado na Vercel (projeto `stormnutricion`) | Publicado com sucesso em `https://stormnutricion.vercel.app` com suporte a SPA via `vercel.json` |
+| CI remota verde para `0402baa` (run `35475087293`) | `gh run view 35475087293`: 100% verde (Firestore Rules em 1m27s e Build and Test em 3m49s com Vitest e Playwright E2E) |
+| Regras e índices do Firestore no projeto de produção | Publicados em `isanutriv5` via `firebase deploy --only firestore:rules,firestore:indexes` |
 
 ---
 

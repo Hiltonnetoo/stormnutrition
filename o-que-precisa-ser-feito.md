@@ -32,19 +32,17 @@ Históricos:
 
 ---
 
-## 1. E0 — Publicação (depende do usuário)
+## 1. E0 — Publicação (Concluído em 19/09/2026)
 
-### E0.1 Commit, push e CI verde
-- **Estado:** a correção de formatação e a atualização das actions para v5 estão locais e verificadas.
-- **O que falta:**
-  1. Com autorização, commitar a árvore atual (inclui os arquivos novos listados em `git status`).
-  2. Enviar para uma branch e abrir PR, ou para `main`. **Atenção:** `main` publica na Vercel.
-  3. Confirmar os dois jobs da CI verdes e registrar o link do run em `feito.md`.
-- **Aceite:** run da CI verde para o commit entregue.
+### E0.1 Commit, push e CI verde [CONCLUÍDO]
+- **Commit:** `0402baa` em `origin/main`.
+- **CI Remota:** Run `35475087293` verde em ambos os jobs:
+  - Firestore Rules: verde em 1m27s
+  - Build and Test: verde em 3m49s (Prettier, ESLint, Type-check, Build, Vitest 509 testes, Playwright E2E)
+- **Produção (Vercel):** Implantado e ativo em `https://stormnutricion.vercel.app`.
 
-### E0.2 Regras do Firestore no projeto de produção
-- **O que falta:** o usuário roda `firebase deploy --only firestore:rules,firestore:indexes --project <projeto de produção>` a partir do mesmo commit. As regras de R02–R04 e o bloqueio de paciente arquivado só valem em produção depois disso.
-- **Aceite:** saída do deploy registrada com projeto, commit e data.
+### E0.2 Regras do Firestore no projeto de produção [CONCLUÍDO]
+- **Execução:** `firebase deploy --only firestore:rules,firestore:indexes --project isanutriv5` executado com sucesso em 19/09/2026. Regras de R02–R04 e bloqueio de paciente arquivado ativas na nuvem.
 
 ### E0.3 Conferência em produção
 - **O que falta:** depois da publicação, gerar uma dieta **nova** com um paciente de teste e conferir:
