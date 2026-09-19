@@ -276,86 +276,88 @@ const Login: React.FC<LoginProps> = ({ isPatient = false }) => {
         </p>
       )}
 
-      {/* Contas de Demonstração Sintética (1 Clique) */}
-      <div className="mt-8 pt-6 border-t border-slate-200/80">
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              {t("demo.quick_login_title")}
-            </h3>
+      {/* Contas de Demonstração Sintética (1 Clique) - apenas no emulador local */}
+      {import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true" && (
+        <div className="mt-8 pt-6 border-t border-slate-200/80">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                {t("demo.quick_login_title")}
+              </h3>
+            </div>
+            <span className="text-xs font-semibold text-slate-400">
+              Password123!
+            </span>
           </div>
-          <span className="text-xs font-semibold text-slate-400">
-            Password123!
-          </span>
-        </div>
-        <p className="text-xs text-slate-500 mb-3">
-          {t("demo.quick_login_desc")}
-        </p>
-        <div className="space-y-2">
-          {[
-            {
-              name: "Dra. Clara Mendes",
-              email: "dra.clara@demo.stormnutrition.com",
-              roleDesc: t("demo.role_nutri_main"),
-              badge: isPatient ? "Nutricionista" : "Recomendado",
-              badgeStyle: "bg-sage-100 text-sage-700",
-            },
-            {
-              name: "Dr. Marcos Lima",
-              email: "dr.marcos@demo.stormnutrition.com",
-              roleDesc: t("demo.role_nutri_secondary"),
-              badge: "Multi-tenant",
-              badgeStyle: "bg-blue-100 text-blue-700",
-            },
-            {
-              name: "Ana Silva",
-              email: "ana.silva@demo.stormnutrition.com",
-              roleDesc: t("demo.role_patient"),
-              badge: isPatient ? "Recomendado" : "Paciente",
-              badgeStyle: "bg-teal-100 text-teal-700",
-            },
-          ].map((acc) => (
-            <button
-              key={acc.email}
-              type="button"
-              onClick={() => {
-                setEmail(acc.email);
-                setPassword("Password123!");
-                setError(null);
-                setInfo(null);
-              }}
-              className={`w-full text-left p-3 rounded-xl border transition-all text-xs flex items-center justify-between cursor-pointer ${
-                email === acc.email
-                  ? "border-sage-500 bg-sage-50/70 ring-2 ring-sage-500/20"
-                  : "border-slate-200 hover:border-slate-300 bg-slate-50/50 hover:bg-slate-50"
-              }`}
-            >
-              <div className="min-w-0 flex-1 pr-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="min-w-0 font-bold text-slate-800 truncate">
-                    {acc.name}
-                  </span>
-                  <span
-                    className={`shrink-0 px-1.5 py-0.5 rounded text-xs font-semibold ${acc.badgeStyle}`}
-                  >
-                    {acc.badge}
-                  </span>
+          <p className="text-xs text-slate-500 mb-3">
+            {t("demo.quick_login_desc")}
+          </p>
+          <div className="space-y-2">
+            {[
+              {
+                name: "Dra. Clara Mendes",
+                email: "dra.clara@demo.stormnutrition.com",
+                roleDesc: t("demo.role_nutri_main"),
+                badge: isPatient ? "Nutricionista" : "Recomendado",
+                badgeStyle: "bg-sage-100 text-sage-700",
+              },
+              {
+                name: "Dr. Marcos Lima",
+                email: "dr.marcos@demo.stormnutrition.com",
+                roleDesc: t("demo.role_nutri_secondary"),
+                badge: "Multi-tenant",
+                badgeStyle: "bg-blue-100 text-blue-700",
+              },
+              {
+                name: "Ana Silva",
+                email: "ana.silva@demo.stormnutrition.com",
+                roleDesc: t("demo.role_patient"),
+                badge: isPatient ? "Recomendado" : "Paciente",
+                badgeStyle: "bg-teal-100 text-teal-700",
+              },
+            ].map((acc) => (
+              <button
+                key={acc.email}
+                type="button"
+                onClick={() => {
+                  setEmail(acc.email);
+                  setPassword("Password123!");
+                  setError(null);
+                  setInfo(null);
+                }}
+                className={`w-full text-left p-3 rounded-xl border transition-all text-xs flex items-center justify-between cursor-pointer ${
+                  email === acc.email
+                    ? "border-sage-500 bg-sage-50/70 ring-2 ring-sage-500/20"
+                    : "border-slate-200 hover:border-slate-300 bg-slate-50/50 hover:bg-slate-50"
+                }`}
+              >
+                <div className="min-w-0 flex-1 pr-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="min-w-0 font-bold text-slate-800 truncate">
+                      {acc.name}
+                    </span>
+                    <span
+                      className={`shrink-0 px-1.5 py-0.5 rounded text-xs font-semibold ${acc.badgeStyle}`}
+                    >
+                      {acc.badge}
+                    </span>
+                  </div>
+                  <p className="text-slate-500 truncate text-xs mt-0.5">
+                    {acc.email}
+                  </p>
+                  <p className="text-slate-400 text-xs truncate">
+                    {acc.roleDesc}
+                  </p>
                 </div>
-                <p className="text-slate-500 truncate text-xs mt-0.5">
-                  {acc.email}
-                </p>
-                <p className="text-slate-400 text-xs truncate">
-                  {acc.roleDesc}
-                </p>
-              </div>
-              <span className="shrink-0 text-sage-600 font-semibold text-xs hover:underline">
-                {t("demo.fill_credentials")}
-              </span>
-            </button>
-          ))}
+                <span className="shrink-0 text-sage-600 font-semibold text-xs hover:underline">
+                  {t("demo.fill_credentials")}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </AuthLayout>
   );
 };
