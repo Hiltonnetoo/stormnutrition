@@ -565,6 +565,107 @@ describe("PDF Exporter — Passo 17: Verificação de Entrega Final", () => {
       expect(out).toMatch(/119 g/);
       expect(out).not.toContain("fallback PT");
     });
+
+    describe("Passo P0: Gating, Status e Segurança Clínica", () => {
+      it("throws an error and refuses to export when plan status is 'blocked'", () => {
+        const blockedPlan: DietPlan = {
+          ...mockValidPlan,
+          status: "blocked",
+        };
+        expect(() =>
+          buildCustomLayoutPdfDocument(blockedPlan, undefined, { locale: "pt" }),
+        ).toThrowError(/bloqueados/i);
+      });
+
+      it("displays draft watermark banner when plan is unapproved (draft or awaiting_review)", () => {
+        const draftPlan: DietPlan = {
+          ...mockValidPlan,
+          status: "draft",
+          clinicalApproval: undefined,
+        };
+        const outputDraft = buildCustomLayoutPdfDocument(draftPlan, undefined, {
+          locale: "pt",
+        }).output();
+        expect(outputDraft).toContain("RASCUNHO");
+
+        const reviewPlan: DietPlan = {
+          ...mockValidPlan,
+          status: "awaiting_review",
+          clinicalApproval: undefined,
+        };
+        const outputReview = buildCustomLayoutPdfDocument(reviewPlan, undefined, {
+          locale: "pt",
+        }).output();
+        expect(outputReview).toContain("RASCUNHO");
+      });
+
+      it("does NOT display draft watermark banner and displays approval stamp when clinically approved", () => {
+        const approvedPlan: DietPlan = {
+          ...mockValidPlan,
+          status: "clinically_approved",
+          clinicalApproval: {
+            approvedByUid: "nutri_dr_silva",
+            professionalName: "Dra. Silva Nutricionista",
+            professionalCrn: "CRN-3 45678",
+            approvedAt: "2026-09-19T10:00:00.000Z",
+            signature: "sig_abc",
+            version: 2,
+          },
+        };
+        const output = buildCustomLayoutPdfDocument(approvedPlan, undefined, {
+          locale: "pt",
+        }).output();
+        expect(output).not.toContain("RASCUNHO");
+        expect(output).toContain("Dra. Silva Nutricionista");
+        expect(output).toContain("CRN-3 45678");
+      });
+
+      it("does not trigger sodium alert when under clinical limit (e.g. 1850mg general)", () => {
+        const normalPlan: DietPlan = {
+          ...mockValidPlan,
+          validation: {
+            ...mockValidPlan.validation!,
+            issues: [],
+            worstCaseAlternativeSodium: 1850,
+          },
+        };
+        const output = buildCustomLayoutPdfDocument(normalPlan, undefined, {
+          locale: "pt",
+        }).output();
+        expect(output).not.toContain("Aten");
+      });
+
+      it("triggers sodium alert when exceeding clinical limit (> 2000mg general)", () => {
+        const highSodiumPlan: DietPlan = {
+          ...mockValidPlan,
+          validation: {
+            ...mockValidPlan.validation!,
+            issues: [],
+            worstCaseAlternativeSodium: 2300,
+          },
+        };
+        const output = buildCustomLayoutPdfDocument(highSodiumPlan, undefined, {
+          locale: "pt",
+        }).output();
+        expect(output).toContain("2300mg");
+      });
+
+      it("triggers sodium alert when exceeding renal clinical limit (> 1500mg for renal_ckd)", () => {
+        const renalPlan: DietPlan = {
+          ...mockValidPlan,
+          clinicalTags: ["renal_ckd"],
+          validation: {
+            ...mockValidPlan.validation!,
+            issues: [],
+            worstCaseAlternativeSodium: 1600,
+          },
+        };
+        const output = buildCustomLayoutPdfDocument(renalPlan, undefined, {
+          locale: "pt",
+        }).output();
+        expect(output).toContain("1600mg");
+      });
+    });
   });
 
   describe("generateCustomLayoutPdf Browser Trigger", () => {

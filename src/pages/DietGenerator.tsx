@@ -383,13 +383,18 @@ const DietGenerator: React.FC = () => {
           })),
         },
         restrictions: selectedPatient.dietaryRestrictions,
-        mode: formData.mode || "general",
-        clinicalTags: formData.clinicalTags || [],
+        foodAllergies: selectedPatient.foodAllergies,
+        mode: formData.mode || selectedPatient.mode || "general",
+        clinicalTags:
+          (formData.clinicalTags && formData.clinicalTags.length > 0)
+            ? formData.clinicalTags
+            : selectedPatient.clinicalTags || [],
       });
       const finalPlan: DietPlan = {
         version: 2,
         patientId: selectedPatient.id!,
         patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
+        status: result.status,
         createdAt: new Date().toISOString(),
         durationDays: Number(formData.durationDays) || 7,
         startDate: formData.startDate || new Date().toISOString().split("T")[0],

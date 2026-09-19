@@ -184,8 +184,25 @@ export interface WorstCaseAlternativeTotals {
   worstCaseSodium: number;
 }
 
+export type DietPlanStatus =
+  | "draft"
+  | "blocked"
+  | "awaiting_review"
+  | "clinically_approved";
+
+export interface ClinicalApproval {
+  approvedByUid: string;
+  professionalName?: string;
+  professionalCrn?: string;
+  approvedAt: string;
+  signature: string;
+  version: number;
+  notes?: string;
+}
+
 export interface ValidateDietPlanOptions {
   restrictions?: string[];
+  foodAllergies?: string | string[];
   clinicalTags?: ClinicalTag[];
   mode?: DietMode;
   availableFoodsCatalog?: Food[];
@@ -202,6 +219,7 @@ export interface ValidateDietPlanOptions {
 export interface PlanValidationResult {
   status: PlanValidationStatus;
   isApproved: boolean;
+  isStructurallyValid?: boolean;
   approvedByUid?: string;
   approvedAt?: string;
   issues: PlanValidationIssue[];
@@ -235,6 +253,8 @@ export interface DietPlan {
   id?: string;
   patientId: string;
   patientName: string;
+  status?: DietPlanStatus;
+  clinicalApproval?: ClinicalApproval;
   mode: DietMode;
   clinicalTags?: ClinicalTag[];
   createdAt: string;

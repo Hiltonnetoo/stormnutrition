@@ -12,6 +12,17 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
   const { t, i18n } = useTranslation();
   const [expandedDiet, setExpandedDiet] = useState<string | null>(null);
 
+  // Passo P0: Paciente só visualiza planos liberados com aprovação clínica
+  const approvedDiets = diets.filter((d) => {
+    const isV2 = (d as DietPlan).version === 2;
+    if (!isV2) return true; // Preservar planos legados V1
+    const d2 = d as DietPlan;
+    if (d2.status) {
+      return d2.status === "clinically_approved";
+    }
+    return !!d2.clinicalApproval || !!d2.validation?.isApproved;
+  });
+
   return (
     <div className="bg-white rounded-2xl shadow-soft border border-slate-200/70 overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-50 flex items-center gap-2">
@@ -33,11 +44,11 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
         <h2 className="font-bold text-slate-800 text-sm">
           {t("patient_portal.my_diet_plan")}
         </h2>
-        {diets.length > 0 && (
+        {approvedDiets.length > 0 && (
           <div className="ml-auto">
             <span className="badge badge-sage">
-              {diets.length}{" "}
-              {diets.length > 1
+              {approvedDiets.length}{" "}
+              {approvedDiets.length > 1
                 ? t("meal_table.alternative_plural")
                 : t("meal_table.alternative_singular")}
             </span>
@@ -46,12 +57,12 @@ export const PortalDietsSection: React.FC<{ diets: AnyDietPlan[] }> = ({
       </div>
 
       <div className="divide-y divide-slate-50">
-        {diets.length === 0 ? (
+        {approvedDiets.length === 0 ? (
           <p className="text-sm text-slate-500 text-center py-8">
             {t("patient_portal.no_diet_plans")}
           </p>
         ) : (
-          diets.map((diet, idx) => {
+          approvedDiets.map((diet, idx) => {
             const isV2 = (diet as DietPlan).version === 2;
             const d2 = isV2 ? (diet as DietPlan) : null;
             const key = diet.id || String(idx);

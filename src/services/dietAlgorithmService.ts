@@ -10,6 +10,21 @@ import {
   foodIsVegan,
   evaluateFoodRestriction,
 } from "./foodService";
+import {
+  buildUnifiedClinicalContext,
+  evaluateFoodCompatibility,
+  matchFoodAllergen,
+} from "./clinicalScreeningService";
+import {
+  classifyMealArchetype,
+  isFoodSuitableForArchetype,
+  MEAL_ARCHETYPES,
+} from "./mealArchetypeService";
+import {
+  clampPortion,
+  formatHouseholdMeasure,
+  getPortionBoundaries,
+} from "./portionLimitsService";
 import type {
   CalculatedDietTotals,
   Food,
@@ -17,6 +32,7 @@ import type {
   MealOption,
   MealOptionItem,
   DietMode,
+  DietPlanStatus,
   ClinicalTag,
   DecisionEntry,
   Micronutrients,
@@ -87,6 +103,7 @@ export interface GenerationParams {
     meals: Array<{ name: string; time: string; caloriePercentage: number }>;
   };
   restrictions?: string[];
+  foodAllergies?: string | string[];
   mode?: DietMode;
   clinicalTags?: ClinicalTag[];
   seed?: number | string;
@@ -101,6 +118,7 @@ export interface GenerationResult {
   meals: Meal[];
   decisionLog: DecisionEntry[];
   validation: PlanValidationResult;
+  status: DietPlanStatus;
   metadata: {
     algorithmVersion: string;
     datasetVersion: string;
@@ -534,33 +552,37 @@ export function validateDietPlan(
           continue;
         }
 
-        // Food found: evaluate restrictions
+        // Food found: evaluate unified clinical compatibility (allergies, restrictions, clinical tags)
+        const unifiedContext = buildUnifiedClinicalContext({
+          restrictions: options?.restrictions,
+          clinicalTags: options?.clinicalTags,
+          foodAllergies: options?.foodAllergies,
+          mode: options?.mode,
+        });
+
+        const compat = evaluateFoodCompatibility(itemFood, unifiedContext);
+        const resolvedFoodId = item.foodId || itemFood.id;
+        if (compat.status === "incompatible") {
+          issues.push({
+            level: "error",
+            code: compat.code || "RESTRICTION_VIOLATION",
+            message: `Alimento "${item.name}" na refeição "${meal.mealName}" viola diretriz clínica: ${compat.reason || "incompatível"}.`,
+            details: {
+              ...(resolvedFoodId ? { foodId: resolvedFoodId } : {}),
+              foodName: item.name,
+              mealName: meal.mealName,
+              restriction: compat.matchedConstraint,
+              reason: compat.reason,
+              source: compat.source,
+            },
+          });
+        }
+
+        // Check unverified restrictions
         if (options?.restrictions && options.restrictions.length > 0) {
           for (const r of options.restrictions) {
             const evalResult = evaluateFoodRestriction(itemFood, r);
-            const resolvedFoodId = item.foodId || itemFood.id;
-            if (evalResult.status === "incompatible") {
-              let code = "RESTRICTION_VIOLATION";
-              if (r === "gluten_free") code = "GLUTEN_VIOLATION";
-              else if (r === "lactose_free") code = "LACTOSE_VIOLATION";
-              else if (r === "dairy_free") code = "DAIRY_VIOLATION";
-              else if (r === "vegetarian") code = "VEGETARIAN_VIOLATION";
-              else if (r === "vegan") code = "VEGAN_VIOLATION";
-
-              issues.push({
-                level: "error",
-                code,
-                message: `Alimento "${item.name}" na refeição "${meal.mealName}" viola a restrição "${r}": ${evalResult.reason || "incompatível"}.`,
-                details: {
-                  ...(resolvedFoodId ? { foodId: resolvedFoodId } : {}),
-                  foodName: item.name,
-                  mealName: meal.mealName,
-                  restriction: r,
-                  ...(evalResult.reason ? { reason: evalResult.reason } : {}),
-                  source: evalResult.source,
-                },
-              });
-            } else if (evalResult.status === "unknown") {
+            if (evalResult.status === "unknown") {
               issues.push({
                 level: "warning",
                 code: "UNVERIFIED_RESTRICTION",
@@ -822,12 +844,14 @@ export function validateDietPlan(
     options,
   });
 
-  if (status === "valid") {
-    isApproved = true;
-  } else if (status === "requires_review" && options?.allowApprovedReview) {
-    // R06: consent refers to the exact version presented. A different (or
-    // missing) reviewed signature never approves; an earlier approval of
-    // other content never blocks a new explicit review of this one.
+  const isStructurallyValid = status === "valid";
+
+  // Passo P0: Eliminar aprovação automática do validador sintético.
+  // A aprovação clínica é ato privativo do profissional humano (exige allowApprovedReview + reviewedSignature).
+  if (
+    options?.allowApprovedReview &&
+    (status === "valid" || status === "requires_review")
+  ) {
     if (
       options.reviewedSignature &&
       options.reviewedSignature === issuesSignature
@@ -843,6 +867,7 @@ export function validateDietPlan(
   } = {
     status,
     isApproved,
+    isStructurallyValid,
     issues,
     issuesSignature,
     deviations,
@@ -876,12 +901,20 @@ export const generateAlgorithmicDietPlan = (
     nutritionalTargets,
     mealPlanConfig,
     restrictions = [],
+    foodAllergies,
     mode = "general",
     clinicalTags = [],
     seed,
     datasetVersion = "2026.1",
     availableFoodsCatalog = brazilianFoods,
   } = params;
+
+  const unifiedContext = buildUnifiedClinicalContext({
+    restrictions,
+    clinicalTags,
+    foodAllergies,
+    mode,
+  });
 
   const actualSeed =
     typeof seed === "number"
@@ -891,7 +924,8 @@ export const generateAlgorithmicDietPlan = (
         : Math.floor(Math.random() * 2147483647) >>> 0;
 
   const rng = createPrng(actualSeed);
-  const template = dietTemplates[mealPlanConfig.dietType];
+  const template =
+    dietTemplates[mealPlanConfig.dietType] || dietTemplates.traditional;
   const decisionLog: DecisionEntry[] = [];
 
   let availableFoods = availableFoodsCatalog.filter(
@@ -951,8 +985,24 @@ export const generateAlgorithmicDietPlan = (
     "nova",
   );
 
+  // --- FOOD ALLERGIES LOGIC ---
+  if (unifiedContext.foodAllergies && unifiedContext.foodAllergies.length > 0) {
+    for (const allergy of unifiedContext.foodAllergies) {
+      applyExclusion(
+        (f) => !matchFoodAllergen(f, allergy).matches,
+        "EXCLUDE_ALLERGEN",
+        i18next.t("diet.log_remove_allergen", {
+          allergen: allergy,
+          defaultValue: `Removendo alimentos com potencial alergênico (${allergy})`,
+        }),
+        "food_allergy",
+        { allergen: allergy },
+      );
+    }
+  }
+
   // --- RESTRICTION LOGIC ---
-  if (restrictions.includes("gluten_free")) {
+  if (unifiedContext.restrictions.includes("gluten_free")) {
     applyExclusion(
       (f) => !foodContainsGluten(f),
       "EXCLUDE_GLUTEN",
@@ -964,7 +1014,7 @@ export const generateAlgorithmicDietPlan = (
     );
   }
 
-  if (restrictions.includes("lactose_free")) {
+  if (unifiedContext.restrictions.includes("lactose_free")) {
     applyExclusion(
       (f) => !foodContainsLactose(f),
       "EXCLUDE_LACTOSE",
@@ -976,7 +1026,7 @@ export const generateAlgorithmicDietPlan = (
     );
   }
 
-  if (restrictions.includes("dairy_free")) {
+  if (unifiedContext.restrictions.includes("dairy_free")) {
     applyExclusion(
       (f) => !foodContainsDairy(f),
       "EXCLUDE_DAIRY",
@@ -988,7 +1038,7 @@ export const generateAlgorithmicDietPlan = (
     );
   }
 
-  if (restrictions.includes("vegetarian")) {
+  if (unifiedContext.restrictions.includes("vegetarian")) {
     applyExclusion(
       (f) => foodIsVegetarian(f),
       "EXCLUDE_MEAT",
@@ -1000,7 +1050,7 @@ export const generateAlgorithmicDietPlan = (
     );
   }
 
-  if (restrictions.includes("vegan")) {
+  if (unifiedContext.restrictions.includes("vegan")) {
     applyExclusion(
       (f) => foodIsVegan(f),
       "EXCLUDE_ANIMAL_PRODUCTS",
@@ -1013,7 +1063,7 @@ export const generateAlgorithmicDietPlan = (
   }
 
   // --- MODE LOGIC ---
-  if (mode === "clinical") {
+  if (unifiedContext.mode === "clinical") {
     applyExclusion(
       (f) => f.sodium < 600,
       "LIMIT_SODIUM_CLINICAL",
@@ -1025,7 +1075,7 @@ export const generateAlgorithmicDietPlan = (
     );
   }
 
-  if (mode === "pediatric") {
+  if (unifiedContext.mode === "pediatric") {
     applyExclusion(
       (f) =>
         f.category !== "Bebidas" ||
@@ -1041,7 +1091,10 @@ export const generateAlgorithmicDietPlan = (
   }
 
   // --- CLINICAL TAGS LOGIC ---
-  if (clinicalTags.includes("hypertension")) {
+  if (
+    unifiedContext.clinicalTags.includes("hypertension") ||
+    unifiedContext.restrictions.includes("hypertension")
+  ) {
     applyExclusion(
       (f) => f.sodium < 300,
       "LIMIT_SODIUM_HYPERTENSION",
@@ -1054,8 +1107,9 @@ export const generateAlgorithmicDietPlan = (
   }
 
   if (
-    clinicalTags.includes("diabetes_t1") ||
-    clinicalTags.includes("diabetes_t2")
+    unifiedContext.clinicalTags.includes("diabetes_t1") ||
+    unifiedContext.clinicalTags.includes("diabetes_t2") ||
+    unifiedContext.restrictions.includes("diabetes")
   ) {
     applyExclusion(
       (f) =>
@@ -1078,7 +1132,10 @@ export const generateAlgorithmicDietPlan = (
     );
   }
 
-  if (clinicalTags.includes("renal_ckd")) {
+  if (
+    unifiedContext.clinicalTags.includes("renal_ckd") ||
+    unifiedContext.restrictions.includes("renal")
+  ) {
     applyExclusion(
       (f) => f.sodium < 200,
       "LIMIT_SODIUM_RENAL",
@@ -1090,7 +1147,10 @@ export const generateAlgorithmicDietPlan = (
     );
   }
 
-  if (clinicalTags.includes("hepatic_steatosis")) {
+  if (
+    unifiedContext.clinicalTags.includes("hepatic_steatosis") ||
+    unifiedContext.restrictions.includes("hepatic")
+  ) {
     applyExclusion(
       (f) =>
         f.category !== "Óleos e Gorduras" ||
@@ -1104,26 +1164,16 @@ export const generateAlgorithmicDietPlan = (
     );
   }
 
-  const getFoodFromCategories = (
-    categories: string[],
-    role: "P" | "C" | "F",
-    mealName: string,
-  ): Food => {
-    const candidateFoods = availableFoods.filter((f) =>
-      categories.includes(f.category),
-    );
-    if (candidateFoods.length === 0) {
-      const roleName =
-        role === "P" ? "Proteínas" : role === "C" ? "Carboidratos" : "Gorduras";
-      throw new InfeasiblePlanError(
-        `Catálogo esgotado: nenhum alimento compatível para ${roleName} (${categories.join(", ")}) na refeição "${mealName}" após aplicar as restrições selecionadas.`,
-        "CATALOG_EXHAUSTED",
-        { role, categories, mealName, restrictions, clinicalTags, mode },
-      );
-    }
-    const idx = Math.floor(rng() * candidateFoods.length);
-    return candidateFoods[idx];
-  };
+  // Safety net: filter any remaining clinical incompatibilities
+  applyExclusion(
+    (f) => evaluateFoodCompatibility(f, unifiedContext).status !== "incompatible",
+    "EXCLUDE_CLINICALLY_INCOMPATIBLE",
+    i18next.t(
+      "diet.log_exclude_incompatible",
+      "Excluindo alimentos incompatíveis com o perfil clínico e alergias do paciente",
+    ),
+    "clinical_screening",
+  );
 
   const totalMealPercentage = mealPlanConfig.meals.reduce(
     (sum, m) => sum + (Number(m.caloriePercentage) || 0),
@@ -1136,191 +1186,244 @@ export const generateAlgorithmicDietPlan = (
     const normalizedPercentage =
       (mealConfig.caloriePercentage / totalMealPercentage) * 100;
     const factor = normalizedPercentage / 100;
+    const mealTargetCalories = nutritionalTargets.calories * factor;
     const mealProtein = nutritionalTargets.protein * factor;
     const mealCarbs = nutritionalTargets.carbs * factor;
     const mealFat = nutritionalTargets.fat * factor;
 
-    const createMealOption = (): MealOption => {
-      const proteinSource = getFoodFromCategories(
-        template.P,
-        "P",
-        mealConfig.name,
-      );
-      const carbSource = getFoodFromCategories(
-        template.C,
-        "C",
-        mealConfig.name,
-      );
-      const fatSource = getFoodFromCategories(template.F, "F", mealConfig.name);
+    const archetype = classifyMealArchetype(mealConfig.name, mealConfig.time);
+    const archDef = MEAL_ARCHETYPES[archetype];
 
-      const getPortion = (
-        mealMacro: number,
-        foodMacro: number,
-        foodPortion: string,
-      ) => {
-        const portionSize = Number(foodPortion) || 100;
-        return foodMacro > 0 ? (mealMacro / foodMacro) * portionSize : 0;
-      };
+    const selectFoodForRole = (
+      role: "P" | "C" | "F",
+      categories: string[],
+      excludeFoodIds: string[] = [],
+    ): Food => {
+      const slot = archDef.slots.find((s) => s.role === role);
+      const preferred = slot
+        ? slot.preferredCategories.filter((c) => categories.includes(c))
+        : [];
 
-      const MIN_PORTION_GRAMS = 5;
-      const MAX_PORTION_GRAMS = 450;
-
-      let proteinPortion = getPortion(
-        mealProtein,
-        proteinSource.protein,
-        proteinSource.portion,
-      );
-      let carbPortion = getPortion(
-        mealCarbs,
-        carbSource.carbs,
-        carbSource.portion,
-      );
-      let fatPortion = getPortion(mealFat, fatSource.fat, fatSource.portion);
-
-      proteinPortion = Math.max(
-        MIN_PORTION_GRAMS,
-        Math.min(MAX_PORTION_GRAMS, proteinPortion || MIN_PORTION_GRAMS),
-      );
-      carbPortion = Math.max(
-        MIN_PORTION_GRAMS,
-        Math.min(MAX_PORTION_GRAMS, carbPortion || MIN_PORTION_GRAMS),
-      );
-      fatPortion = Math.max(
-        MIN_PORTION_GRAMS,
-        Math.min(MAX_PORTION_GRAMS, fatPortion || MIN_PORTION_GRAMS),
-      );
-
-      const calculateStats = (food: Food, portion: number) => {
-        const portionSize = Number(food.portion) || 100;
-        const f = portionSize > 0 ? portion / portionSize : 0;
-        const realMicros: Micronutrients = {};
-        if (food.fiber != null && Number.isFinite(food.fiber)) {
-          realMicros.fiber = parseFloat((food.fiber * f).toFixed(1));
-        }
-        if (food.sodium != null && Number.isFinite(food.sodium)) {
-          realMicros.sodium = Math.round(food.sodium * f);
-        }
-        if (food.micros?.iron != null && Number.isFinite(food.micros.iron)) {
-          realMicros.iron = parseFloat((food.micros.iron * f).toFixed(1));
-        }
-        if (
-          food.micros?.calcium != null &&
-          Number.isFinite(food.micros.calcium)
-        ) {
-          realMicros.calcium = Math.round(food.micros.calcium * f);
-        }
-        if (
-          food.micros?.vitaminC != null &&
-          Number.isFinite(food.micros.vitaminC)
-        ) {
-          realMicros.vitaminC = Math.round(food.micros.vitaminC * f);
-        }
-        if (
-          food.micros?.potassium != null &&
-          Number.isFinite(food.micros.potassium)
-        ) {
-          realMicros.potassium = Math.round(food.micros.potassium * f);
-        }
-        if (
-          food.micros?.magnesium != null &&
-          Number.isFinite(food.micros.magnesium)
-        ) {
-          realMicros.magnesium = Math.round(food.micros.magnesium * f);
-        }
-        if (food.micros?.zinc != null && Number.isFinite(food.micros.zinc)) {
-          realMicros.zinc = parseFloat((food.micros.zinc * f).toFixed(1));
-        }
-
-        return {
-          calories: Math.round(food.calories * f),
-          protein: parseFloat((food.protein * f).toFixed(1)),
-          carbs: parseFloat((food.carbs * f).toFixed(1)),
-          fat: parseFloat((food.fat * f).toFixed(1)),
-          ...(Object.keys(realMicros).length > 0 ? { micros: realMicros } : {}),
-        };
-      };
-
-      const mealTargetCalories = nutritionalTargets.calories * factor;
-      const rawCalories =
-        calculateStats(proteinSource, proteinPortion).calories +
-        calculateStats(carbSource, carbPortion).calories +
-        calculateStats(fatSource, fatPortion).calories;
-
-      if (rawCalories > 0 && mealTargetCalories > 0) {
-        const scaleFactor = Math.max(
-          0.3,
-          Math.min(3.5, mealTargetCalories / rawCalories),
+      // 1. Preferred categories for this archetype slot + suitable for archetype + not excluded
+      if (preferred.length > 0) {
+        const prefCandidates = availableFoods.filter(
+          (f) =>
+            preferred.includes(f.category) &&
+            isFoodSuitableForArchetype(f, archetype) &&
+            !excludeFoodIds.includes(f.id),
         );
-        proteinPortion = Math.max(
-          MIN_PORTION_GRAMS,
-          Math.min(MAX_PORTION_GRAMS, proteinPortion * scaleFactor),
-        );
-        carbPortion = Math.max(
-          MIN_PORTION_GRAMS,
-          Math.min(MAX_PORTION_GRAMS, carbPortion * scaleFactor),
-        );
-        fatPortion = Math.max(
-          MIN_PORTION_GRAMS,
-          Math.min(MAX_PORTION_GRAMS, fatPortion * scaleFactor),
-        );
+        if (prefCandidates.length > 0) {
+          const idx = Math.floor(rng() * prefCandidates.length);
+          return prefCandidates[idx];
+        }
       }
 
-      // Round portions before calculating stats so nutritional values match displayed portion exactly (Item 8)
-      proteinPortion = Math.round(proteinPortion);
-      carbPortion = Math.round(carbPortion);
-      fatPortion = Math.round(fatPortion);
+      // 2. Categories in template + suitable for archetype + not excluded
+      let candidates = availableFoods.filter(
+        (f) =>
+          categories.includes(f.category) &&
+          isFoodSuitableForArchetype(f, archetype) &&
+          !excludeFoodIds.includes(f.id),
+      );
+      if (candidates.length === 0) {
+        // 3. Categories in template + suitable for archetype
+        candidates = availableFoods.filter(
+          (f) =>
+            categories.includes(f.category) &&
+            isFoodSuitableForArchetype(f, archetype),
+        );
+      }
+      if (candidates.length === 0) {
+        // 4. Fallback to any food in template categories (for small/custom catalogs)
+        candidates = availableFoods.filter((f) => categories.includes(f.category));
+      }
+      if (candidates.length === 0) {
+        const roleName =
+          role === "P" ? "Proteínas" : role === "C" ? "Carboidratos" : "Gorduras";
+        throw new InfeasiblePlanError(
+          `Catálogo esgotado: nenhum alimento compatível para ${roleName} (${categories.join(", ")}) na refeição "${mealConfig.name}" após aplicar as restrições selecionadas.`,
+          "CATALOG_EXHAUSTED",
+          { role, categories, mealName: mealConfig.name, restrictions, clinicalTags, mode },
+        );
+      }
+      const idx = Math.floor(rng() * candidates.length);
+      return candidates[idx];
+    };
 
-      const pS = calculateStats(proteinSource, proteinPortion);
-      const cS = calculateStats(carbSource, carbPortion);
-      const fS = calculateStats(fatSource, fatPortion);
+    const calculateStats = (food: Food, portionGrams: number) => {
+      const portionSize = Number(food.portion) || 100;
+      const f = portionSize > 0 ? portionGrams / portionSize : 0;
+      const realMicros: Micronutrients = {};
+      if (food.fiber != null && Number.isFinite(food.fiber)) {
+        realMicros.fiber = parseFloat((food.fiber * f).toFixed(1));
+      }
+      if (food.sodium != null && Number.isFinite(food.sodium)) {
+        realMicros.sodium = Math.round(food.sodium * f);
+      }
+      if (food.micros?.iron != null && Number.isFinite(food.micros.iron)) {
+        realMicros.iron = parseFloat((food.micros.iron * f).toFixed(1));
+      }
+      if (
+        food.micros?.calcium != null &&
+        Number.isFinite(food.micros.calcium)
+      ) {
+        realMicros.calcium = Math.round(food.micros.calcium * f);
+      }
+      if (
+        food.micros?.vitaminC != null &&
+        Number.isFinite(food.micros.vitaminC)
+      ) {
+        realMicros.vitaminC = Math.round(food.micros.vitaminC * f);
+      }
+      if (
+        food.micros?.potassium != null &&
+        Number.isFinite(food.micros.potassium)
+      ) {
+        realMicros.potassium = Math.round(food.micros.potassium * f);
+      }
+      if (
+        food.micros?.magnesium != null &&
+        Number.isFinite(food.micros.magnesium)
+      ) {
+        realMicros.magnesium = Math.round(food.micros.magnesium * f);
+      }
+      if (food.micros?.zinc != null && Number.isFinite(food.micros.zinc)) {
+        realMicros.zinc = parseFloat((food.micros.zinc * f).toFixed(1));
+      }
 
-      const getWarnings = (
-        food: Food,
-        stats: ReturnType<typeof calculateStats>,
-      ): string[] => {
-        const warnings: string[] = [];
-        if (
-          clinicalTags.includes("hypertension") &&
-          (stats.micros?.sodium ?? 0) > 400
-        )
-          warnings.push(i18next.t("diet.warn_high_sodium", "Sódio elevado"));
-        if (
-          (clinicalTags.includes("diabetes_t1") ||
-            clinicalTags.includes("diabetes_t2")) &&
-          food.category === "Frutas" &&
-          stats.carbs > 25
-        )
-          warnings.push(
-            i18next.t("diet.warn_moderate_gi", "Carga glicêmica moderada"),
-          );
-        return warnings;
+      return {
+        calories: Math.round(food.calories * f),
+        protein: parseFloat((food.protein * f).toFixed(1)),
+        carbs: parseFloat((food.carbs * f).toFixed(1)),
+        fat: parseFloat((food.fat * f).toFixed(1)),
+        ...(Object.keys(realMicros).length > 0 ? { micros: realMicros } : {}),
       };
+    };
 
-      const createItem = (
-        food: Food,
-        portionGrams: number,
-        stats: ReturnType<typeof calculateStats>,
-      ): MealOptionItem => {
-        const warnings = getWarnings(food, stats);
-        const roundedGrams = Math.round(portionGrams);
-        const item: MealOptionItem = {
-          name: getFoodName(food),
-          portion: `${roundedGrams}g`,
-          portionGrams: roundedGrams,
-          unit: food.unit || "g",
-          ...stats,
-          ...(warnings.length > 0 ? { clinicalWarnings: warnings } : {}),
-        };
-        if (food.id) {
-          item.foodId = food.id;
+    const getWarnings = (
+      food: Food,
+      stats: ReturnType<typeof calculateStats>,
+    ): string[] => {
+      const warnings: string[] = [];
+      if (
+        clinicalTags.includes("hypertension") &&
+        (stats.micros?.sodium ?? 0) > 400
+      )
+        warnings.push(i18next.t("diet.warn_high_sodium", "Sódio elevado"));
+      if (
+        (clinicalTags.includes("diabetes_t1") ||
+          clinicalTags.includes("diabetes_t2")) &&
+        food.category === "Frutas" &&
+        stats.carbs > 25
+      )
+        warnings.push(
+          i18next.t("diet.warn_moderate_gi", "Carga glicêmica moderada"),
+        );
+      return warnings;
+    };
+
+    const createItem = (
+      food: Food,
+      portionGrams: number,
+      stats: ReturnType<typeof calculateStats>,
+    ): MealOptionItem => {
+      const warnings = getWarnings(food, stats);
+      const roundedGrams = Math.round(portionGrams);
+      const item: MealOptionItem = {
+        name: getFoodName(food),
+        portion: formatHouseholdMeasure(food, roundedGrams),
+        portionGrams: roundedGrams,
+        unit: food.unit || "g",
+        ...stats,
+        ...(warnings.length > 0 ? { clinicalWarnings: warnings } : {}),
+      };
+      if (food.id) {
+        item.foodId = food.id;
+      }
+      return item;
+    };
+
+    const solvePortions = (
+      pFood: Food,
+      cFood: Food,
+      fFood: Food,
+      targetCalories: number,
+      targetP: number,
+      targetC: number,
+      targetF: number,
+    ): { pPortion: number; cPortion: number; fPortion: number } => {
+      let pGrams = pFood.protein > 0 ? (targetP / pFood.protein) * (Number(pFood.portion) || 100) : 100;
+      let cGrams = cFood.carbs > 0 ? (targetC / cFood.carbs) * (Number(cFood.portion) || 100) : 100;
+      let fGrams = fFood.fat > 0 ? (targetF / fFood.fat) * (Number(fFood.portion) || 100) : 15;
+
+      pGrams = clampPortion(pFood, pGrams);
+      cGrams = clampPortion(cFood, cGrams);
+      fGrams = clampPortion(fFood, fGrams);
+
+      const currentStats = (p: number, c: number, f: number) =>
+        calculateStats(pFood, p).calories +
+        calculateStats(cFood, c).calories +
+        calculateStats(fFood, f).calories;
+
+      for (let iter = 0; iter < 3; iter++) {
+        const currentCals = currentStats(pGrams, cGrams, fGrams);
+        const calGap = targetCalories - currentCals;
+        if (Math.abs(calGap) <= 12) break;
+
+        const cCalPerGram = Math.max(0.5, (cFood.calories || 100) / (Number(cFood.portion) || 100));
+        const pCalPerGram = Math.max(0.5, (pFood.calories || 100) / (Number(pFood.portion) || 100));
+
+        const nextC = clampPortion(cFood, cGrams + (calGap * 0.6) / cCalPerGram);
+        const nextP = clampPortion(pFood, pGrams + (calGap * 0.4) / pCalPerGram);
+
+        if (nextC === cGrams && nextP === pGrams) {
+          const bC = getPortionBoundaries(cFood);
+          const bP = getPortionBoundaries(pFood);
+          if (calGap > 0) {
+            if (cGrams < bC.maxGrams) {
+              const addC = Math.min(bC.maxGrams - cGrams, Math.round(calGap / cCalPerGram));
+              cGrams += addC;
+            } else if (pGrams < bP.maxGrams) {
+              const addP = Math.min(bP.maxGrams - pGrams, Math.round(calGap / pCalPerGram));
+              pGrams += addP;
+            }
+          } else {
+            if (cGrams > bC.minGrams) {
+              const remC = Math.min(cGrams - bC.minGrams, Math.round(Math.abs(calGap) / cCalPerGram));
+              cGrams -= remC;
+            } else if (pGrams > bP.minGrams) {
+              const remP = Math.min(pGrams - bP.minGrams, Math.round(Math.abs(calGap) / pCalPerGram));
+              pGrams -= remP;
+            }
+          }
+          break;
         }
-        return item;
+
+        cGrams = nextC;
+        pGrams = nextP;
+      }
+
+      return {
+        pPortion: Math.round(pGrams),
+        cPortion: Math.round(cGrams),
+        fPortion: Math.round(fGrams),
       };
+    };
+
+    const buildOption = (
+      pFood: Food,
+      cFood: Food,
+      fFood: Food,
+      portions: { pPortion: number; cPortion: number; fPortion: number },
+    ): MealOption => {
+      const pS = calculateStats(pFood, portions.pPortion);
+      const cS = calculateStats(cFood, portions.cPortion);
+      const fS = calculateStats(fFood, portions.fPortion);
 
       const items: MealOptionItem[] = [
-        createItem(proteinSource, proteinPortion, pS),
-        createItem(carbSource, carbPortion, cS),
-        createItem(fatSource, fatPortion, fS),
+        createItem(pFood, portions.pPortion, pS),
+        createItem(cFood, portions.cPortion, cS),
+        createItem(fFood, portions.fPortion, fS),
       ];
 
       const andStr = i18next.t("diet.and", "e");
@@ -1375,20 +1478,119 @@ export const generateAlgorithmicDietPlan = (
           (fS.micros?.vitaminC ?? 0);
       }
 
+      const householdP = formatHouseholdMeasure(pFood, portions.pPortion);
+      const householdC = formatHouseholdMeasure(cFood, portions.cPortion);
+      const householdF = formatHouseholdMeasure(fFood, portions.fPortion);
+
+      const prepDesc =
+        (i18next.language === "en"
+          ? archDef.defaultPreparationDesc.en
+          : archDef.defaultPreparationDesc.pt) ||
+        archDef.defaultPreparationDesc.pt;
+
       return {
-        name: `${getFoodName(proteinSource)}, ${getFoodName(carbSource)} ${andStr} ${getFoodName(fatSource)}`,
-        portion: `${Math.round(proteinPortion)}g, ${Math.round(carbPortion)}g ${andStr} ${Math.round(fatPortion)}g`,
+        name: `${getFoodName(pFood)}, ${getFoodName(cFood)} ${andStr} ${getFoodName(fFood)}`,
+        portion: `${householdP}, ${householdC} ${andStr} ${householdF}`,
         calories: pS.calories + cS.calories + fS.calories,
         protein: parseFloat((pS.protein + cS.protein + fS.protein).toFixed(1)),
         carbs: parseFloat((pS.carbs + cS.carbs + fS.carbs).toFixed(1)),
         fat: parseFloat((pS.fat + cS.fat + fS.fat).toFixed(1)),
         items,
-        details: i18next.t("diet.healthy_preparation", "preparação saudável"),
+        details: prepDesc,
         micros: optionMicros,
       };
     };
 
-    const main = createMealOption();
+    // Main option selection and joint sizing
+    const proteinSource = selectFoodForRole("P", template.P);
+    const carbSource = selectFoodForRole("C", template.C);
+    const fatSource = selectFoodForRole("F", template.F);
+
+    const mainPortions = solvePortions(
+      proteinSource,
+      carbSource,
+      fatSource,
+      mealTargetCalories,
+      mealProtein,
+      mealCarbs,
+      mealFat,
+    );
+
+    const main = buildOption(proteinSource, carbSource, fatSource, mainPortions);
+
+    // Alternatives generation with functional substitution and auto-correction loop
+    const createAlternative = (
+      usedPIds: string[],
+      usedCIds: string[],
+      usedFIds: string[],
+    ): MealOption => {
+      let bestOption: MealOption | null = null;
+      let minDivergence = Infinity;
+
+      const currentUsedP = [...usedPIds];
+      const currentUsedC = [...usedCIds];
+      const currentUsedF = [...usedFIds];
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const altProtein = selectFoodForRole("P", template.P, currentUsedP);
+        const altCarb = selectFoodForRole("C", template.C, currentUsedC);
+        const altFat = selectFoodForRole("F", template.F, currentUsedF);
+
+        let altPortions = solvePortions(
+          altProtein,
+          altCarb,
+          altFat,
+          main.calories,
+          main.protein,
+          main.carbs,
+          main.fat,
+        );
+
+        let option = buildOption(altProtein, altCarb, altFat, altPortions);
+        let divergence =
+          Math.abs(option.calories - main.calories) / Math.max(1, main.calories);
+
+        // Auto-correction loop: fine-tune scaling if divergence is noticeable
+        if (divergence > 0.10 && option.calories > 0) {
+          const scale = main.calories / option.calories;
+          altPortions = {
+            pPortion: clampPortion(altProtein, altPortions.pPortion * scale),
+            cPortion: clampPortion(altCarb, altPortions.cPortion * scale),
+            fPortion: clampPortion(altFat, altPortions.fPortion * scale),
+          };
+          option = buildOption(altProtein, altCarb, altFat, altPortions);
+          divergence =
+            Math.abs(option.calories - main.calories) / Math.max(1, main.calories);
+        }
+
+        if (divergence < minDivergence) {
+          minDivergence = divergence;
+          bestOption = option;
+        }
+
+        if (divergence <= 0.20) {
+          return option;
+        }
+
+        currentUsedP.push(altProtein.id);
+        currentUsedC.push(altCarb.id);
+        currentUsedF.push(altFat.id);
+      }
+
+      return bestOption!;
+    };
+
+    const alt1 = createAlternative(
+      [proteinSource.id],
+      [carbSource.id],
+      [fatSource.id],
+    );
+    const alt2 = createAlternative(
+      [proteinSource.id, alt1.items?.[0]?.foodId || ""],
+      [carbSource.id, alt1.items?.[1]?.foodId || ""],
+      [fatSource.id, alt1.items?.[2]?.foodId || ""],
+    );
+
     generatedMeals.push({
       mealName: mealConfig.name,
       time: mealConfig.time,
@@ -1398,22 +1600,33 @@ export const generateAlgorithmicDietPlan = (
       fat: main.fat,
       micros: main.micros,
       mainOption: main,
-      alternatives: [createMealOption(), createMealOption()],
+      alternatives: [alt1, alt2],
     });
   }
 
   const validation = validateDietPlan(generatedMeals, nutritionalTargets, {
-    restrictions,
-    clinicalTags,
-    mode,
+    restrictions: unifiedContext.restrictions,
+    clinicalTags: unifiedContext.clinicalTags,
+    foodAllergies: unifiedContext.foodAllergies,
+    mode: unifiedContext.mode,
     availableFoodsCatalog,
     catalogVersion: datasetVersion,
   });
+
+  let planStatus: DietPlanStatus = "draft";
+  if (validation.status === "infeasible") {
+    planStatus = "blocked";
+  } else if (validation.status === "requires_review") {
+    planStatus = "awaiting_review";
+  } else {
+    planStatus = "draft";
+  }
 
   return {
     meals: generatedMeals,
     decisionLog,
     validation,
+    status: planStatus,
     metadata: {
       algorithmVersion: "2026.1",
       datasetVersion,

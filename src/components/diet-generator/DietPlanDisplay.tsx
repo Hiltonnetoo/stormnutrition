@@ -94,9 +94,11 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isLogExpanded, setIsLogExpanded] = useState(false);
   const [templateSaved, setTemplateSaved] = useState(false);
+  const isBlocked =
+    plan.status === "blocked" || plan.validation?.status === "infeasible";
 
   const handleSaveClick = () => {
-    if (saveSuccess) return;
+    if (saveSuccess || isBlocked) return;
     onBeforeReview?.();
     setIsReviewModalOpen(true);
   };
@@ -212,13 +214,17 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
               <Button
                 size="md"
                 onClick={handleSaveClick}
-                disabled={isSaving || saveSuccess}
+                disabled={isSaving || saveSuccess || isBlocked}
                 loading={isSaving}
                 className="bg-sky-600 hover:bg-sky-700 shadow-sky-600/25 font-bold"
               >
                 {saveSuccess
                   ? t("diet_generator.display.save_success_btn")
-                  : t("diet_generator.display.save_plan_btn")}
+                  : isBlocked
+                    ? t("diet_generator.display.blocked_btn", {
+                        defaultValue: "Bloqueado (Incompatível)",
+                      })
+                    : t("diet_generator.display.save_plan_btn")}
               </Button>
             </div>
           </div>
@@ -279,14 +285,23 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
               never told apart by color alone. */}
           {plan.validation ? (
             <>
-              {plan.validation.status === "valid" ? (
+              {plan.status === "blocked" || plan.validation.status === "infeasible" ? (
                 <Badge
-                  tone="success"
-                  icon={<CheckCircleIcon className="w-3.5 h-3.5" />}
+                  tone="danger"
+                  icon={<XCircleIcon className="w-3.5 h-3.5" />}
                 >
-                  {t("diet_generator.display.status_valid")}
+                  {t("diet_generator.display.status_blocked", {
+                    defaultValue: "Bloqueado (Incompatível)",
+                  })}
                 </Badge>
-              ) : plan.validation.status === "requires_review" ? (
+              ) : plan.status === "clinically_approved" || plan.clinicalApproval || plan.validation.isApproved ? (
+                <Badge
+                  tone="brand"
+                  icon={<ShieldIcon className="w-3.5 h-3.5" />}
+                >
+                  {t("diet_generator.display.status_approved")}
+                </Badge>
+              ) : plan.status === "awaiting_review" || plan.validation.status === "requires_review" ? (
                 <Badge
                   tone="warning"
                   icon={<AlertTriangleIcon className="w-3.5 h-3.5" />}
@@ -295,18 +310,12 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
                 </Badge>
               ) : (
                 <Badge
-                  tone="danger"
-                  icon={<XCircleIcon className="w-3.5 h-3.5" />}
+                  tone="info"
+                  icon={<CheckCircleIcon className="w-3.5 h-3.5" />}
                 >
-                  {t("diet_generator.display.status_infeasible")}
-                </Badge>
-              )}
-              {plan.validation.isApproved && (
-                <Badge
-                  tone="brand"
-                  icon={<ShieldIcon className="w-3.5 h-3.5" />}
-                >
-                  {t("diet_generator.display.status_approved")}
+                  {t("diet_generator.display.status_draft", {
+                    defaultValue: "Rascunho (Não Aprovado)",
+                  })}
                 </Badge>
               )}
             </>
@@ -345,35 +354,73 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
           )}
         </div>
 
-        {/* Clinical Validation Issues (if any) */}
-        {plan.validation?.issues && plan.validation.issues.length > 0 && (
-          <div className="mb-5 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200 text-xs space-y-1.5 no-export">
-            {plan.validation.issues.map((issue, idx) => {
-              const displayMsg = issue.code
-                ? t(`diet_validation.issues.${issue.code}`, {
-                    ...issue.details,
-                    defaultValue: issue.message,
-                  })
-                : issue.message;
-              return (
-                <div key={idx} className="flex items-start gap-2">
-                  {issue.level === "error" ? (
-                    <XCircleIcon className="w-4 h-4 shrink-0 text-rose-700" />
-                  ) : (
-                    <AlertTriangleIcon className="w-4 h-4 shrink-0" />
+        {/* Clinical Validation Issues: Blockers (Errors) */}
+        {plan.validation?.issues &&
+          plan.validation.issues.filter((i) => i.level === "error").length > 0 && (
+            <div className="mb-4 p-3.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-xl text-rose-800 dark:text-rose-200 text-xs space-y-2 no-export shadow-sm">
+              <div className="flex items-center gap-2 font-bold text-rose-900 dark:text-rose-100">
+                <XCircleIcon className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                <span>
+                  {t(
+                    "diet_generator.display.clinical_blockers_title",
+                    "Bloqueios Clínicos / Inviabilidade",
                   )}
-                  <span className="sr-only">
-                    {issue.level === "error"
-                      ? t("diet_generator.display.issue_error")
-                      : t("diet_generator.display.issue_warning")}
-                    :{" "}
-                  </span>
-                  <span className="font-medium">{displayMsg}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                </span>
+              </div>
+              <div className="space-y-1.5 pl-6">
+                {plan.validation.issues
+                  .filter((i) => i.level === "error")
+                  .map((issue, idx) => {
+                    const displayMsg = issue.code
+                      ? t(`diet_validation.issues.${issue.code}`, {
+                          ...issue.details,
+                          defaultValue: issue.message,
+                        })
+                      : issue.message;
+                    return (
+                      <div key={idx} className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                        <span className="font-medium">{displayMsg}</span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
+        {/* Clinical Validation Issues: Warnings */}
+        {plan.validation?.issues &&
+          plan.validation.issues.filter((i) => i.level !== "error").length > 0 && (
+            <div className="mb-5 p-3.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-800 dark:text-amber-200 text-xs space-y-2 no-export">
+              <div className="flex items-center gap-2 font-semibold text-amber-900 dark:text-amber-100">
+                <AlertTriangleIcon className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>
+                  {t(
+                    "diet_generator.display.clinical_warnings_title",
+                    "Avisos e Recomendações Clínicas",
+                  )}
+                </span>
+              </div>
+              <div className="space-y-1.5 pl-6">
+                {plan.validation.issues
+                  .filter((i) => i.level !== "error")
+                  .map((issue, idx) => {
+                    const displayMsg = issue.code
+                      ? t(`diet_validation.issues.${issue.code}`, {
+                          ...issue.details,
+                          defaultValue: issue.message,
+                        })
+                      : issue.message;
+                    return (
+                      <div key={idx} className="flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                        <span className="font-medium">{displayMsg}</span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
 
         {/* Summary: Prescribed Targets vs Calculated Totals */}
         <div className="bg-sage-50 dark:bg-sage-900/30 p-4 rounded-2xl mb-6 space-y-3">
@@ -386,14 +433,25 @@ const DietPlanDisplay: React.FC<DietPlanDisplayProps> = ({
                 {t("diet_generator.display.daily_summary")}
               </p>
             </div>
-            {plan.validation?.worstCaseAlternativeSodium != null &&
-              plan.validation.worstCaseAlternativeSodium > 0 && (
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1 sm:mt-0">
-                  {t("diet_generator.display.worst_case_sodium_warning", {
-                    sodium: plan.validation.worstCaseAlternativeSodium,
-                  })}
-                </span>
-              )}
+            {(() => {
+              const sodiumCeiling = plan.clinicalTags?.includes("renal_ckd")
+                ? 1500
+                : plan.clinicalTags?.includes("hypertension")
+                  ? 2000
+                  : 2300;
+              const worstSodium = plan.validation?.worstCaseAlternativeSodium;
+              if (worstSodium != null && worstSodium > sodiumCeiling) {
+                return (
+                  <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1 sm:mt-0 flex items-center gap-1">
+                    <AlertTriangleIcon className="w-3.5 h-3.5 shrink-0" />
+                    {t("diet_generator.display.worst_case_sodium_warning", {
+                      sodium: worstSodium,
+                    })}
+                  </span>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

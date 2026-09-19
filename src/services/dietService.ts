@@ -699,6 +699,31 @@ export const validateAndSerializeDietPlan = (
   const { calculatedTotals: _revalTotals, ...revalidatedClean } = revalidated;
   dto.validation = revalidatedClean;
 
+  if (plan.status) {
+    dto.status = plan.status;
+  } else {
+    if (revalidated.status === "infeasible") {
+      dto.status = "blocked";
+    } else if (revalidated.status === "requires_review") {
+      dto.status = revalidated.isApproved ? "clinically_approved" : "awaiting_review";
+    } else {
+      dto.status = revalidated.isApproved ? "clinically_approved" : "draft";
+    }
+  }
+
+  if (plan.clinicalApproval) {
+    dto.clinicalApproval = {
+      approvedByUid: plan.clinicalApproval.approvedByUid,
+      professionalName: plan.clinicalApproval.professionalName,
+      professionalCrn: plan.clinicalApproval.professionalCrn,
+      approvedAt: plan.clinicalApproval.approvedAt,
+      signature: plan.clinicalApproval.signature,
+      version: plan.clinicalApproval.version || 2,
+      ...(plan.clinicalApproval.notes ? { notes: plan.clinicalApproval.notes } : {}),
+    };
+    dto.status = "clinically_approved";
+  }
+
   if (
     typeof plan.algorithmVersion === "string" &&
     plan.algorithmVersion.trim()
@@ -1000,6 +1025,23 @@ export const validateAndSerializeDietUpdate = (
 
   if (isFiniteNumber(partial.seed)) {
     dto.seed = partial.seed;
+  }
+
+  if (partial.status) {
+    dto.status = partial.status;
+  }
+
+  if (partial.clinicalApproval) {
+    dto.clinicalApproval = {
+      approvedByUid: partial.clinicalApproval.approvedByUid,
+      professionalName: partial.clinicalApproval.professionalName,
+      professionalCrn: partial.clinicalApproval.professionalCrn,
+      approvedAt: partial.clinicalApproval.approvedAt,
+      signature: partial.clinicalApproval.signature,
+      version: partial.clinicalApproval.version || 2,
+      ...(partial.clinicalApproval.notes ? { notes: partial.clinicalApproval.notes } : {}),
+    };
+    dto.status = "clinically_approved";
   }
 
   return dto;

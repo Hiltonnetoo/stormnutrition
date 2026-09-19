@@ -74,6 +74,15 @@ export function buildCustomLayoutPdfDocument(
   clinicInfo?: ClinicInfo,
   options?: CustomLayoutPdfOptions,
 ): jsPDF {
+  if (plan.status === "blocked") {
+    throw new Error(
+      i18n.t("pdf.error_blocked_plan", {
+        defaultValue:
+          "Planos alimentares bloqueados por incompatibilidades clínicas não podem ser exportados.",
+      }),
+    );
+  }
+
   const targetLocale = (options?.locale || i18n.language || "en")
     .toLowerCase()
     .startsWith("pt")
@@ -372,9 +381,10 @@ export function buildCustomLayoutPdfDocument(
 
   /* ----------------------- Clinical Warnings & Guidelines (Passo 17 item 3) */
   const issues = plan.validation?.issues || [];
+  const sodiumCeiling = plan.clinicalTags?.includes("renal_ckd") ? 1500 : 2000;
   const hasSodiumAlert =
     plan.validation?.worstCaseAlternativeSodium != null &&
-    plan.validation.worstCaseAlternativeSodium > 0;
+    plan.validation.worstCaseAlternativeSodium > sodiumCeiling;
 
   if (issues.length > 0 || hasSodiumAlert) {
     const alertHeading = t("pdf.clinical_alerts_title", {
@@ -562,8 +572,48 @@ export function buildCustomLayoutPdfDocument(
     });
   }
 
+  /* ---------------------------------- Clinical Approval Stamp (if approved) */
+  if (plan.clinicalApproval) {
+    checkPageBreak(24);
+    doc.setFillColor(240, 253, 250); // sage-50
+    doc.setDrawColor(204, 251, 241); // sage-100
+    doc.rect(margin, yPos, contentWidth, 18, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...SAGE800);
+    doc.text(
+      t("pdf.approval_stamp_title", {
+        defaultValue: "PRESCRIÇÃO CLINICAMENTE APROVADA",
+      }),
+      margin + 4,
+      yPos + 5.5,
+    );
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...INK);
+    const profName =
+      plan.clinicalApproval.professionalName || t("pdf.nutritionist", { defaultValue: "Nutricionista" });
+    const profCrn = plan.clinicalApproval.professionalCrn
+      ? ` | CRN: ${plan.clinicalApproval.professionalCrn}`
+      : "";
+    const appDate = new Date(plan.clinicalApproval.approvedAt).toLocaleString(dateLocale);
+    doc.text(
+      `${profName}${profCrn} — Aprovado em: ${appDate}`,
+      margin + 4,
+      yPos + 10,
+    );
+    doc.setTextColor(...SUBTLE);
+    doc.text(
+      `Assinatura de revisão: ${plan.clinicalApproval.signature.slice(0, 32)}...`,
+      margin + 4,
+      yPos + 14.5,
+    );
+    yPos += 22;
+  }
+
   /* ---------------------------------------------------- Footer (every page) */
   const pageCount = doc.getNumberOfPages();
+  const isDraft = plan.status !== "clinically_approved";
   const rawFooterLeft = clinicName
     ? `${clinicName}${clinicPhone ? "  ·  " + clinicPhone : ""}`
     : t("pdf.default_brand_footer", {
@@ -577,6 +627,26 @@ export function buildCustomLayoutPdfDocument(
 
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
+
+    // Watermark / Notice for draft plans
+    if (isDraft) {
+      doc.setFillColor(254, 242, 242); // rose-50
+      doc.setDrawColor(254, 205, 211); // rose-200
+      doc.rect(margin, 2, contentWidth, 5.5, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(225, 29, 72); // rose-600
+      doc.text(
+        t("pdf.draft_watermark_text", {
+          defaultValue:
+            "RASCUNHO CLÍNICO — NÃO LIBERADO PARA O PACIENTE (REQUER APROVAÇÃO HUMANA)",
+        }),
+        pageWidth / 2,
+        5.8,
+        { align: "center" },
+      );
+    }
+
     doc.setDrawColor(...HAIR);
     doc.setLineWidth(0.4);
     doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
@@ -635,6 +705,14 @@ export const generateScreenshotPdf = async (
   element: HTMLElement,
   plan: DietPlan,
 ) => {
+  if (plan.status === "blocked") {
+    throw new Error(
+      i18n.t("pdf.error_blocked_plan", {
+        defaultValue:
+          "Planos alimentares bloqueados por incompatibilidades clínicas não podem ser exportados.",
+      }),
+    );
+  }
   try {
     const canvas = await html2canvas(element, {
       scale: 2,

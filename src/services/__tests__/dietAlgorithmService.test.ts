@@ -5,6 +5,7 @@ import {
   getGeneralObservations,
   validateDietPlan,
   InfeasiblePlanError,
+  type GenerationParams,
 } from "../dietAlgorithmService";
 import { brazilianFoods } from "../../data/foods";
 import {
@@ -827,7 +828,8 @@ describe("dietAlgorithmService", () => {
       );
 
       expect(result.status).toBe("valid");
-      expect(result.isApproved).toBe(true);
+      expect(result.isStructurallyValid).toBe(true);
+      expect(result.isApproved).toBe(false);
       expect(result.issues).toEqual([]);
     });
 
@@ -1447,6 +1449,228 @@ describe("dietAlgorithmService", () => {
       expect(find(flagged, "WORST_CASE_FAT_DEVIATION")).toBeUndefined();
       const clean = run([meal("Almoço", main, [{ ...main }])], t);
       expect(find(clean, "ZERO_TARGET_FAT")).toBeUndefined();
+    });
+  });
+
+  describe("Passo P0: Regressões de Segurança Clínica e Alergias", () => {
+    const baseTargets = {
+      calories: 2000,
+      protein: 150,
+      carbs: 220,
+      fat: 55,
+    };
+    const baseMealConfig: GenerationParams["mealPlanConfig"] = {
+      dietType: "traditional",
+      meals: [
+        { name: "Café da Manhã", time: "08:00", caloriePercentage: 25 },
+        { name: "Almoço", time: "12:30", caloriePercentage: 45 },
+        { name: "Jantar", time: "19:30", caloriePercentage: 30 },
+      ],
+    };
+
+    it("excludes foods matching foodAllergies during generation and logs EXCLUDE_ALLERGEN", () => {
+      const result = generateAlgorithmicDietPlan({
+        nutritionalTargets: baseTargets,
+        mealPlanConfig: baseMealConfig,
+        foodAllergies: "amendoim, camarão",
+      });
+
+      expect(["draft", "awaiting_review"]).toContain(result.status);
+      const allergyLogs = result.decisionLog.filter(
+        (entry) => entry.code === "EXCLUDE_ALLERGEN",
+      );
+      expect(allergyLogs.length).toBeGreaterThanOrEqual(1);
+
+      // Verify none of the meals contain peanut or shrimp
+      for (const meal of result.meals) {
+        for (const item of meal.mainOption.items || []) {
+          expect(item.name.toLowerCase()).not.toContain("amendoim");
+          expect(item.name.toLowerCase()).not.toContain("camarão");
+        }
+      }
+    });
+
+    it("validateDietPlan flags food matching foodAllergies with ALLERGY_VIOLATION and marks status infeasible", () => {
+      const peanutFood: Food = {
+        id: "peanut_butter_test",
+        name: "Pasta de Amendoim Integral",
+        category: "Oleaginosas",
+        portion: "30g",
+        unit: "g",
+        calories: 588,
+        protein: 25,
+        carbs: 20,
+        fat: 50,
+        fiber: 5,
+        sodium: 10,
+      };
+
+      const mealWithAllergen: Meal = {
+        mealName: "Café da Manhã",
+        time: "08:00",
+        calories: 588,
+        protein: 25,
+        carbs: 20,
+        fat: 50,
+        mainOption: {
+          name: "Pasta de amendoim com torrada",
+          portion: "30g",
+          calories: 588,
+          protein: 25,
+          carbs: 20,
+          fat: 50,
+          items: [
+            {
+              foodId: "peanut_butter_test",
+              name: "Pasta de Amendoim Integral",
+              portion: "30g",
+              portionGrams: 30,
+              unit: "g",
+              calories: 588,
+              protein: 25,
+              carbs: 20,
+              fat: 50,
+            },
+          ],
+        },
+        alternatives: [],
+      };
+
+      const result = validateDietPlan(
+        [mealWithAllergen],
+        { calories: 588, protein: 25, carbs: 20, fat: 50 },
+        {
+          availableFoodsCatalog: [peanutFood],
+          foodAllergies: "amendoim",
+        },
+      );
+
+      expect(result.status).toBe("infeasible");
+      expect(result.isApproved).toBe(false);
+      expect(result.isStructurallyValid).toBe(false);
+      const allergyIssue = result.issues.find(
+        (issue) => issue.code === "ALLERGY_VIOLATION",
+      );
+      expect(allergyIssue).toBeDefined();
+      expect(allergyIssue?.level).toBe("error");
+    });
+
+    it("initial plan from generateAlgorithmicDietPlan returns draft status and structural validity without auto-approval", () => {
+      const result = generateAlgorithmicDietPlan({
+        nutritionalTargets: baseTargets,
+        mealPlanConfig: baseMealConfig,
+      });
+
+      expect(["draft", "awaiting_review"]).toContain(result.status);
+      expect(result.validation.isApproved).toBe(false);
+      expect(typeof result.validation.isStructurallyValid).toBe("boolean");
+    });
+  });
+
+  describe("Passo P1: Inteligência Culinária, Arquétipos e Auto-Correção", () => {
+    const fullDayConfig: GenerationParams["mealPlanConfig"] = {
+      dietType: "traditional",
+      meals: [
+        { name: "Café da Manhã", time: "07:30", caloriePercentage: 20 },
+        { name: "Lanche da Manhã", time: "10:30", caloriePercentage: 10 },
+        { name: "Almoço", time: "12:30", caloriePercentage: 35 },
+        { name: "Lanche da Tarde", time: "16:00", caloriePercentage: 15 },
+        { name: "Jantar", time: "20:00", caloriePercentage: 20 },
+      ],
+    };
+    const targets = {
+      calories: 2000,
+      protein: 150,
+      carbs: 220,
+      fat: 55,
+    };
+
+    it("respects culinary archetypes: no beans or heavy red meat at breakfast or snacks", () => {
+      const result = generateAlgorithmicDietPlan({
+        nutritionalTargets: targets,
+        mealPlanConfig: fullDayConfig,
+        seed: 42,
+      });
+
+      const breakfast = result.meals.find((m) => m.mealName === "Café da Manhã");
+      const morningSnack = result.meals.find(
+        (m) => m.mealName === "Lanche da Manhã",
+      );
+      const afternoonSnack = result.meals.find(
+        (m) => m.mealName === "Lanche da Tarde",
+      );
+
+      expect(breakfast).toBeDefined();
+      expect(morningSnack).toBeDefined();
+      expect(afternoonSnack).toBeDefined();
+
+      const forbiddenBreakfastSnack = ["feijão", "lentilha", "patinho", "alcatra", "picanha"];
+
+      const checkNoForbidden = (meal: Meal) => {
+        const allOpts = [meal.mainOption, ...meal.alternatives];
+        for (const opt of allOpts) {
+          for (const item of opt.items || []) {
+            const lower = item.name.toLowerCase();
+            for (const f of forbiddenBreakfastSnack) {
+              expect(lower).not.toContain(f);
+            }
+          }
+        }
+      };
+
+      checkNoForbidden(breakfast!);
+      checkNoForbidden(morningSnack!);
+      checkNoForbidden(afternoonSnack!);
+    });
+
+    it("strictly clamps oil and fat portions to culinary boundaries (<= 20ml/g)", () => {
+      const result = generateAlgorithmicDietPlan({
+        nutritionalTargets: targets,
+        mealPlanConfig: fullDayConfig,
+        seed: 123,
+      });
+
+      for (const meal of result.meals) {
+        const allOpts = [meal.mainOption, ...meal.alternatives];
+        for (const opt of allOpts) {
+          for (const item of opt.items || []) {
+            const lower = item.name.toLowerCase();
+            if (lower.includes("azeite") || lower.includes("óleo")) {
+              expect(item.portionGrams).toBeLessThanOrEqual(20);
+              expect(item.portionGrams).toBeGreaterThanOrEqual(5);
+            }
+          }
+        }
+      }
+    });
+
+    it("generates functionally equivalent alternatives with auto-correction keeping caloric divergence <= 20%", () => {
+      const result = generateAlgorithmicDietPlan({
+        nutritionalTargets: targets,
+        mealPlanConfig: fullDayConfig,
+        seed: 999,
+      });
+
+      for (const meal of result.meals) {
+        const mainCal = meal.mainOption.calories;
+        for (const alt of meal.alternatives) {
+          const divergence = Math.abs(alt.calories - mainCal) / mainCal;
+          expect(divergence).toBeLessThanOrEqual(0.20);
+        }
+      }
+    });
+
+    it("replaces arbitrary static string 'preparação saudável' with contextual preparation description", () => {
+      const result = generateAlgorithmicDietPlan({
+        nutritionalTargets: targets,
+        mealPlanConfig: fullDayConfig,
+        seed: 77,
+      });
+
+      for (const meal of result.meals) {
+        expect(meal.mainOption.details).not.toBe("preparação saudável");
+        expect(meal.mainOption.details).toBeTruthy();
+      }
     });
   });
 });
